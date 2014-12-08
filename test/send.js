@@ -781,150 +781,86 @@ describe('send.use(req, res)', function (){
     });
 
     it('should support fallbacks', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: ['default.htm', 'index.html'] })
-          .pipe(res);
-      });
+      var server = createServer({ root: fixtures, index: ['default.htm', 'index.html'] });
 
-      request(app)
+      request(server)
         .get('/pets/')
         .expect(200, fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), done);
     });
 
-    it('should 404 if no index file found (file)', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: 'default.htm' })
-          .pipe(res);
-      });
+    it('should if no index file found in dir, redirect to view dir, and default 403', function (done){
+      var server = createServer({ root: fixtures, index: 'default.htm' });
 
-      request(app)
+      request(server)
         .get('/pets/')
-        .expect(404, done);
-    });
-
-    it('should 404 if no index file found (dir)', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: 'pets' })
-          .pipe(res);
-      });
-
-      request(app)
-        .get('/')
-        .expect(404, done);
+        .expect(403, done);
     });
 
     it('should not follow directories', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: ['pets', 'name.txt'] })
-          .pipe(res);
-      });
-
-      request(app)
-        .get('/')
-        .expect(200, 'tobi', done);
-    });
-
-    it('should work without root', function (done){
-      var server = http.createServer(function (req, res){
-        var p = path.join(fixtures, 'pets').replace(/\\/g, '/') + '/';
-        send(req, p, { index: ['index.html'] })
-          .pipe(res);
-      });
+      var server = createServer({ root: fixtures, index: ['pets', 'name.txt'] });
 
       request(server)
         .get('/')
-        .expect(200, /tobi/, done);
+        .expect(200, 'tobi', done);
     });
   });
 
   describe('root', function (){
     describe('when given', function (){
       it('should join root', function (done){
-        var app = http.createServer(function (req, res){
-          send(req, req.url, { root: __dirname + '/fixtures' })
-            .pipe(res);
-        });
+        var server = createServer({ root: __dirname + '/fixtures' });
 
-        request(app)
+        request(server)
           .get('/pets/../name.txt')
           .expect(200, 'tobi', done);
       });
 
       it('should work with trailing slash', function (done){
-        var app = http.createServer(function (req, res){
-          send(req, req.url, { root: __dirname + '/fixtures/' })
-            .pipe(res);
-        });
+        var server = createServer({ root: __dirname + '/fixtures/' });
 
-        request(app)
+        request(server)
           .get('/name.txt')
           .expect(200, 'tobi', done);
       });
 
-      it('should work with empty path', function (done){
-        var app = http.createServer(function (req, res){
-          send(req, '', { root: __dirname + '/fixtures' })
-            .pipe(res);
-        });
-
-        request(app)
-          .get('/name.txt')
-          .expect(301, /Redirecting to/, done);
-      });
-
       it('should restrict paths to within root', function (done){
-        var app = http.createServer(function (req, res){
-          send(req, req.url, { root: __dirname + '/fixtures' })
-            .pipe(res);
-        });
+        var server = createServer({ root: __dirname + '/fixtures' });
 
-        request(app)
+        request(server)
           .get('/pets/../../send.js')
-          .expect(403, done);
+          .expect(404, done);
       });
 
       it('should allow .. in root', function (done){
-        var app = http.createServer(function (req, res){
-          send(req, req.url, { root: __dirname + '/fixtures/../fixtures' })
-            .pipe(res);
-        });
+        var server = createServer({ root: __dirname + '/fixtures/../fixtures' });
 
-        request(app)
+        request(server)
           .get('/pets/../../send.js')
-          .expect(403, done);
+          .expect(404, done);
       });
 
       it('should not allow root transversal', function (done){
-        var app = http.createServer(function (req, res){
-          send(req, req.url, { root: __dirname + '/fixtures/name.d' })
-            .pipe(res);
-        });
+        var server = createServer({ root: __dirname + '/fixtures/name.d' });
 
-        request(app)
+        request(server)
           .get('/../name.dir/name.txt')
-          .expect(403, done);
+          .expect(404, done);
       });
     });
 
     describe('when missing', function (){
       it('should consider .. malicious', function (done){
-        var app = http.createServer(function (req, res){
-          send(req, fixtures + req.url)
-            .pipe(res);
-        });
+        var server = createServer({ root: __dirname + '/fixtures/' });
 
-        request(app)
+        request(server)
           .get('/../send.js')
-          .expect(403, done);
+          .expect(404, done);
       });
 
       it('should still serve files with dots in name', function (done){
-        var app = http.createServer(function (req, res){
-          send(req, fixtures + req.url)
-            .pipe(res);
-        });
+        var server = createServer({ root: __dirname + '/fixtures/' });
 
-        request(app)
+        request(server)
           .get('/do..ts.txt')
           .expect(200, '...', done);
       });
