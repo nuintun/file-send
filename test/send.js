@@ -765,23 +765,17 @@ describe('send.use(req, res)', function (){
     });
 
     it('should be configurable', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: 'tobi.html' })
-          .pipe(res);
-      });
+      var server = createServer({ root: fixtures, index: 'tobi.html' });
 
-      request(app)
+      request(server)
         .get('/')
         .expect(200, '<p>tobi</p>', done);
     });
 
     it('should support disabling', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: false })
-          .pipe(res);
-      });
+      var server = createServer({ root: fixtures, index: false });
 
-      request(app)
+      request(server)
         .get('/pets/')
         .expect(403, done);
     });

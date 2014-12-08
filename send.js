@@ -73,12 +73,16 @@ function Send(root, options){
     : 'ignore';
 
   // Extensions
-  options.extensions = util.normalizeList(options.extensions);
+  options.extensions = !options.extensions
+    ? []
+    : util.normalizeList(options.extensions);
 
   // Default document
-  options.index = util.isType(options.index, 'array') || util.isType(options.index, 'string')
-    ? util.normalizeList(options.index)
-    : ['index.htm', 'index.html'];
+  options.index = options.index === false
+    ? []
+    : options.index === undefined || options.index === true
+    ? ['index.htm', 'index.html']
+    : util.normalizeList(options.index);
 
   // Last modified
   options.lastModified = options.lastModified !== undefined
