@@ -122,7 +122,7 @@ Send.prototype.use = function (requset, response){
  * @api private
  */
 function SendStream(requset, response, options){
-  var path;
+  var url;
 
   // Reset debug timestamp
   debugTimestamp.reset();
@@ -132,13 +132,11 @@ function SendStream(requset, response, options){
   this.response = response;
 
   // Format path
-  path = util.httpPath(requset.url || '/');
-  path = decode(path);
-
-  this.path = requset.url = path;
+  url = util.httpPath(util.decode(requset.url));
+  this.url = requset.url = url;
 
   // Bebug infomation
-  debugRequest('Uri: %s'.green.bold, path);
+  debugRequest('Url: %s'.green.bold, url);
 
   // Root
   this.root = options.root;
@@ -209,7 +207,7 @@ SendStream.prototype.error = function (status, err){
  * @api private
  */
 SendStream.prototype.hasTrailingSlash = function (){
-  return '/' === this.path.slice(-1);
+  return '/' === this.url.slice(-1);
 };
 
 /**
@@ -385,7 +383,7 @@ SendStream.prototype.transfer = function (){
     req = this.requset,
     res = this.response,
     root = this.root,
-    path = this.path; // Decode the path
+    path = this.url; // Decode the path
 
   // Requset method not support
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -642,7 +640,7 @@ SendStream.prototype.sendFile = function sendFile(path){
       if (self.hasTrailingSlash()) {
         return self.directory(path, stat);
       } else {
-        return self.redirect(self.path + '/');
+        return self.redirect(self.url + '/');
       }
     }
 
