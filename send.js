@@ -122,8 +122,6 @@ Send.prototype.use = function (requset, response){
  * @api private
  */
 function SendStream(requset, response, options){
-  var url;
-
   // Reset debug timestamp
   debugTimestamp.reset();
 
@@ -132,11 +130,10 @@ function SendStream(requset, response, options){
   this.response = response;
 
   // Format path
-  url = util.httpPath(util.decode(requset.url));
-  this.url = requset.url = url;
+  this.url = util.httpPath(util.decode(requset.url));
 
   // Bebug infomation
-  debugRequest('Url: %s'.green.bold, url);
+  debugRequest('Url: %s'.green.bold, this.url);
 
   // Root
   this.root = options.root;
