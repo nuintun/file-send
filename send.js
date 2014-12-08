@@ -972,5 +972,8 @@ SendStream.prototype.setHeader = function setHeader(path, stat){
   util.listenerCount(this, 'headers') > 0 && this.emit('headers', res, path, stat);
 };
 
+// Expose mime
+Send.mime = mime;
+
 // Expose send
 module.exports = Send;

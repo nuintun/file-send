@@ -5,13 +5,13 @@ var fs = require('fs');
 var http = require('http');
 var path = require('path');
 var request = require('supertest');
-var send = require('..');
+var Send = require('../send');
 var should = require('should');
 
 // test server
-
 var dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
 var fixtures = path.join(__dirname, 'fixtures');
+var send = new Send(fixtures);
 var app = http.createServer(function (req, res){
   function error(err){
     res.statusCode = err.status;
@@ -24,19 +24,19 @@ var app = http.createServer(function (req, res){
     res.end('Redirecting to ' + req.url + '/');
   }
 
-  send(req, req.url, { root: fixtures })
+  send.use(req, res)
     .on('error', error)
     .on('directory', redirect)
-    .pipe(res);
+    .transfer();
 });
 
 describe('send.mime', function (){
   it('should be exposed', function (){
-    assert(send.mime);
+    assert(Send.mime);
   })
 });
 
-describe('send(file).pipe(res)', function (){
+describe('send.use(req, res).transfer()', function (){
   it('should stream the file contents', function (done){
     request(app)
       .get('/name.txt')
@@ -69,7 +69,7 @@ describe('send(file).pipe(res)', function (){
   });
 
   it('should treat an ENAMETOOLONG as a 404', function (done){
-    var path = Array(100).join('foobar');
+    var path = (new Array(100)).join('foobar');
     request(app)
       .get('/' + path)
       .expect(404, done);
@@ -1196,9 +1196,11 @@ describe('send(file, options)', function (){
 });
 
 function createServer(opts){
+  var send = new Send(opts.root, opts);
+
   return http.createServer(function onRequest(req, res){
     try {
-      send(req, req.url, opts).pipe(res);
+      send.use(req, req).transfer();
     } catch (err) {
       res.statusCode = 500;
       res.end(err.message);
