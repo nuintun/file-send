@@ -505,7 +505,6 @@ SendStream.prototype.parseRange = function (stat){
   var start, end,
     boundary,
     endBoundary,
-    endBoundaryByte,
     rangeFresh,
     contentType,
     self = this,
@@ -546,7 +545,7 @@ SendStream.prototype.parseRange = function (stat){
           // Create boundary and end boundary
           boundary = '--<' + boundary + '>';
           endBoundary = '\r\n' + boundary + '--';
-          endBoundaryByte = Buffer.byteLength(endBoundary);
+          boundary += '\r\nContent-Type: ' + contentType;
 
           // Loop ranges
           ranges.forEach(function (range, i){
@@ -558,7 +557,6 @@ SendStream.prototype.parseRange = function (stat){
 
             // Set fields
             _boundary = (i == 0 ? '' : '\r\n') + boundary
-            + '\r\nContent-Type: ' + contentType
             + '\r\nContent-Range: ' + 'bytes ' + start
             + '-' + end + '/' + stat.size + '\r\n\r\n';
 
@@ -572,7 +570,7 @@ SendStream.prototype.parseRange = function (stat){
 
           // The last add endBoundary
           self.ranges[self.ranges.length - 1].endBoundary = endBoundary;
-          size += endBoundaryByte;
+          size += Buffer.byteLength(endBoundary);
         } else {
           this.ranges.push(ranges[0]);
           start = ranges[0].start;
