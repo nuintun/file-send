@@ -184,7 +184,10 @@ SendStream.prototype.error = function (status, err){
 
   // Header already sent
   if (res.headersSent) {
-    res.end(JSON.stringify(err));
+    res.end(JSON.stringify({
+      status: status,
+      message: err.message
+    }));
   } else {
     // Wipe all existing headers
     res._headers = undefined;

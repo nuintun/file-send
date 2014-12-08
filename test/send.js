@@ -77,14 +77,13 @@ describe('send.use(req, res).transfer()', function (){
 
   it('should handle headers already sent error', function (done){
     var app = http.createServer(function (req, res){
-      res.write('0');
-      send.use(req, req)
-        .on('error', function (err){ res.end(' - ' + err.message) })
+      res.write('0 - ');
+      send.use(req, res)
         .transfer();
     });
     request(app)
       .get('/nums')
-      .expect(200, '0 - Can\'t set headers after they are sent.', done);
+      .expect(200, '0 - {"status":500,"message":"Can\'t set headers after they are sent"}', done);
   });
 
   it('should support HEAD', function (done){
@@ -97,7 +96,7 @@ describe('send.use(req, res).transfer()', function (){
   it('should add an ETag header field', function (done){
     request(app)
       .get('/name.txt')
-      .expect('etag', /^W\/"[^"]+"$/)
+      .expect('etag', /^"\S{22}=="$/)
       .end(done);
   });
 
