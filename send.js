@@ -376,37 +376,37 @@ SendStream.prototype.directory = function (path, stat){
  * @api public
  */
 SendStream.prototype.transfer = function (){
-  var dotFiles,
+  var path, dotFiles,
     req = this.requset,
     res = this.response,
     root = this.root,
-    path = this.url; // Decode the path
+    url = this.url; // Decode the url
 
   // Requset method not support
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     this.error(405);
   }
 
-  // Malicious path
-  if (UPPATHRE.test(path)) {
+  // Malicious url
+  if (UPPATHRE.test(url)) {
     // Debug infomation
-    debugResponse('Malicious path: %s', path);
+    debugResponse('Malicious url: %s', url);
 
     return this.error(403);
   }
 
   // Path error
-  if (path === -1) {
+  if (url === -1) {
     return this.error(400);
   }
 
   // Null byte(s)
-  if (~path.indexOf('\0')) {
+  if (~url.indexOf('\0')) {
     return this.error(400);
   }
 
   // Join and normalize from optional root dir
-  path = util.httpPath(join(root, path));
+  path = util.httpPath(join(root, url));
 
   // Malicious path
   if (util.httpPath(path + sep).substr(0, root.length) !== root) {
