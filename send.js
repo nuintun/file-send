@@ -400,14 +400,6 @@ SendStream.prototype.transfer = function (){
     this.error(405);
   }
 
-  // Malicious url
-  if (UPPATHRE.test(url)) {
-    // Debug infomation
-    debugResponse('Malicious url: %s', url);
-
-    return this.error(403);
-  }
-
   // Path error
   if (url === -1) {
     return this.error(400);
