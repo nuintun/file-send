@@ -178,14 +178,14 @@ describe('send.use(req, res).transfer()', function (){
 
   it('should 500 on file stream error', function (done){
     var app = http.createServer(function (req, res){
-      send(req, req.url, { root: 'test/fixtures' })
+      send.use(req, res)
         .on('stream', function (stream){
           // simulate file error
           process.nextTick(function (){
             stream.emit('error', new Error('boom!'));
           });
         })
-        .pipe(res);
+        .transfer();
     });
 
     request(app)
@@ -200,13 +200,13 @@ describe('send.use(req, res).transfer()', function (){
     var server;
     before(function (){
       server = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures })
+        send.use(req, res)
           .on('headers', function (){
             args = arguments;
             headers = true;
             fn && fn.apply(this, arguments)
           })
-          .pipe(res);
+          .transfer();
       });
     });
     beforeEach(function (){
@@ -299,8 +299,8 @@ describe('send.use(req, res).transfer()', function (){
     var server;
     before(function (){
       server = http.createServer(function (req, res){
-        send(req, req.url, { root: 'test/fixtures' })
-          .pipe(res);
+        send.use(req, res)
+          .transfer();
       });
     });
 
@@ -309,14 +309,16 @@ describe('send.use(req, res).transfer()', function (){
         .get('/pets')
         .expect('Location', '/pets/')
         .expect('Content-Type', 'text/html; charset=utf-8')
-        .expect(301, 'Redirecting to <a href="/pets/">/pets/</a>\n', done);
+        .expect(301, 'Redirecting to <a href="/pets/">/pets/</a>', done);
     });
   });
 
   describe('when no "error" listeners are present', function (){
     it('should respond to errors directly', function (done){
       var app = http.createServer(function (req, res){
-        send(req, 'test/fixtures' + req.url).pipe(res);
+        req.url = 'test/fixtures' + req.url;
+        send.use(req, res)
+          .transfer();
       });
 
       request(app)
@@ -428,6 +430,7 @@ describe('send.use(req, res).transfer()', function (){
 
     describe('when the first- byte-pos of the range is greater length', function (){
       it('should respond with 416', function (done){
+        app.removeAllListeners('error');
         request(app)
           .get('/nums')
           .set('Range', 'bytes=9-50')

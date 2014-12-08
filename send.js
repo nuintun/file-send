@@ -192,7 +192,7 @@ SendStream.prototype.error = function (status, err){
     // Wipe all existing headers
     res._headers = undefined;
     // Set status code
-    res.statusCode = err.status;
+    res.statusCode = status;
 
     // Emit if listeners instead of responding
     if (util.listenerCount(this, 'error') > 0) {
