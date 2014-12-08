@@ -597,31 +597,15 @@ describe('send.use(req, res)', function (){
 
   describe('lastModified', function (){
     it('should support disabling last-modified', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { lastModified: false, root: fixtures })
-          .pipe(res);
-      });
+      var server = createServer({ lastModified: false, root: fixtures });
 
-      request(app)
+      request(server)
         .get('/nums')
         .expect(200, function (err, res){
           if (err) return done(err);
           res.headers.should.not.have.property('last-modified');
           done();
         });
-    });
-  });
-
-  describe('from', function (){
-    it('should set with deprecated from', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { from: __dirname + '/fixtures' })
-          .pipe(res);
-      });
-
-      request(app)
-        .get('/pets/../name.txt')
-        .expect(200, 'tobi', done);
     });
   });
 
@@ -632,163 +616,112 @@ describe('send.use(req, res)', function (){
         .expect(404, done);
     });
 
-    it('should allow file within dotfile directory for back-compat', function (done){
-      request(createServer({ root: fixtures }))
-        .get('/.mine/name.txt')
-        .expect(200, /tobi/, done);
-    });
-
-    it('should reject bad value', function (done){
-      request(createServer({ dotfiles: 'bogus' }))
+    it('should bad value use default', function (done){
+      request(createServer({ dotFiles: 'bogus' }))
         .get('/nums')
-        .expect(500, /dotfiles/, done);
+        .expect(404, done);
     });
 
-    describe('when "allow"', function (done){
+    describe('when "allow"', function (){
       it('should send dotfile', function (done){
-        request(createServer({ dotfiles: 'allow', root: fixtures }))
+        request(createServer({ dotFiles: 'allow', root: fixtures }))
           .get('/.hidden')
           .expect(200, /secret/, done);
       });
 
       it('should send within dotfile directory', function (done){
-        request(createServer({ dotfiles: 'allow', root: fixtures }))
+        request(createServer({ dotFiles: 'allow', root: fixtures }))
           .get('/.mine/name.txt')
           .expect(200, /tobi/, done);
       });
-
-      it('should 404 for non-existent dotfile', function (done){
-        request(createServer({ dotfiles: 'allow', root: fixtures }))
-          .get('/.nothere')
-          .expect(404, done);
-      });
     });
 
-    describe('when "deny"', function (done){
+    describe('when "deny"', function (){
       it('should 403 for dotfile', function (done){
-        request(createServer({ dotfiles: 'deny', root: fixtures }))
+        request(createServer({ dotFiles: 'deny', root: fixtures }))
           .get('/.hidden')
           .expect(403, done);
       });
 
       it('should 403 for dotfile directory', function (done){
-        request(createServer({ dotfiles: 'deny', root: fixtures }))
+        request(createServer({ dotFiles: 'deny', root: fixtures }))
           .get('/.mine')
           .expect(403, done);
       });
 
       it('should 403 for dotfile directory with trailing slash', function (done){
-        request(createServer({ dotfiles: 'deny', root: fixtures }))
+        request(createServer({ dotFiles: 'deny', root: fixtures }))
           .get('/.mine/')
           .expect(403, done);
       });
 
       it('should 403 for file within dotfile directory', function (done){
-        request(createServer({ dotfiles: 'deny', root: fixtures }))
+        request(createServer({ dotFiles: 'deny', root: fixtures }))
           .get('/.mine/name.txt')
           .expect(403, done);
       });
 
       it('should 403 for non-existent dotfile', function (done){
-        request(createServer({ dotfiles: 'deny', root: fixtures }))
+        request(createServer({ dotFiles: 'deny', root: fixtures }))
           .get('/.nothere')
           .expect(403, done);
       });
 
       it('should 403 for non-existent dotfile directory', function (done){
-        request(createServer({ dotfiles: 'deny', root: fixtures }))
+        request(createServer({ dotFiles: 'deny', root: fixtures }))
           .get('/.what/name.txt')
           .expect(403, done);
       });
 
       it('should send files in root dotfile directory', function (done){
-        request(createServer({ dotfiles: 'deny', root: path.join(fixtures, '.mine') }))
+        request(createServer({ dotFiles: 'deny', root: path.join(fixtures, '.mine') }))
           .get('/name.txt')
           .expect(200, /tobi/, done);
       });
-
-      it('should 403 for dotfile without root', function (done){
-        var server = http.createServer(function onRequest(req, res){
-          send(req, fixtures + '/.mine' + req.url, { dotfiles: 'deny' }).pipe(res)
-        });
-
-        request(server)
-          .get('/name.txt')
-          .expect(403, done);
-      });
     });
 
-    describe('when "ignore"', function (done){
+    describe('when "ignore"', function (){
       it('should 404 for dotfile', function (done){
-        request(createServer({ dotfiles: 'ignore', root: fixtures }))
+        request(createServer({ dotFiles: 'ignore', root: fixtures }))
           .get('/.hidden')
           .expect(404, done);
       });
 
       it('should 404 for dotfile directory', function (done){
-        request(createServer({ dotfiles: 'ignore', root: fixtures }))
+        request(createServer({ dotFiles: 'ignore', root: fixtures }))
           .get('/.mine')
           .expect(404, done);
       });
 
       it('should 404 for dotfile directory with trailing slash', function (done){
-        request(createServer({ dotfiles: 'ignore', root: fixtures }))
+        request(createServer({ dotFiles: 'ignore', root: fixtures }))
           .get('/.mine/')
           .expect(404, done);
       });
 
       it('should 404 for file within dotfile directory', function (done){
-        request(createServer({ dotfiles: 'ignore', root: fixtures }))
+        request(createServer({ dotFiles: 'ignore', root: fixtures }))
           .get('/.mine/name.txt')
           .expect(404, done)
       })
 
       it('should 404 for non-existent dotfile', function (done){
-        request(createServer({ dotfiles: 'ignore', root: fixtures }))
+        request(createServer({ dotFiles: 'ignore', root: fixtures }))
           .get('/.nothere')
           .expect(404, done);
       });
 
       it('should 404 for non-existent dotfile directory', function (done){
-        request(createServer({ dotfiles: 'ignore', root: fixtures }))
+        request(createServer({ dotFiles: 'ignore', root: fixtures }))
           .get('/.what/name.txt')
           .expect(404, done);
       });
 
       it('should send files in root dotfile directory', function (done){
-        request(createServer({ dotfiles: 'ignore', root: path.join(fixtures, '.mine') }))
+        request(createServer({ dotFiles: 'ignore', root: path.join(fixtures, '.mine') }))
           .get('/name.txt')
           .expect(200, /tobi/, done);
       });
-
-      it('should 404 for dotfile without root', function (done){
-        var server = http.createServer(function onRequest(req, res){
-          send(req, fixtures + '/.mine' + req.url, { dotfiles: 'ignore' }).pipe(res)
-        });
-
-        request(server)
-          .get('/name.txt')
-          .expect(404, done);
-      });
-    });
-  });
-
-  describe('hidden', function (){
-    it('should default to false', function (done){
-      request(app)
-        .get('/.hidden')
-        .expect(404, 'Not Found', done);
-    });
-
-    it('should default support sending hidden files', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { hidden: true, root: fixtures })
-          .pipe(res);
-      });
-
-      request(app)
-        .get('/.hidden')
-        .expect(200, /secret/, done);
     });
   });
 
@@ -800,34 +733,25 @@ describe('send.use(req, res)', function (){
     });
 
     it('should floor to integer', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, 'test/fixtures/name.txt', { maxAge: 123956 })
-          .pipe(res);
-      });
+      var server = createServer({ maxAge: 123.956, root: fixtures });
 
-      request(app)
+      request(server)
         .get('/name.txt')
         .expect('Cache-Control', 'public, max-age=123', done);
     });
 
     it('should accept string', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, 'test/fixtures/name.txt', { maxAge: '30d' })
-          .pipe(res);
-      });
+      var server = createServer({ maxAge: '30d', root: fixtures });
 
-      request(app)
+      request(server)
         .get('/name.txt')
         .expect('Cache-Control', 'public, max-age=2592000', done);
     });
 
     it('should max at 1 year', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, 'test/fixtures/name.txt', { maxAge: Infinity })
-          .pipe(res);
-      });
+      var server = createServer({ maxAge: Infinity, root: fixtures });
 
-      request(app)
+      request(server)
         .get('/name.txt')
         .expect('Cache-Control', 'public, max-age=31536000', done);
     });

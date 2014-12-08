@@ -94,7 +94,9 @@ function Send(root, options){
 
   options.maxAge = maxAge >= 0
     ? Math.min(maxAge, MAXMAXAGE)
-    : MAXMAXAGE;
+    : 0;
+
+  options.maxAge = Math.floor(options.maxAge);
 
   // Set other property
   this.options = options;
@@ -426,7 +428,7 @@ SendStream.prototype.transfer = function (){
   }
 
   // Dotfile handling
-  if (util.containsDotFile(path)) {
+  if (util.containsDotFile(url)) {
     dotFiles = this.dotFiles;
 
     // Debug infomation
