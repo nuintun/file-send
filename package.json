@@ -29,7 +29,8 @@
     "http",
     "server",
     "http send",
-    "file send"
+    "file send",
+    "file stream"
   ],
   "dependencies": {
     "ms": "~0.7.0",
