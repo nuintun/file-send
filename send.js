@@ -27,7 +27,6 @@ var resolve,
   onFinished = require('on-finished'), // On response finished
   escapeHtml = require('escape-html'), // Escape html
   parseRange = require('range-parser'), // Range parser
-  UPPATHRE = /(?:^|[\\\/])\.\.(?:[\\\/]|$)/, // Is parent path
   EventEmitter = require('events').EventEmitter, // EventEmitter
   debugRequest = debug('Request ', debugTimestamp), // Debug request
   debugResponse = debug('Response', debugTimestamp); // Debug response
@@ -421,15 +420,6 @@ SendStream.prototype.transfer = function (){
 
   // Join and normalize from optional root dir
   path = util.httpPath(join(root, url));
-
-  // Malicious path
-  if (util.httpPath(path + sep).substr(0, root.length) !== root) {
-    // Debug infomation
-    debugResponse('Malicious path: %s', path);
-
-    // 403
-    return this.error(403);
-  }
 
   // Dotfile handling
   if (util.containsDotFile(url)) {
