@@ -9,7 +9,7 @@
 'use strict';
 
 var resolve,
-  sep, join,
+  sep, join, extname,
   ms = require('ms'), // Parse time string
   fs = require('fs'), // File system
   cwd = process.cwd(), // Current working directory of the process
@@ -36,6 +36,7 @@ var resolve,
 sep = path.sep;
 join = path.join;
 resolve = path.resolve;
+extname = path.extname;
 
 /**
  * Send
@@ -456,7 +457,7 @@ SendStream.prototype.transfer = function (){
 };
 
 /**
- * Transfer `path`
+ * Transfer file
  * @param {String} path
  * @param {Object} stat
  * @api public
@@ -503,7 +504,7 @@ SendStream.prototype.send = function (path, stat){
     return res.end();
   }
 
-  // Send
+  // Send stream
   this.stream(path);
 };
 
@@ -600,7 +601,7 @@ SendStream.prototype.parseRange = function (stat){
           // Reset content length
           size = end - start + 1;
         }
-      } else {
+      } else if (ranges === -1) {
         // Debug infomation
         debugResponse('Range unsatisfiable');
         debugResponse('Content-Range: bytes */%s', size);
@@ -661,7 +662,8 @@ SendStream.prototype.sendFile = function sendFile(path){
 
     // Check extensions
     if (lenExt > 0
-      && !self.hasTrailingSlash()) {
+      && !self.hasTrailingSlash()
+      && extensions.indexOf(extname(path).slice(1)) === -1) {
       return next(err);
     }
 
