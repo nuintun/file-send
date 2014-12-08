@@ -8,30 +8,34 @@
 
 'use strict';
 
-var ms = require('ms'),
-  fs = require('fs'),
-  cwd = process.cwd(),
-  http = require('http'),
-  path = require('path'),
-  sep = path.sep,
-  join = path.join,
-  resolve = path.resolve,
-  mime = require('mime'),
-  etag = require('etag'),
-  fresh = require('fresh'),
-  Stream = require('stream'),
-  util = require('./lib/util'),
-  destroy = require('destroy'),
-  debug = require('./lib/debug'),
-  debugTimestamp = debug.timestamp(),
-  onFinished = require('on-finished'),
-  escapeHtml = require('escape-html'),
-  parseRange = require('range-parser'),
-  debugRequest = debug('Request ', debugTimestamp),
-  debugResponse = debug('Response', debugTimestamp),
+var resolve,
+  sep, join,
+  ms = require('ms'), // Parse time string
+  fs = require('fs'), // File system
+  cwd = process.cwd(), // CWD
+  http = require('http'), // Http
+  path = require('path'), // Path
+  mime = require('mime'), // MIME
+  etag = require('etag'), // ETag
+  fresh = require('fresh'), // Fresh
+  Stream = require('stream'), // Stream
+  util = require('./lib/util'), // Util
+  destroy = require('destroy'), // Destroy stream
+  debug = require('./lib/debug'), // Debug
   MAXMAXAGE = 60 * 60 * 24 * 365, // The max maxAge set
-  UPPATHRE = /(?:^|[\\\/])\.\.(?:[\\\/]|$)/, // Parent path
-  EventEmitter = require('events').EventEmitter;
+  debugTimestamp = debug.timestamp(), // Debug timestamp
+  onFinished = require('on-finished'), // On response finished
+  escapeHtml = require('escape-html'), // Escape html
+  parseRange = require('range-parser'), // Range parser
+  UPPATHRE = /(?:^|[\\\/])\.\.(?:[\\\/]|$)/, // Is parent path
+  EventEmitter = require('events').EventEmitter, // EventEmitter
+  debugRequest = debug('Request ', debugTimestamp), // Debug request
+  debugResponse = debug('Response', debugTimestamp); // Debug response
+
+// Cache path method and property
+sep = path.sep;
+join = path.join;
+resolve = path.resolve;
 
 /**
  * Send
