@@ -829,9 +829,9 @@ SendStream.prototype.stream = function (path){
     }
 
     // Error handling code-smell
-    stream.on('error', function (){
+    stream.on('error', function (err){
       // Call onerror
-      onerror();
+      onerror(err);
       // Destroy stream
       destroy(stream);
     });
