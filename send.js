@@ -392,7 +392,7 @@ SendStream.prototype.transfer = function (){
     // Debug infomation
     debugResponse('Malicious path: %s', path);
 
-    return this.error(403)
+    return this.error(403);
   }
 
   // Path error

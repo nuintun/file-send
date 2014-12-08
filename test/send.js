@@ -78,9 +78,9 @@ describe('send.use(req, res).transfer()', function (){
   it('should handle headers already sent error', function (done){
     var app = http.createServer(function (req, res){
       res.write('0');
-      send(req, req.url, { root: fixtures })
+      send.use(req, req)
         .on('error', function (err){ res.end(' - ' + err.message) })
-        .pipe(res);
+        .transfer();
     });
     request(app)
       .get('/nums')
