@@ -185,7 +185,7 @@ SendStream.prototype.error = function (status, err){
     msg = http.STATUS_CODES[status];
 
   // Format err
-  err = err instanceof Error ? err : new Error(msg);
+  err = util.isType(err, 'error') ? err : new Error(msg);
   err.status = status;
 
   // Header already sent
