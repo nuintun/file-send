@@ -189,8 +189,6 @@ SendStream.prototype.error = function (status, err){
       message: err.message
     }));
   } else {
-    // Wipe all existing headers
-    res._headers = undefined;
     // Set status code
     res.statusCode = status;
 
@@ -198,6 +196,9 @@ SendStream.prototype.error = function (status, err){
     if (util.listenerCount(this, 'error') > 0) {
       return this.emit('error', err);
     }
+
+    // Wipe all existing headers
+    res._headers = undefined;
 
     // Close response
     res.end(msg);

@@ -14,6 +14,7 @@ var fixtures = path.join(__dirname, 'fixtures');
 var send = new Send(fixtures);
 var app = http.createServer(function (req, res){
   function error(err){
+    console.log(err.status);
     res.statusCode = err.status;
     res.end(http.STATUS_CODES[err.status]);
   }
