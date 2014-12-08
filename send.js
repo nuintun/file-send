@@ -597,6 +597,9 @@ SendStream.prototype.parseRange = function (stat){
         // Unsatisfiable 416
         return this.error(416);
       }
+
+      // Free ranges
+      ranges = null;
     } else {
       // Debug infomation
       debugResponse('Range stale');
