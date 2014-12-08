@@ -931,7 +931,7 @@ SendStream.prototype.setContentType = function (path){
  * @param {Object} stat
  * @api private
  */
-SendStream.prototype.setHeader = function setHeader(path, stat){
+SendStream.prototype.setHeader = function (path, stat){
   var maxAge,
     etagVal,
     lastModified,

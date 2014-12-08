@@ -128,13 +128,14 @@ describe('send.use(req, res).transfer()', function (){
     request(app)
       .get('/pets')
       .expect('Location', '/pets/')
-      .expect(301, 'Redirecting to /pets/', done)
+      .expect(301, 'Redirecting to <a href="/pets/">/pets/</a>', done)
   });
 
   it('should not override content-type', function (done){
     var app = http.createServer(function (req, res){
-      res.setHeader('Content-Type', 'application/x-custom')
-      send(req, req.url, { root: fixtures }).pipe(res)
+      res.setHeader('Content-Type', 'application/x-custom');
+      send.use(req, res)
+        .transfer()
     });
     request(app)
       .get('/nums')
