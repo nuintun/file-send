@@ -12,7 +12,7 @@ var resolve,
   sep, join,
   ms = require('ms'), // Parse time string
   fs = require('fs'), // File system
-  cwd = process.cwd(), // Process run root
+  cwd = process.cwd(), // Current working directory of the process
   http = require('http'), // Http
   path = require('path'), // Path
   mime = require('mime'), // MIME
