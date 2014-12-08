@@ -125,15 +125,15 @@ function SendStream(requset, response, options){
   // Reset debug timestamp
   debugTimestamp.reset();
 
-  // Set req property
-  this.requset = requset;
-  this.response = response;
-
   // Format path
   this.url = util.httpPath(util.decode(requset.url));
 
   // Bebug infomation
   debugRequest('Url: %s'.green.bold, this.url);
+
+  // Set requset and response property
+  this.requset = requset;
+  this.response = response;
 
   // Root
   this.root = options.root;
