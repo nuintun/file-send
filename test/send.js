@@ -133,8 +133,10 @@ describe('send.use(req, res).transfer()', function (){
 
   it('should not override content-type', function (done){
     var app = http.createServer(function (req, res){
-      res.setHeader('Content-Type', 'application/x-custom');
       send.use(req, res)
+        .on('headers', function (res){
+          res.setHeader('Content-Type', 'application/x-custom');
+        })
         .transfer()
     });
     request(app)
@@ -147,7 +149,7 @@ describe('send.use(req, res).transfer()', function (){
       .get('/name.txt')
       .expect('Content-Type', 'text/plain; charset=UTF-8')
       .expect(200, function (err){
-        if (err) return done(err)
+        if (err) return done(err);
         request(app)
           .get('/tobi.html')
           .expect('Content-Type', 'text/html; charset=UTF-8')
@@ -157,7 +159,7 @@ describe('send.use(req, res).transfer()', function (){
 
   it('should 404 if file disappears after stat, before open', function (done){
     var app = http.createServer(function (req, res){
-      send(req, req.url, { root: 'test/fixtures' })
+      send.use(req, res)
         .on('file', function (){
           // simulate file ENOENT after on open, after stat
           var fn = this.send;
@@ -166,7 +168,7 @@ describe('send.use(req, res).transfer()', function (){
             fn.call(this, path, stat);
           };
         })
-        .pipe(res);
+        .transfer();
     });
 
     request(app)

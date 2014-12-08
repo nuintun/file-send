@@ -633,11 +633,7 @@ SendStream.prototype.sendFile = function sendFile(path){
     extensions = self.extensions,
     lenExt = extensions.length;
 
-  /**
-   * Send helper
-   * @param stat
-   * @returns {*}
-   */
+  // Send helper
   function send(stat){
     if (stat.isDirectory()) {
       if (self.hasTrailingSlash()) {
@@ -677,11 +673,7 @@ SendStream.prototype.sendFile = function sendFile(path){
     send(stat);
   });
 
-  /**
-   * Loop extensions
-   * @param err
-   * @returns {*}
-   */
+  // Loop extensions
   function next(err){
     var _path;
 
@@ -752,10 +744,7 @@ SendStream.prototype.sendIndex = function sendIndex(path){
     next(err);
   });
 
-  /**
-   * Loop index
-   * @returns {*}
-   */
+  // Loop index
   function next(){
     var _path;
 
