@@ -23,32 +23,115 @@ var ms = require('ms'), // Parse time string
  * @api public
  */
 function Send(root, options){
-  // Set other property
-  this.options = {};
-
   // Format options
   options = options || {};
 
+  // Set options property
+  Object.defineProperty(this, 'options', {
+    __proto__: null,
+    writable: false,
+    enumerable: false,
+    configurable: false,
+    value: {
+      // Root
+      set root(root){
+        root = util.isType(root, 'string')
+          ? path.resolve(root)
+          : cwd;
+
+        this._root = util.httpPath(root + path.sep);
+      },
+      get root(){
+        return this._root;
+      },
+      // Index
+      set index(index){
+        // Default document
+        this._index = index === false
+          ? []
+          : index === undefined || index === true
+          ? ['index.htm', 'index.html']
+          : util.normalizeList(index);
+      },
+      get index(){
+        return this._index;
+      },
+      // Extensions
+      set extensions(extensions){
+        this._extensions = !extensions
+          ? []
+          : util.normalizeList(extensions);
+      },
+      get extensions(){
+        return this._extensions;
+      },
+      // Etag
+      set etag(etag){
+        this._etag = etag !== undefined
+          ? Boolean(etag)
+          : true;
+      },
+      get etag(){
+        return this._etag;
+      },
+      // LastModified
+      set lastModified(lastModified){
+        this._lastModified = lastModified !== undefined
+          ? Boolean(lastModified)
+          : true;
+      },
+      get lastModified(){
+        return this._lastModified;
+      },
+      // MaxAge
+      set maxAge(maxAge){
+        // Max age
+        maxAge = util.isType(maxAge, 'string')
+          ? (ms(maxAge) || 0) / 1000
+          : Number(maxAge);
+
+        maxAge = maxAge >= 0
+          ? Math.min(maxAge, MAXMAXAGE)
+          : 0;
+
+        this._maxAge = Math.floor(maxAge);
+      },
+      get maxAge(){
+        return this._maxAge;
+      },
+      // DotFiles
+      set dotFiles(dotFiles){
+        // Dot files access, The value can be "allow", "deny", or "ignore"
+        this._dotFiles = util.isType(dotFiles, 'string')
+          ? dotFiles.toLowerCase()
+          : 'ignore';
+      },
+      get dotFiles(){
+        return this._dotFiles;
+      }
+    }
+  });
+
   // Root
-  this._set_root(root);
+  this.options.root = root;
 
   // ETag
-  this._set_etag(options.etag);
+  this.options.etag = options.etag;
 
-  // dotFiles
-  this._set_dotFiles(options.dotFiles);
+  // DotFiles
+  this.options.dotFiles = options.dotFiles;
 
   // Extensions
-  this._set_extensions(options.extensions);
+  this.options.extensions = options.extensions;
 
   // Default document
-  this._set_index(options.index);
+  this.options.index = options.index;
 
   // Last modified
-  this._set_lastModified(options.lastModified);
+  this.options.lastModified = options.lastModified;
 
   // Max age
-  this._set_maxAge(options.maxAge);
+  this.options.maxAge = options.maxAge;
 
   // Return instance
   return this;
@@ -72,121 +155,13 @@ Send.prototype.use = function (requset, response){
  * @returns {Send}
  */
 Send.prototype.set = function (key, value){
-  // Get method name
-  key = '_set_' + key;
-
-  // If method found, run it
-  this[key] && this[key](value);
+  // If options have the property, set it
+  if (this.options[key]) {
+    this.options[key] = value;
+  }
 
   // Return instance
   return this;
-};
-
-/**
- * Set root
- * @private
- */
-Send.prototype._set_root = function (root){
-  // Root
-  root = util.isType(root, 'string')
-    ? path.resolve(root)
-    : cwd;
-
-  root = util.httpPath(root + path.sep);
-
-  // Set root options
-  this.options.root = root;
-};
-
-/**
- * Set Etag
- * @private
- */
-Send.prototype._set_etag = function (etag){
-  // Etag
-  etag = etag !== undefined
-    ? Boolean(etag)
-    : true;
-
-  // Set etag options
-  this.options.etag = etag;
-};
-
-/**
- * Set dotFiles
- * @private
- */
-Send.prototype._set_dotFiles = function (dotFiles){
-  // Dot files access, The value can be "allow", "deny", or "ignore"
-  dotFiles = util.isType(dotFiles, 'string')
-    ? dotFiles.toLowerCase()
-    : 'ignore';
-
-  // Set dotFiles options
-  this.options.dotFiles = dotFiles;
-};
-
-/**
- * Set extensions
- * @private
- */
-Send.prototype._set_extensions = function (extensions){
-  // Extensions
-  extensions = !extensions
-    ? []
-    : util.normalizeList(extensions);
-
-  // Set extensions options
-  this.options.extensions = extensions;
-};
-
-/**
- * Set index
- * @private
- */
-Send.prototype._set_index = function (index){
-  // Default document
-  index = index === false
-    ? []
-    : index === undefined || index === true
-    ? ['index.htm', 'index.html']
-    : util.normalizeList(index);
-
-  // Set index options
-  this.options.index = index;
-};
-/**
- * Set lastModified
- * @private
- */
-Send.prototype._set_lastModified = function (lastModified){
-  // Last modified
-  lastModified = lastModified !== undefined
-    ? Boolean(lastModified)
-    : true;
-
-  // Set lastModified options
-  this.options.lastModified = lastModified;
-};
-
-/**
- * Set maxAge
- * @private
- */
-Send.prototype._set_maxAge = function (maxAge){
-  // Max age
-  maxAge = util.isType(maxAge, 'string')
-    ? (ms(maxAge) || 0) / 1000
-    : Number(maxAge);
-
-  maxAge = maxAge >= 0
-    ? Math.min(maxAge, MAXMAXAGE)
-    : 0;
-
-  maxAge = Math.floor(maxAge);
-
-  // Set maxAge options
-  this.options.maxAge = maxAge;
 };
 
 // Expose mime
