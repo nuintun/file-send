@@ -13,12 +13,17 @@ var dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
 var fixtures = path.join(__dirname, 'fixtures');
 var send = Send(fixtures);
 var app = http.createServer(function (req, res){
+  function directory(){
+    this.error(403);
+  }
+
   function error(err){
     res.statusCode = err.status;
     res.end(http.STATUS_CODES[err.status]);
   }
 
   send.use(req, res)
+    .on('directory', directory)
     .on('error', error)
     .transfer();
 });
