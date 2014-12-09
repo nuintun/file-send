@@ -7,6 +7,13 @@ var path = require('path');
 var request = require('supertest');
 var Send = require('../send');
 var should = require('should');
+var debug = require('../lib/debug');
+var util = require('../lib/util');
+
+debug.verbose = true;
+debug('File-Send')('%s', 'This is a debug test o(^_^)o');
+debug.verbose = false;
+util.isType(NaN, 'nan');
 
 // test server
 var dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
