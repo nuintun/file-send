@@ -18,15 +18,8 @@ var app = http.createServer(function (req, res){
     res.end(http.STATUS_CODES[err.status]);
   }
 
-  function redirect(){
-    res.statusCode = 301;
-    res.setHeader('Location', req.url + '/');
-    res.end('Redirecting to ' + req.url + '/');
-  }
-
   send.use(req, res)
     .on('error', error)
-    //.on('directory', redirect)
     .transfer();
 });
 
@@ -561,63 +554,43 @@ describe('send.use(req, res).transfer()', function (){
     });
   });
 
-  describe('.maxage()', function (){
+  describe('send.set("maxAge", ...)', function (){
     it('should default to 0', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, 'test/fixtures/name.txt')
-          .maxage(undefined)
-          .pipe(res);
-      });
+      send.set('maxAge', undefined);
 
       request(app)
         .get('/name.txt')
-        .expect('Cache-Control', 'public, max-age=0', done)
-    })
+        .expect('Cache-Control', 'public, max-age=0', done);
+    });
 
     it('should floor to integer', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, 'test/fixtures/name.txt')
-          .maxage(1234)
-          .pipe(res);
-      });
+      send.set('maxAge', 1.234);
 
       request(app)
         .get('/name.txt')
-        .expect('Cache-Control', 'public, max-age=1', done)
-    })
+        .expect('Cache-Control', 'public, max-age=1', done);
+    });
 
     it('should accept string', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, 'test/fixtures/name.txt')
-          .maxage('30d')
-          .pipe(res);
-      });
+      send.set('maxAge', '30d');
 
       request(app)
         .get('/name.txt')
-        .expect('Cache-Control', 'public, max-age=2592000', done)
-    })
+        .expect('Cache-Control', 'public, max-age=2592000', done);
+    });
 
     it('should max at 1 year', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, 'test/fixtures/name.txt')
-          .maxage(Infinity)
-          .pipe(res);
-      });
+      send.set('maxAge', Infinity);
 
       request(app)
         .get('/name.txt')
-        .expect('Cache-Control', 'public, max-age=31536000', done)
-    })
-  })
+        .expect('Cache-Control', 'public, max-age=31536000', done);
+    });
+  });
 
-  describe('.root()', function (){
+  describe('send.set("root", ...)', function (){
     it('should set root', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url)
-          .root(__dirname + '/fixtures')
-          .pipe(res);
-      });
+      send.set("root", __dirname + '/fixtures');
 
       request(app)
         .get('/pets/../name.txt')
@@ -807,7 +780,7 @@ describe('send.use(req, res)', function (){
         request(createServer({ dotFiles: 'ignore', root: fixtures }))
           .get('/.mine/name.txt')
           .expect(404, done)
-      })
+      });
 
       it('should 404 for non-existent dotfile', function (done){
         request(createServer({ dotFiles: 'ignore', root: fixtures }))
@@ -831,7 +804,9 @@ describe('send.use(req, res)', function (){
 
   describe('maxAge', function (){
     it('should default to 0', function (done){
-      request(app)
+      var server = createServer({ root: fixtures });
+
+      request(server)
         .get('/name.txt')
         .expect('Cache-Control', 'public, max-age=0', done);
     });
