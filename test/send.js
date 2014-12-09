@@ -320,7 +320,7 @@ describe('Send(root)', function (){
     });
   });
 
-  describe('with conditional-GET', function (){
+  describe('with conditional get', function (){
     it('should respond with 304 on a match', function (done){
       request(app)
         .get('/name.txt')
@@ -341,7 +341,7 @@ describe('Send(root)', function (){
     it('should respond with 200 otherwise', function (done){
       request(app)
         .get('/name.txt')
-        .expect(200, function (err, res){
+        .expect(200, function (err){
           if (err) return done(err);
           request(app)
             .get('/name.txt')
@@ -351,7 +351,7 @@ describe('Send(root)', function (){
     });
   });
 
-  describe('with Range request', function (){
+  describe('with range request', function (){
     it('should support byte ranges', function (done){
       request(app)
         .get('/nums')
@@ -550,13 +550,15 @@ describe('Send(root)', function (){
 
       request(app)
         .get('/pets/')
-        .expect(200, fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), done)
+        .expect(200, fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), done);
     });
   });
 
   describe('send.set("maxAge", ...)', function (){
     it('should default to 0', function (done){
       send.set('maxAge', undefined);
+
+      send.get('maxAge').should.be.eql(0);
 
       request(app)
         .get('/name.txt')
@@ -566,6 +568,8 @@ describe('Send(root)', function (){
     it('should floor to integer', function (done){
       send.set('maxAge', 1.234);
 
+      send.get('maxAge').should.be.eql(1);
+
       request(app)
         .get('/name.txt')
         .expect('Cache-Control', 'public, max-age=1', done);
@@ -574,6 +578,8 @@ describe('Send(root)', function (){
     it('should accept string', function (done){
       send.set('maxAge', '30d');
 
+      send.get('maxAge').should.be.eql(2592000);
+
       request(app)
         .get('/name.txt')
         .expect('Cache-Control', 'public, max-age=2592000', done);
@@ -581,6 +587,8 @@ describe('Send(root)', function (){
 
     it('should max at 1 year', function (done){
       send.set('maxAge', Infinity);
+
+      send.get('maxAge').should.be.eql(31536000);
 
       request(app)
         .get('/name.txt')
@@ -592,11 +600,93 @@ describe('Send(root)', function (){
     it('should set root', function (done){
       send.set("root", __dirname + '/fixtures');
 
+      send.get('root').should.be.eql(path.normalize(__dirname + '/fixtures/').replace(/\\/g, '/'));
+
       request(app)
         .get('/pets/../name.txt')
-        .expect(200, 'tobi', done)
-    })
-  })
+        .expect(200, 'tobi', done);
+    });
+  });
+
+  describe('send.set("extensions", ...)', function (){
+    it('should set extensions', function (done){
+      send.set("extensions", 'txt');
+
+      send.get('extensions').should.be.eql(['txt']);
+
+      request(app)
+        .get('/name')
+        .expect(200, 'tobi', done);
+    });
+
+    it('should support disabling', function (done){
+      send.set('extensions', false);
+
+      send.get('extensions').should.be.eql([]);
+
+      request(app)
+        .get('/name')
+        .expect(404, done);
+    });
+
+    it('should support fallbacks', function (done){
+      send.set('extensions', ['htm', 'html', 'txt']);
+
+      send.get('extensions').should.be.eql(['htm', 'html', 'txt']);
+
+      request(app)
+        .get('/name')
+        .expect(200, '<p>tobi</p>', done);
+    });
+  });
+
+  describe('send.set("lastModified", ...)', function (){
+    it('should support disabling last-modified', function (done){
+      send.set('lastModified', false);
+
+      send.get('lastModified').should.be.false;
+
+      request(app)
+        .get('/nums')
+        .expect(200, function (err, res){
+          if (err) return done(err);
+          res.headers.should.not.have.property('last-modified');
+          done();
+        });
+    });
+  });
+
+  describe('send.set("dotFiles", ...)', function (){
+    it('should set dotFiles "allow"', function (done){
+      send.set('dotFiles', 'allow');
+
+      send.get('dotFiles').should.be.eql('allow');
+
+      request(app)
+        .get('/.hidden')
+        .expect(200, /secret/, done);
+    });
+
+    it('should set dotFiles "deny"', function (done){
+      send.set('dotFiles', 'deny');
+
+      send.get('dotFiles').should.be.eql('deny');
+
+      request(app)
+        .get('/.hidden')
+        .expect(403, done);
+    });
+
+    it('should set dotFiles "ignore"', function (done){
+      send.set('dotFiles', 'ignore');
+
+      send.get('dotFiles').should.be.eql('ignore');
+
+      request(app)
+        .get('/.hidden')
+        .expect(404, done);
+    });
+  });
 });
 
 describe('Send(root, options)', function (){
@@ -668,7 +758,7 @@ describe('Send(root, options)', function (){
     });
   });
 
-  describe('dotfiles', function (){
+  describe('dotFiles', function (){
     it('should default to "ignore"', function (done){
       request(createServer({ root: fixtures }))
         .get('/.hidden')
