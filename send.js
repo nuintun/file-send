@@ -144,8 +144,8 @@ Send.prototype.use = function (requset, response){
 
 /**
  * Set options
- * @param key
- * @param value
+ * @param {String} key
+ * @param {*} value
  * @returns {Send}
  */
 Send.prototype.set = function (key, value){
@@ -156,6 +156,15 @@ Send.prototype.set = function (key, value){
 
   // Return instance
   return this;
+};
+
+/**
+ * Get options
+ * @param {String} key
+ * @returns {*}
+ */
+Send.prototype.get = function (key){
+  return this.options[key];
 };
 
 // Expose mime
