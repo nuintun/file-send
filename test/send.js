@@ -157,8 +157,11 @@ describe('Send(root)', function (){
           // simulate file ENOENT after on open, after stat
           var fn = this.send;
           this.send = function (path, stat){
-            path += '__xxx_no_exist';
-            fn.call(this, path, stat);
+            var self = this;
+
+            fs.stat(path += '__xxx_no_exist', function (){
+              fn.call(self, path, stat);
+            });
           };
         })
         .transfer();
@@ -457,7 +460,7 @@ describe('Send(root)', function (){
           .get('/nums')
           .expect(200, function (err, res){
             if (err) return done(err);
-            
+
             var etag = res.headers.etag;
 
             request(app)
