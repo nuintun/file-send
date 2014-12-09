@@ -21,15 +21,15 @@ var http = require('http'),
     maxAge: '30d'
   });
 
-http.createServer(function (req, res){
-  Send.use(req, res) // Create a new send stream
+http.createServer(function (request, response){
+  Send.use(request, response) // Create a new send stream
     .transfer(); // Send stream to client
 });
 ```
 
 ### FileSend(root, [options])
 
-  Create a new `Send` for the given `root` path.
+  Create a new `Send` for the given `root` path and options to initialize.
 
 #### Options
 
@@ -65,29 +65,46 @@ http.createServer(function (req, res){
   Provide a max-age in milliseconds for http caching, defaults to 0.
   This can also be a string accepted by the [ms](https://www.npmjs.org/package/ms#readme) module.
 
-### Events
+### Send.use(request, response)
+
 ```js
-var stream = Send.use(req, res); // The Send.use return a new send stream
+var stream = Send.use(request, response); // The Send.use return a new send stream
 ```
-  The `stream` is an event emitter and will emit the following events:
+
+  Create a new `SendStream` for the given `request` and `response`.
+
+### Events
+  The `SendStream` is an event emitter and will emit the following events:
 
   - `error` an error occurred `(err)`
   - `directory` a directory was requested
   - `file` a file was requested `(path, stat)`
-  - `headers` the headers are about to be set on a file `(res, path, stat)`
-  - `stream` file streaming has started `(stream)`
+  - `headers` the headers are about to be set on a file `(response, path, stat)`
+  - `stream` file streaming has started `(stream, next(stream))`
   - `end` streaming has completed
 
 ### stream.transfer()
 
-  The `transfer` method is used to pipe the response into the Node.js HTTP response object, typically `send.use(req, res).transfer()`.
+  The `transfer` method is used to pipe the response into the Node.js HTTP response object, typically `Send.use(req, res).transfer()`.
+
+### stream.url
+
+  Return the normalize request url.
+
+### stream.request
+
+  Return the http request.
+
+### stream.response
+
+  Return the http response.
 
 ### stream.redirect(url)
 
-  redirect url, if header already send, do nothing.
+  Redirect url, if header already send, do nothing.
 
 ### stream.error(status, [error])
-  emit http error, if header already send will end the response with error message and status.
+  Emit http error, if header already send will end the response with error message and status.
 
 ### stream.send(path, stat)
 
@@ -130,7 +147,7 @@ var http = require('http'),
   FileSend = require('file-send'),
   Send = FileSend('/www/example.com/public'); // Set root
 
-var app = http.createServer(function(req, res){
+var app = http.createServer(function(request, response){
   // Your custom error-handling logic:
   function error(err) {
     res.statusCode = err.status || 500;
@@ -147,10 +164,11 @@ var app = http.createServer(function(req, res){
   function directory(path, stat) {
     // TODO You can do something here
     // Like displays the current directory file list
+    this.redirect(this.url + 'directory.html')
   }
 
   // Transfer arbitrary files from within /www/example.com/public/*
-  Send.use(req, res)
+  Send.use(request, response)
     .on('error', error)
     .on('directory', directory)
     .on('headers', headers)

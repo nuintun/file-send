@@ -34,31 +34,37 @@ describe('Send(root)', function (){
     request(app)
       .get('/name.txt')
       .expect('Content-Length', '4')
-      .expect(200, 'tobi', done)
+      .expect(200, 'tobi', done);
   });
 
   it('should decode the given path as a URI', function (done){
     request(app)
       .get('/some%20thing.txt')
-      .expect(200, 'hey', done)
+      .expect(200, 'hey', done);
   });
 
   it('should serve files with dots in name', function (done){
     request(app)
       .get('/do..ts.txt')
-      .expect(200, '...', done)
+      .expect(200, '...', done);
+  });
+
+  it('should only support http method "GET" and "HEAD"', function (done){
+    request(app)
+      .post('/name.txt')
+      .expect(405, 'Method Not Allowed', done);
   });
 
   it('should treat a malformed URI as a bad request', function (done){
     request(app)
       .get('/some%99thing.txt')
-      .expect(400, 'Bad Request', done)
+      .expect(400, 'Bad Request', done);
   });
 
   it('should 400 on NULL bytes', function (done){
     request(app)
       .get('/some%00thing.txt')
-      .expect(400, 'Bad Request', done)
+      .expect(400, 'Bad Request', done);
   });
 
   it('should treat an ENAMETOOLONG as a 404', function (done){
