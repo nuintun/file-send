@@ -94,7 +94,7 @@ describe('Send(root)', function (){
     request(app)
       .head('/name.txt')
       .expect('Content-Length', '4')
-      .expect(200, '', done)
+      .expect(200, '', done);
   });
 
   it('should add an ETag header field', function (done){
@@ -107,25 +107,25 @@ describe('Send(root)', function (){
   it('should add a Date header field', function (done){
     request(app)
       .get('/name.txt')
-      .expect('date', dateRegExp, done)
+      .expect('date', dateRegExp, done);
   });
 
   it('should add a Last-Modified header field', function (done){
     request(app)
       .get('/name.txt')
-      .expect('last-modified', dateRegExp, done)
+      .expect('last-modified', dateRegExp, done);
   });
 
   it('should add a Accept-Ranges header field', function (done){
     request(app)
       .get('/name.txt')
-      .expect('Accept-Ranges', 'bytes', done)
+      .expect('Accept-Ranges', 'bytes', done);
   });
 
   it('should 404 if the file does not exist', function (done){
     request(app)
       .get('/meow')
-      .expect(404, 'Not Found', done)
+      .expect(404, 'Not Found', done);
   });
 
   it('should 301 if the directory exists', function (done){
@@ -135,13 +135,19 @@ describe('Send(root)', function (){
       .expect(301, 'Redirecting to <a href="/pets/">/pets/</a>', done)
   });
 
+  it('should 404 if the directory not exists', function (done){
+    request(app)
+      .get('/what/')
+      .expect(404, 'Not Found', done);
+  });
+
   it('should not override content-type', function (done){
     var app = http.createServer(function (req, res){
       send.use(req, res)
         .on('headers', function (res){
           res.setHeader('Content-Type', 'application/x-custom');
         })
-        .transfer()
+        .transfer();
     });
     request(app)
       .get('/nums')
@@ -157,7 +163,7 @@ describe('Send(root)', function (){
         request(app)
           .get('/tobi.html')
           .expect('Content-Type', 'text/html; charset=UTF-8')
-          .expect(200, done)
+          .expect(200, done);
       });
   });
 
