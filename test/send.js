@@ -11,7 +11,7 @@ var should = require('should');
 // test server
 var dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
 var fixtures = path.join(__dirname, 'fixtures');
-var send = new Send(fixtures);
+var send = Send(fixtures);
 var app = http.createServer(function (req, res){
   function error(err){
     res.statusCode = err.status;
@@ -23,13 +23,13 @@ var app = http.createServer(function (req, res){
     .transfer();
 });
 
-describe('send.mime', function (){
+describe('Send.mime', function (){
   it('should be exposed', function (){
     assert(Send.mime);
   })
 });
 
-describe('send.use(req, res).transfer()', function (){
+describe('Send(root)', function (){
   it('should stream the file contents', function (done){
     request(app)
       .get('/name.txt')
@@ -211,7 +211,7 @@ describe('send.use(req, res).transfer()', function (){
     it('should fire when sending file', function (done){
       request(server)
         .get('/nums')
-        .expect(200, '123456789', function (err, res){
+        .expect(200, '123456789', function (err){
           if (err) return done(err);
           headers.should.be.true;
           done();
@@ -231,7 +231,7 @@ describe('send.use(req, res).transfer()', function (){
     it('should fire on index', function (done){
       request(server)
         .get('/pets/')
-        .expect(200, /tobi/, function (err, res){
+        .expect(200, /tobi/, function (err){
           if (err) return done(err);
           headers.should.be.true;
           done();
@@ -241,7 +241,7 @@ describe('send.use(req, res).transfer()', function (){
     it('should not fire on redirect', function (done){
       request(server)
         .get('/pets')
-        .expect(301, function (err, res){
+        .expect(301, function (err){
           if (err) return done(err);
           headers.should.be.false;
           done();
@@ -251,7 +251,7 @@ describe('send.use(req, res).transfer()', function (){
     it('should provide path', function (done){
       request(server)
         .get('/nums')
-        .expect(200, '123456789', function (err, res){
+        .expect(200, '123456789', function (err){
           if (err) return done(err);
           headers.should.be.true;
           args[1].should.endWith('nums');
@@ -262,7 +262,7 @@ describe('send.use(req, res).transfer()', function (){
     it('should provide stat', function (done){
       request(server)
         .get('/nums')
-        .expect(200, '123456789', function (err, res){
+        .expect(200, '123456789', function (err){
           if (err) return done(err);
           headers.should.be.true;
           args[2].should.have.property('mtime');
@@ -599,12 +599,10 @@ describe('send.use(req, res).transfer()', function (){
   })
 });
 
-describe('send.use(req, res)', function (){
+describe('Send(root, options)', function (){
   describe('etag', function (){
     it('should support disabling etags', function (done){
-      var server = createServer({ etag: false, root: fixtures });
-
-      request(server)
+      request(createServer({ etag: false, root: fixtures }))
         .get('/nums')
         .expect(200, function (err, res){
           if (err) return done(err);
@@ -616,57 +614,43 @@ describe('send.use(req, res)', function (){
 
   describe('extensions', function (){
     it('should be not be enabled by default', function (done){
-      var server = createServer({ root: fixtures });
-
-      request(server)
+      request(createServer({ root: fixtures }))
         .get('/tobi')
         .expect(404, done);
     });
 
     it('should be configurable', function (done){
-      var server = createServer({ extensions: 'txt', root: fixtures });
-
-      request(server)
+      request(createServer({ extensions: 'txt', root: fixtures }))
         .get('/name')
         .expect(200, 'tobi', done);
     });
 
     it('should support disabling extensions', function (done){
-      var server = createServer({ extensions: false, root: fixtures });
-
-      request(server)
+      request(createServer({ extensions: false, root: fixtures }))
         .get('/name')
         .expect(404, done);
     });
 
     it('should support fallbacks', function (done){
-      var server = createServer({ extensions: ['htm', 'html', 'txt'], root: fixtures })
-
-      request(server)
+      request(createServer({ extensions: ['htm', 'html', 'txt'], root: fixtures }))
         .get('/name')
         .expect(200, '<p>tobi</p>', done)
     });
 
     it('should 404 if nothing found', function (done){
-      var server = createServer({ extensions: ['htm', 'html', 'txt'], root: fixtures });
-
-      request(server)
+      request(createServer({ extensions: ['htm', 'html', 'txt'], root: fixtures }))
         .get('/bob')
         .expect(404, done);
     });
 
     it('should skip directories', function (done){
-      var server = createServer({ extensions: ['file', 'dir'], root: fixtures });
-
-      request(server)
+      request(createServer({ extensions: ['file', 'dir'], root: fixtures }))
         .get('/name')
         .expect(404, done);
     });
 
     it('should not search if file has extension', function (done){
-      var server = createServer({ extensions: 'html', root: fixtures });
-
-      request(server)
+      request(createServer({ extensions: 'html', root: fixtures }))
         .get('/thing.html')
         .expect(404, done);
     });
@@ -674,9 +658,7 @@ describe('send.use(req, res)', function (){
 
   describe('lastModified', function (){
     it('should support disabling last-modified', function (done){
-      var server = createServer({ lastModified: false, root: fixtures });
-
-      request(server)
+      request(createServer({ lastModified: false, root: fixtures }))
         .get('/nums')
         .expect(200, function (err, res){
           if (err) return done(err);
@@ -804,33 +786,25 @@ describe('send.use(req, res)', function (){
 
   describe('maxAge', function (){
     it('should default to 0', function (done){
-      var server = createServer({ root: fixtures });
-
-      request(server)
+      request(createServer({ root: fixtures }))
         .get('/name.txt')
         .expect('Cache-Control', 'public, max-age=0', done);
     });
 
     it('should floor to integer', function (done){
-      var server = createServer({ maxAge: 123.956, root: fixtures });
-
-      request(server)
+      request(createServer({ maxAge: 123.956, root: fixtures }))
         .get('/name.txt')
         .expect('Cache-Control', 'public, max-age=123', done);
     });
 
     it('should accept string', function (done){
-      var server = createServer({ maxAge: '30d', root: fixtures });
-
-      request(server)
+      request(createServer({ maxAge: '30d', root: fixtures }))
         .get('/name.txt')
         .expect('Cache-Control', 'public, max-age=2592000', done);
     });
 
     it('should max at 1 year', function (done){
-      var server = createServer({ maxAge: Infinity, root: fixtures });
-
-      request(server)
+      request(createServer({ maxAge: Infinity, root: fixtures }))
         .get('/name.txt')
         .expect('Cache-Control', 'public, max-age=31536000', done);
     });
@@ -838,47 +812,37 @@ describe('send.use(req, res)', function (){
 
   describe('index', function (){
     it('should default to index.html', function (done){
-      request(app)
+      request(createServer({ root: fixtures }))
         .get('/pets/')
         .expect(fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), done);
     });
 
     it('should be configurable', function (done){
-      var server = createServer({ root: fixtures, index: 'tobi.html' });
-
-      request(server)
+      request(createServer({ root: fixtures, index: 'tobi.html' }))
         .get('/')
         .expect(200, '<p>tobi</p>', done);
     });
 
     it('should support disabling', function (done){
-      var server = createServer({ root: fixtures, index: false });
-
-      request(server)
+      request(createServer({ root: fixtures, index: false }))
         .get('/pets/')
         .expect(403, done);
     });
 
     it('should support fallbacks', function (done){
-      var server = createServer({ root: fixtures, index: ['default.htm', 'index.html'] });
-
-      request(server)
+      request(createServer({ root: fixtures, index: ['default.htm', 'index.html'] }))
         .get('/pets/')
         .expect(200, fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), done);
     });
 
-    it('should if no index file found in dir, redirect to view dir, and default 403', function (done){
-      var server = createServer({ root: fixtures, index: 'default.htm' });
-
-      request(server)
+    it('should if no index file found in dir, redirect to dir, and default 403', function (done){
+      request(createServer({ root: fixtures, index: 'default.htm' }))
         .get('/pets/')
         .expect(403, done);
     });
 
     it('should not follow directories', function (done){
-      var server = createServer({ root: fixtures, index: ['pets', 'name.txt'] });
-
-      request(server)
+      request(createServer({ root: fixtures, index: ['pets', 'name.txt'] }))
         .get('/')
         .expect(200, 'tobi', done);
     });
@@ -887,41 +851,31 @@ describe('send.use(req, res)', function (){
   describe('root', function (){
     describe('when given', function (){
       it('should join root', function (done){
-        var server = createServer({ root: __dirname + '/fixtures' });
-
-        request(server)
+        request(createServer({ root: __dirname + '/fixtures' }))
           .get('/pets/../name.txt')
           .expect(200, 'tobi', done);
       });
 
       it('should work with trailing slash', function (done){
-        var server = createServer({ root: __dirname + '/fixtures/' });
-
-        request(server)
+        request(createServer({ root: __dirname + '/fixtures/' }))
           .get('/name.txt')
           .expect(200, 'tobi', done);
       });
 
       it('should restrict paths to within root', function (done){
-        var server = createServer({ root: __dirname + '/fixtures' });
-
-        request(server)
+        request(createServer({ root: __dirname + '/fixtures' }))
           .get('/pets/../../send.js')
           .expect(404, done);
       });
 
       it('should allow .. in root', function (done){
-        var server = createServer({ root: __dirname + '/fixtures/../fixtures' });
-
-        request(server)
+        request(createServer({ root: __dirname + '/fixtures/../fixtures' }))
           .get('/pets/../../send.js')
           .expect(404, done);
       });
 
       it('should not allow root transversal', function (done){
-        var server = createServer({ root: __dirname + '/fixtures/name.d' });
-
-        request(server)
+        request(createServer({ root: __dirname + '/fixtures/name.d' }))
           .get('/../name.dir/name.txt')
           .expect(404, done);
       });
@@ -929,17 +883,13 @@ describe('send.use(req, res)', function (){
 
     describe('when missing', function (){
       it('should consider .. malicious', function (done){
-        var server = createServer({ root: __dirname + '/fixtures/' });
-
-        request(server)
+        request(createServer({ root: __dirname + '/fixtures/' }))
           .get('/../send.js')
           .expect(404, done);
       });
 
       it('should still serve files with dots in name', function (done){
-        var server = createServer({ root: __dirname + '/fixtures/' });
-
-        request(server)
+        request(createServer({ root: __dirname + '/fixtures/' }))
           .get('/do..ts.txt')
           .expect(200, '...', done);
       });
@@ -948,7 +898,7 @@ describe('send.use(req, res)', function (){
 });
 
 function createServer(opts){
-  var send = new Send(opts.root, opts);
+  var send = Send(opts.root, opts);
 
   return http.createServer(function (req, res){
     try {

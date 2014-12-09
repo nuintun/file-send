@@ -23,6 +23,11 @@ var ms = require('ms'), // Parse time string
  * @api public
  */
 function Send(root, options){
+  // If not instanceof Send, new it
+  if (!(this instanceof Send)) {
+    return new Send(root, options);
+  }
+
   // Format options
   options = options || {};
 
