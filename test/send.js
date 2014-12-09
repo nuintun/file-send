@@ -457,6 +457,7 @@ describe('Send(root)', function (){
           .get('/nums')
           .expect(200, function (err, res){
             if (err) return done(err);
+            
             var etag = res.headers.etag;
 
             request(app)
@@ -472,6 +473,7 @@ describe('Send(root)', function (){
           .get('/nums')
           .expect(200, function (err, res){
             if (err) return done(err);
+
             var etag = res.headers.etag.replace(/"(.)/, '"0$1');
 
             request(app)
@@ -487,7 +489,8 @@ describe('Send(root)', function (){
           .get('/nums')
           .expect(200, function (err, res){
             if (err) return done(err);
-            var modified = res.headers['last-modified']
+
+            var modified = res.headers['last-modified'];
 
             request(app)
               .get('/nums')
@@ -502,6 +505,7 @@ describe('Send(root)', function (){
           .get('/nums')
           .expect(200, function (err, res){
             if (err) return done(err);
+
             var modified = Date.parse(res.headers['last-modified']) - 20000;
 
             request(app)
@@ -515,8 +519,10 @@ describe('Send(root)', function (){
   });
 
   describe('send.set("etag", ...)', function (){
-    it('should support disabling etags', function (done){
+    it('should support disabling etag', function (done){
       send.set('etag', false);
+
+      send.get('etag').should.be.false;
 
       request(app)
         .get('/nums')
@@ -532,6 +538,8 @@ describe('Send(root)', function (){
     it('should be configurable', function (done){
       send.set('index', 'tobi.html');
 
+      send.get('index').should.be.eql(['tobi.html']);
+
       request(app)
         .get('/')
         .expect(200, '<p>tobi</p>', done);
@@ -540,6 +548,8 @@ describe('Send(root)', function (){
     it('should support disabling', function (done){
       send.set('index', false);
 
+      send.get('index').should.be.eql([]);
+
       request(app)
         .get('/pets/')
         .expect(403, done);
@@ -547,6 +557,8 @@ describe('Send(root)', function (){
 
     it('should support fallbacks', function (done){
       send.set('index', ['default.htm', 'index.html']);
+
+      send.get('index').should.be.eql(['default.htm', 'index.html']);
 
       request(app)
         .get('/pets/')
