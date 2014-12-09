@@ -150,7 +150,7 @@ Send.prototype.use = function (requset, response){
  */
 Send.prototype.set = function (key, value){
   // If options have the property, set it
-  if (this.options[key]) {
+  if (this.options.hasOwnProperty(key)) {
     this.options[key] = value;
   }
 
