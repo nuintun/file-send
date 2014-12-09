@@ -1,4 +1,4 @@
-process.env.NO_DEPRECATION = 'send';
+process.env.NO_DEPRECATION = 'file-send';
 
 var assert = require('assert');
 var fs = require('fs');
@@ -26,7 +26,7 @@ var app = http.createServer(function (req, res){
 
   send.use(req, res)
     .on('error', error)
-    .on('directory', redirect)
+    //.on('directory', redirect)
     .transfer();
 });
 
@@ -520,6 +520,110 @@ describe('send.use(req, res).transfer()', function (){
       });
     });
   });
+
+  describe('send.set("etag", ...)', function (){
+    it('should support disabling etags', function (done){
+      send.set('etag', false);
+
+      request(app)
+        .get('/nums')
+        .expect(200, function (err, res){
+          if (err) return done(err);
+          res.headers.should.not.have.property('etag');
+          done();
+        });
+    });
+  });
+
+  describe('send.set("index", ...)', function (){
+    it('should be configurable', function (done){
+      send.set('index', 'tobi.html');
+
+      request(app)
+        .get('/')
+        .expect(200, '<p>tobi</p>', done);
+    });
+
+    it('should support disabling', function (done){
+      send.set('index', false);
+
+      request(app)
+        .get('/pets/')
+        .expect(403, done);
+    });
+
+    it('should support fallbacks', function (done){
+      send.set('index', ['default.htm', 'index.html']);
+
+      request(app)
+        .get('/pets/')
+        .expect(200, fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), done)
+    });
+  });
+
+  describe('.maxage()', function (){
+    it('should default to 0', function (done){
+      var app = http.createServer(function (req, res){
+        send(req, 'test/fixtures/name.txt')
+          .maxage(undefined)
+          .pipe(res);
+      });
+
+      request(app)
+        .get('/name.txt')
+        .expect('Cache-Control', 'public, max-age=0', done)
+    })
+
+    it('should floor to integer', function (done){
+      var app = http.createServer(function (req, res){
+        send(req, 'test/fixtures/name.txt')
+          .maxage(1234)
+          .pipe(res);
+      });
+
+      request(app)
+        .get('/name.txt')
+        .expect('Cache-Control', 'public, max-age=1', done)
+    })
+
+    it('should accept string', function (done){
+      var app = http.createServer(function (req, res){
+        send(req, 'test/fixtures/name.txt')
+          .maxage('30d')
+          .pipe(res);
+      });
+
+      request(app)
+        .get('/name.txt')
+        .expect('Cache-Control', 'public, max-age=2592000', done)
+    })
+
+    it('should max at 1 year', function (done){
+      var app = http.createServer(function (req, res){
+        send(req, 'test/fixtures/name.txt')
+          .maxage(Infinity)
+          .pipe(res);
+      });
+
+      request(app)
+        .get('/name.txt')
+        .expect('Cache-Control', 'public, max-age=31536000', done)
+    })
+  })
+
+  describe('.root()', function (){
+    it('should set root', function (done){
+      var app = http.createServer(function (req, res){
+        send(req, req.url)
+          .root(__dirname + '/fixtures')
+          .pipe(res);
+      });
+
+      request(app)
+        .get('/pets/../name.txt')
+        .expect(200, 'tobi', done)
+    })
+  })
 });
 
 describe('send.use(req, res)', function (){
