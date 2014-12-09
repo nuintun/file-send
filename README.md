@@ -3,7 +3,7 @@ file-send
 
 >A http file send
 
->[![Build Status][travis-image]][travis-url] [![Test Coverage][coveralls-image]][coveralls-url]
+>[![Build Status][npm-image]][npm-url] [![Build Status][download-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Test Coverage][coveralls-image]][coveralls-url] ![Node Version][node-image] [![Dependencies][david-image]][david-url]
 
 ## Installation
 
@@ -180,7 +180,13 @@ var app = http.createServer(function(request, response){
 
 [MIT](LICENSE)
 
-[travis-image]: https://travis-ci.org/Nuintun/file-send.svg?branch=master
+[travis-image]: http://img.shields.io/travis/Nuintun/file-send.svg?style=flat-square
 [travis-url]: https://travis-ci.org/Nuintun/file-send
-[coveralls-image]: https://coveralls.io/repos/Nuintun/file-send/badge.png?branch=master
+[coveralls-image]: http://img.shields.io/coveralls/Nuintun/file-send/master.svg?style=flat-square
 [coveralls-url]: https://coveralls.io/r/Nuintun/file-send?branch=master
+[node-image]: http://img.shields.io/node/v/01.svg?style=flat-square
+[david-image]: http://img.shields.io/david/nuintun/file-send.svg?style=flat-square
+[david-url]: https://david-dm.org/Nuintun/file-send
+[npm-image]: http://img.shields.io/npm/v/file-send.svg?style=flat-square
+[npm-url]: https://www.npmjs.org/package/file-send
+[download-image]: http://img.shields.io/npm/dm/file-send.svg?style=flat-square
