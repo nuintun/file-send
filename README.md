@@ -147,26 +147,27 @@ var http = require('http'),
   FileSend = require('file-send'),
   Send = FileSend('/www/example.com/public'); // Set root
 
+// Your custom error-handling logic:
+function error(err) {
+  var res = this.response;
+  res.statusCode = err.status || 500;
+  res.end(err.message);
+}
+
+// Your custom headers
+function headers(res, path, stat) {
+  // serve all files for download
+  res.setHeader('Content-Disposition', 'attachment');
+}
+
+// Your custom directory handling logic:
+function directory(path, stat) {
+  // TODO You can do something here
+  // Like displays the current directory file list
+  this.redirect(this.url + 'directory.html')
+}
+
 var app = http.createServer(function(request, response){
-  // Your custom error-handling logic:
-  function error(err) {
-    res.statusCode = err.status || 500;
-    res.end(err.message);
-  }
-
-  // Your custom headers
-  function headers(res, path, stat) {
-    // serve all files for download
-    res.setHeader('Content-Disposition', 'attachment');
-  }
-
-  // Your custom directory handling logic:
-  function directory(path, stat) {
-    // TODO You can do something here
-    // Like displays the current directory file list
-    this.redirect(this.url + 'directory.html')
-  }
-
   // Transfer arbitrary files from within /www/example.com/public/*
   Send.use(request, response)
     .on('error', error)
