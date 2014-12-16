@@ -3,7 +3,7 @@ file-send
 
 >A http file send
 
->[![Build Status][npm-image]][npm-url] [![Build Status][download-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Test Coverage][coveralls-image]][coveralls-url] ![Node Version][node-image] [![Dependencies][david-image]][david-url]
+>[![NPM Version][npm-image]][npm-url] [![Download Status][download-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Test Coverage][coveralls-image]][coveralls-url] ![Node Version][node-image] [![Dependencies][david-image]][david-url]
 
 ## Installation
 
