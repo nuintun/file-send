@@ -61,6 +61,13 @@ describe('Send(root)', function (){
       .expect(200, '...', done);
   });
 
+  it('should support url has query string', function (done){
+    request(app)
+      .get('/name.txt?query=file')
+      .expect('Content-Length', '4')
+      .expect(200, 'tobi', done);
+  });
+
   it('should only support http method "GET" and "HEAD"', function (done){
     request(app)
       .post('/name.txt')
