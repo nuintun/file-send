@@ -164,7 +164,7 @@ function headers(res, path, stat) {
 function directory(path, stat) {
   // TODO You can do something here
   // Like displays the current directory file list
-  this.redirect(this.url + 'directory.html')
+  this.response.end('This is a directory !');
 }
 
 var app = http.createServer(function(request, response){
