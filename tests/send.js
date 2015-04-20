@@ -4,168 +4,178 @@ var fs = require('fs');
 var http = require('http');
 var path = require('path');
 var request = require('supertest');
-var send = require('..')
+var Send = require('../send');
+var debug = require('../lib/debug');
+var util = require('../lib/util');
+
+debug.verbose = true;
+debug('File-Send')('%s', 'This is a debug test o(^_^)o');
+debug.verbose = false;
+util.isType(NaN, 'nan');
 
 // test server
-
 var dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
 var fixtures = path.join(__dirname, 'fixtures');
+var send = Send(fixtures);
 var app = http.createServer(function (req, res){
+  function directory(){
+    this.error(403);
+  }
+
   function error(err){
     res.statusCode = err.status;
     res.end(http.STATUS_CODES[err.status]);
   }
 
-  function redirect(){
-    res.statusCode = 301;
-    res.setHeader('Location', req.url + '/');
-    res.end('Redirecting to ' + req.url + '/');
-  }
-
-  send(req, req.url, { root: fixtures })
+  send.use(req)
+    .on('directory', directory)
     .on('error', error)
-    .on('directory', redirect)
     .pipe(res);
 });
 
-describe('send.mime', function (){
+describe('Send.mime', function (){
   it('should be exposed', function (){
-    assert(send.mime);
-  })
-})
+    assert(Send.mime);
+  });
+});
 
-describe('send(file).pipe(res)', function (){
+describe('Send(root, options).use(req).pipe(res)', function (){
   it('should stream the file contents', function (done){
     request(app)
       .get('/name.txt')
       .expect('Content-Length', '4')
-      .expect(200, 'tobi', done)
-  })
+      .expect(200, 'tobi', done);
+  });
 
   it('should stream a zero-length file', function (done){
     request(app)
       .get('/empty.txt')
       .expect('Content-Length', '0')
-      .expect(200, '', done)
-  })
+      .expect(200, '', done);
+  });
 
   it('should decode the given path as a URI', function (done){
     request(app)
       .get('/some%20thing.txt')
-      .expect(200, 'hey', done)
-  })
+      .expect(200, 'hey', done);
+  });
 
   it('should serve files with dots in name', function (done){
     request(app)
       .get('/do..ts.txt')
-      .expect(200, '...', done)
-  })
+      .expect(200, '...', done);
+  });
 
   it('should treat a malformed URI as a bad request', function (done){
     request(app)
       .get('/some%99thing.txt')
-      .expect(400, 'Bad Request', done)
-  })
+      .expect(400, 'Bad Request', done);
+  });
 
   it('should 400 on NULL bytes', function (done){
     request(app)
       .get('/some%00thing.txt')
-      .expect(400, 'Bad Request', done)
-  })
+      .expect(400, 'Bad Request', done);
+  });
 
   it('should treat an ENAMETOOLONG as a 404', function (done){
-    var path = Array(100).join('foobar');
+    var path = new Array(100).join('foobar');
     request(app)
       .get('/' + path)
       .expect(404, done);
-  })
+  });
 
   it('should handle headers already sent error', function (done){
     var app = http.createServer(function (req, res){
       res.write('0');
-      send(req, req.url, { root: fixtures })
+      send.use(req)
         .on('error', function (err){ res.end(' - ' + err.message) })
         .pipe(res);
     });
+
     request(app)
       .get('/nums')
       .expect(200, '0 - Can\'t set headers after they are sent.', done);
-  })
+  });
 
   it('should support HEAD', function (done){
     request(app)
       .head('/name.txt')
       .expect('Content-Length', '4')
-      .expect(200, '', done)
-  })
+      .expect(200, '', done);
+  });
 
   it('should add an ETag header field', function (done){
     request(app)
       .get('/name.txt')
       .expect('etag', /^W\/"[^"]+"$/)
       .end(done);
-  })
+  });
 
   it('should add a Date header field', function (done){
     request(app)
       .get('/name.txt')
-      .expect('date', dateRegExp, done)
-  })
+      .expect('date', dateRegExp, done);
+  });
 
   it('should add a Last-Modified header field', function (done){
     request(app)
       .get('/name.txt')
-      .expect('last-modified', dateRegExp, done)
-  })
+      .expect('last-modified', dateRegExp, done);
+  });
 
   it('should add a Accept-Ranges header field', function (done){
     request(app)
       .get('/name.txt')
-      .expect('Accept-Ranges', 'bytes', done)
-  })
+      .expect('Accept-Ranges', 'bytes', done);
+  });
 
   it('should 404 if the file does not exist', function (done){
     request(app)
       .get('/meow')
-      .expect(404, 'Not Found', done)
-  })
+      .expect(404, 'Not Found', done);
+  });
 
   it('should 301 if the directory exists', function (done){
     request(app)
       .get('/pets')
       .expect('Location', '/pets/')
-      .expect(301, 'Redirecting to /pets/', done)
-  })
+      .expect(301, 'Redirecting to /pets/', done);
+  });
 
   it('should not override content-type', function (done){
     var app = http.createServer(function (req, res){
-      res.setHeader('Content-Type', 'application/x-custom')
-      send(req, req.url, { root: fixtures }).pipe(res)
+      res.setHeader('Content-Type', 'application/x-custom');
+      send.use(req).pipe(res);
     });
     request(app)
       .get('/nums')
       .expect('Content-Type', 'application/x-custom', done);
-  })
+  });
 
   it('should set Content-Type via mime map', function (done){
     request(app)
       .get('/name.txt')
       .expect('Content-Type', 'text/plain; charset=UTF-8')
       .expect(200, function (err){
-        if (err) return done(err)
+        if (err) return done(err);
+
         request(app)
           .get('/tobi.html')
           .expect('Content-Type', 'text/html; charset=UTF-8')
           .expect(200, done)
       });
-  })
+  });
 
   it('should 404 if file disappears after stat, before open', function (done){
     var app = http.createServer(function (req, res){
-      send(req, req.url, { root: 'test/fixtures' })
+      var send = Send('test/fixtures');
+
+      send.use(req)
         .on('file', function (){
           // simulate file ENOENT after on open, after stat
           var fn = this.send;
+
           this.send = function (path, stat){
             path += '__xxx_no_exist';
             fn.call(this, path, stat);
@@ -177,11 +187,13 @@ describe('send(file).pipe(res)', function (){
     request(app)
       .get('/name.txt')
       .expect(404, done);
-  })
+  });
 
   it('should 500 on file stream error', function (done){
     var app = http.createServer(function (req, res){
-      send(req, req.url, { root: 'test/fixtures' })
+      var send = Send('test/fixtures');
+
+      send.use(req)
         .on('stream', function (stream){
           // simulate file error
           process.nextTick(function (){
@@ -194,34 +206,34 @@ describe('send(file).pipe(res)', function (){
     request(app)
       .get('/name.txt')
       .expect(500, done);
-  })
+  });
 
   describe('"headers" event', function (){
     it('should fire when sending file', function (done){
-      var cb = after(2, done)
+      var cb = after(2, done);
       var server = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures })
+        send.use(req)
           .on('headers', function (){ cb() })
-          .pipe(res)
-      })
+          .pipe(res);
+      });
 
       request(server)
         .get('/nums')
-        .expect(200, '123456789', cb)
-    })
+        .expect(200, '123456789', cb);
+    });
 
     it('should not fire on 404', function (done){
-      var cb = after(1, done)
+      var cb = after(1, done);
       var server = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures })
+        send.use(req)
           .on('headers', function (){ cb() })
-          .pipe(res)
-      })
+          .pipe(res);
+      });
 
       request(server)
         .get('/bogus')
-        .expect(404, cb)
-    })
+        .expect(404, cb);
+    });
 
     it('should fire on index', function (done){
       var cb = after(2, done)
