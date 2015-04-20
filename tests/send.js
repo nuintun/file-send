@@ -552,42 +552,45 @@ describe('Send(root, options).use(req).pipe(res)', function (){
     it('should support start/end', function (done){
       var app = http.createServer(function (req, res){
         var i = parseInt(req.url.slice(1));
-        send(req, 'test/fixtures/nums', { start: i * 3, end: i * 3 + 2 }).pipe(res);
+        var send = Send('test/fixtures/nums', { start: i * 3, end: i * 3 + 2 });
+        send.use(req).pipe(res);
       });
 
       request(app)
         .get('/1')
         .expect(200, '456', done);
-    })
+    });
 
     it('should adjust too large end', function (done){
       var app = http.createServer(function (req, res){
         var i = parseInt(req.url.slice(1));
-        send(req, 'test/fixtures/nums', { start: i * 3, end: 90 }).pipe(res);
+        var send = Send('test/fixtures/nums', { start: i * 3, end: 90 });
+        send.use(req).pipe(res);
       });
 
       request(app)
         .get('/1')
         .expect(200, '456789', done);
-    })
+    });
 
     it('should support start/end with Range request', function (done){
       var app = http.createServer(function (req, res){
         var i = parseInt(req.url.slice(1));
-        send(req, 'test/fixtures/nums', { start: i * 3, end: i * 3 + 2 }).pipe(res);
+        var send = Send('test/fixtures/nums', { start: i * 3, end: i * 3 + 2 });
+        send(req).pipe(res);
       });
 
       request(app)
         .get('/0')
         .set('Range', 'bytes=-2')
-        .expect(206, '23', done)
-    })
-  })
+        .expect(206, '23', done);
+    });
+  });
 
   describe('.etag()', function (){
     it('should support disabling etags', function (done){
       var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures })
+        send.use(req)
           .etag(false)
           .pipe(res);
       });
@@ -595,9 +598,9 @@ describe('Send(root, options).use(req).pipe(res)', function (){
       request(app)
         .get('/nums')
         .expect(shouldNotHaveHeader('ETag'))
-        .expect(200, done)
+        .expect(200, done);
     })
-  })
+  });
 
   describe('.from()', function (){
     it('should set with deprecated from', function (done){
@@ -611,7 +614,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
         .get('/pets/../name.txt')
         .expect(200, 'tobi', done)
     })
-  })
+  });
 
   describe('.hidden()', function (){
     it('should default support sending hidden files', function (done){
