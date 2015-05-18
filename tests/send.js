@@ -586,15 +586,12 @@ describe('Send(file, options)', function (){
 
   describe('etag', function (){
     it('should support disabling etags', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { etag: false, root: fixtures })
-          .pipe(res);
-      });
+      var app = createServer(fixtures, { 'etag': false });
 
       request(app)
         .get('/nums')
         .expect(shouldNotHaveHeader('ETag'))
-        .expect(200, done)
+        .expect(200, done);
     });
   });
 
@@ -604,7 +601,7 @@ describe('Send(file, options)', function (){
 
       request(server)
         .get('/.hidden')
-        .expect(404, done);
+        .expect(404);
 
       request(server)
         .get('/.mine/name.txt')
@@ -785,106 +782,44 @@ describe('Send(file, options)', function (){
   });
 
   describe('index', function (){
-    it('should reject numbers', function (done){
-      var server = createServer({ root: fixtures, index: 42 });
-
-      request(server)
-        .get('/pets/')
-        .expect(500, /TypeError: index option/, done);
-    })
-
-    it('should reject true', function (done){
-      var server = createServer({ root: fixtures, index: true });
-
-      request(server)
-        .get('/pets/')
-        .expect(500, /TypeError: index option/, done);
-    })
-
     it('should default to index.html', function (done){
       request(app)
         .get('/pets/')
         .expect(fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), done)
-    })
+    });
 
     it('should be configurable', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: 'tobi.html' })
-          .pipe(res);
-      });
+      var app = createServer(fixtures, { index: 'tobi.html' });
 
       request(app)
         .get('/')
         .expect(200, '<p>tobi</p>', done);
-    })
+    });
 
     it('should support disabling', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: false })
-          .pipe(res);
-      });
+      var app = createServer(fixtures, { index: false });
 
       request(app)
         .get('/pets/')
         .expect(403, done);
-    })
+    });
 
     it('should support fallbacks', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: ['default.htm', 'index.html'] })
-          .pipe(res);
-      });
+      var app = createServer(fixtures, { index: ['default.htm', 'index.html'] });
 
       request(app)
         .get('/pets/')
-        .expect(200, fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), done)
-    })
-
-    it('should 404 if no index file found (file)', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: 'default.htm' })
-          .pipe(res);
-      });
-
-      request(app)
-        .get('/pets/')
-        .expect(404, done)
-    })
-
-    it('should 404 if no index file found (dir)', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: 'pets' })
-          .pipe(res);
-      });
-
-      request(app)
-        .get('/')
-        .expect(404, done)
-    })
+        .expect(200, fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), done);
+    });
 
     it('should not follow directories', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, req.url, { root: fixtures, index: ['pets', 'name.txt'] })
-          .pipe(res);
-      });
+      var app = createServer(fixtures, { index: ['pets', 'name.txt'] });
 
       request(app)
         .get('/')
-        .expect(200, 'tobi', done)
-    })
-
-    it('should work without root', function (done){
-      var server = http.createServer(function (req, res){
-        var p = path.join(fixtures, 'pets').replace(/\\/g, '/') + '/';
-        send(req, p, { index: ['index.html'] })
-          .pipe(res);
-      });
-
-      request(server)
-        .get('/')
-        .expect(200, /tobi/, done)
-    })
-  })
+        .expect(200, 'tobi', done);
+    });
+  });
 
   describe('lastModified', function (){
     it('should support disabling last-modified', function (done){
@@ -901,42 +836,33 @@ describe('Send(file, options)', function (){
     it('should default to 0', function (done){
       request(app)
         .get('/name.txt')
-        .expect('Cache-Control', 'public, max-age=0', done)
-    })
+        .expect('Cache-Control', 'public, max-age=0', done);
+    });
 
     it('should floor to integer', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, 'test/fixtures/name.txt', { maxAge: 123956 })
-          .pipe(res);
-      });
+      var app = createServer(fixtures, { maxAge: 123.956 });
 
       request(app)
         .get('/name.txt')
-        .expect('Cache-Control', 'public, max-age=123', done)
-    })
+        .expect('Cache-Control', 'public, max-age=123', done);
+    });
 
     it('should accept string', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, 'test/fixtures/name.txt', { maxAge: '30d' })
-          .pipe(res);
-      });
+      var app = createServer(fixtures, { maxAge: '30d' });
 
       request(app)
         .get('/name.txt')
-        .expect('Cache-Control', 'public, max-age=2592000', done)
-    })
+        .expect('Cache-Control', 'public, max-age=2592000', done);
+    });
 
     it('should max at 1 year', function (done){
-      var app = http.createServer(function (req, res){
-        send(req, 'test/fixtures/name.txt', { maxAge: Infinity })
-          .pipe(res);
-      });
+      var app = createServer(fixtures, { maxAge: Infinity });
 
       request(app)
         .get('/name.txt')
-        .expect('Cache-Control', 'public, max-age=31536000', done)
-    })
-  })
+        .expect('Cache-Control', 'public, max-age=31536000', done);
+    });
+  });
 });
 
 describe('Send(file, options).set(key, value)', function (){
@@ -1148,7 +1074,7 @@ function createServer(root, opts){
       res.statusCode = 500;
       res.end(String(err));
     }
-  })
+  });
 }
 
 function shouldNotHaveHeader(header){
