@@ -554,19 +554,19 @@ describe('Send(root, options).use(req).pipe(res)', function (){
 describe('Send(file, options)', function (){
   describe('root', function (){
     it('should join root', function (done){
-      request(createServer(__dirname + '/fixtures'))
+      request(createServer(fixtures))
         .get('/pets/../name.txt')
         .expect(200, 'tobi', done);
     });
 
     it('should work with trailing slash', function (done){
-      request(createServer(__dirname + '/fixtures/'))
+      request(createServer(fixtures))
         .get('/name.txt')
         .expect(200, 'tobi', done);
     });
 
     it('should restrict paths to within root', function (done){
-      request(createServer(__dirname + '/fixtures'))
+      request(createServer(fixtures))
         .get('/pets/../../send.js')
         .expect(404, done);
     });
