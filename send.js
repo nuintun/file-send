@@ -139,12 +139,11 @@ function Send(root, options){
 /**
  * Create send stream
  * @param {Object} requset
- * @param {Object} response
  * @returns {SendStream}
  * @api public
  */
-Send.prototype.use = function (requset, response){
-  return new SendStream(requset, response, this.options);
+Send.prototype.use = function (requset){
+  return new SendStream(requset, this.options);
 };
 
 /**

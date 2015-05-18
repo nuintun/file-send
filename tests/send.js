@@ -89,13 +89,13 @@ describe('Send(root, options).use(req).pipe(res)', function (){
     var app = http.createServer(function (req, res){
       res.write('0');
       send.use(req)
-        .on('error', function (err){ res.end(' - ' + err.message) })
+        .on('error', function (err){ res.end(' - ' + err.message.replace(/\.$/, '')); })
         .pipe(res);
     });
 
     request(app)
       .get('/nums')
-      .expect(200, '0 - Can\'t set headers after they are sent.', done);
+      .expect(200, '0 - Can\'t set headers after they are sent', done);
   });
 
   it('should support HEAD', function (done){
@@ -108,7 +108,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
   it('should add an ETag header field', function (done){
     request(app)
       .get('/name.txt')
-      .expect('etag', /^W\/"[^"]+"$/)
+      .expect('etag', /^"\S{22}=="$/)
       .end(done);
   });
 
@@ -140,7 +140,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
     request(app)
       .get('/pets')
       .expect('Location', '/pets/')
-      .expect(301, 'Redirecting to /pets/', done);
+      .expect(301, 'Redirecting to <a href="/pets/">/pets/</a>', done);
   });
 
   it('should not override content-type', function (done){
@@ -195,6 +195,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
 
       send.use(req)
         .on('stream', function (stream){
+          console.log(stream);
           // simulate file error
           process.nextTick(function (){
             stream.emit('error', new Error('boom!'));
