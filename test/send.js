@@ -876,13 +876,16 @@ describe('Send(file, options)', function (){
 describe('Send(file, options).set(key, value)', function (){
   describe('root', function (){
     var send = Send(fixtures);
+
+    send.set('root', fixtures + '/.mine');
+
+    send.get('root');
+
     var app = http.createServer(function (req, res){
       send.use(req).pipe(res);
     });
 
     it('should support set root', function (done){
-      send.set('root', fixtures + '/.mine');
-
       request(app)
         .get('/name.txt')
         .expect(200, 'tobi', done);
