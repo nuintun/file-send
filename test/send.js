@@ -166,6 +166,12 @@ describe('Send(root, options).use(req).pipe(res)', function (){
       });
   });
 
+  it('should 404 if the directory not exists', function (done){
+    request(app)
+      .get('/what/')
+      .expect(404, 'Not Found', done);
+  });
+
   it('should 404 if file disappears after stat, before open', function (done){
     var app = http.createServer(function (req, res){
       var send = Send('test/fixtures');
