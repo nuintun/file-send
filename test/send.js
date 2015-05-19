@@ -189,6 +189,12 @@ describe('Send(root, options).use(req).pipe(res)', function (){
       .expect(404, done);
   });
 
+  it('should only support http method "GET" and "HEAD"', function (done){
+    request(app)
+      .post('/name.txt')
+      .expect(405, 'Method Not Allowed', done);
+  });
+
   it('should 500 on file stream error', function (done){
     var send = Send(fixtures);
     var app = http.createServer(function (req, res){
