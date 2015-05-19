@@ -766,7 +766,7 @@ describe('Send(file, options)', function (){
 
       request(server)
         .get('/name.dir/')
-        .expect(403, done);
+        .expect(200, done);
     });
 
     it('should support disabling extensions', function (done){
