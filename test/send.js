@@ -762,7 +762,11 @@ describe('Send(file, options)', function (){
 
       request(server)
         .get('/name')
-        .expect(200, 'tobi', done);
+        .expect(200, 'tobi');
+
+      request(server)
+        .get('/pets/')
+        .expect(403, done);
     });
 
     it('should support disabling extensions', function (done){
