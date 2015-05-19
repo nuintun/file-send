@@ -74,7 +74,7 @@ http.createServer(function (request, response){
 ### Send.use(request)
 
 ```js
-var stream = Send.use(request, response); // The Send.use return a new send stream
+var stream = Send.use(request); // The Send.use return a new send stream
 ```
 
   Create a new `SendStream` for the given `request` and `response`.
