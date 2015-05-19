@@ -585,7 +585,7 @@ describe('Send(file, options)', function (){
     it('should restrict paths to within root', function (done){
       request(createServer(fixtures))
         .get('/pets/../../send.js')
-        .expect(404, done);
+        .expect(403, done);
     });
 
     it('should allow .. in root', function (done){
@@ -597,16 +597,8 @@ describe('Send(file, options)', function (){
     it('should not allow root transversal', function (done){
       request(createServer(__dirname + '/fixtures/name.d'))
         .get('/../name.dir/name.txt')
-        .expect(404, done);
+        .expect(403, done);
     });
-
-    it('should restrict paths to within root', function (done){
-      var app = createServer(fixtures);
-
-      request(app)
-        .get('/pets/../../send.js')
-        .expect(404, done);
-    })
   });
 
   describe('etag', function (){
@@ -762,11 +754,7 @@ describe('Send(file, options)', function (){
 
       request(server)
         .get('/name')
-        .expect(200, 'tobi');
-
-      request(server)
-        .get('/name.dir/')
-        .expect(200, done);
+        .expect(200, 'tobi', done);
     });
 
     it('should support disabling extensions', function (done){
