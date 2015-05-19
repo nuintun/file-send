@@ -172,6 +172,12 @@ describe('Send(root, options).use(req).pipe(res)', function (){
       .expect(404, 'Not Found', done);
   });
 
+  it('should 403 if the directory exists', function (done){
+    request(app)
+      .get('/name.d/')
+      .expect(403, 'Forbidden', done);
+  });
+
   it('should 404 if file disappears after stat, before open', function (done){
     var app = http.createServer(function (req, res){
       var send = Send('test/fixtures');
