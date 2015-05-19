@@ -3,7 +3,13 @@ file-send
 
 >A http file send
 
->[![NPM Version][npm-image]][npm-url] [![Download Status][download-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Test Coverage][coveralls-image]][coveralls-url] ![Node Version][node-image] [![Dependencies][david-image]][david-url]
+>[![NPM Version][npm-image]][npm-url]
+>[![Download Status][download-image]][npm-url]
+>[![Linux Status][travis-image]][travis-url]
+>[![Windows Status][appveyor-image]][appveyor-url]
+>[![Test Coverage][coveralls-image]][coveralls-url]
+>![Node Version][node-image]
+>[![Dependencies][david-image]][david-url]
 
 ## Installation
 
@@ -181,11 +187,13 @@ var app = http.createServer(function(request, response){
 
 [MIT](LICENSE)
 
-[travis-image]: http://img.shields.io/travis/Nuintun/file-send.svg?style=flat-square
+[travis-image]: http://img.shields.io/travis/Nuintun/file-send.svg?style=flat-square&label=linux
 [travis-url]: https://travis-ci.org/Nuintun/file-send
+[appveyor-image]: https://img.shields.io/appveyor/ci/Nuintun/file-send.svg?style=flat-square&label=windows
+[appveyor-url]: https://ci.appveyor.com/project/Nuintun/file-send
 [coveralls-image]: http://img.shields.io/coveralls/Nuintun/file-send/master.svg?style=flat-square
 [coveralls-url]: https://coveralls.io/r/Nuintun/file-send?branch=master
-[node-image]: http://img.shields.io/node/v/01.svg?style=flat-square
+[node-image]: http://img.shields.io/node/v/file-send.svg?style=flat-square
 [david-image]: http://img.shields.io/david/nuintun/file-send.svg?style=flat-square
 [david-url]: https://david-dm.org/Nuintun/file-send
 [npm-image]: http://img.shields.io/npm/v/file-send.svg?style=flat-square
