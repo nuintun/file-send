@@ -765,7 +765,7 @@ describe('Send(file, options)', function (){
         .expect(200, 'tobi');
 
       request(server)
-        .get('/pets/')
+        .get('/name.dir/')
         .expect(403, done);
     });
 
