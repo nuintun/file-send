@@ -8,12 +8,15 @@
 
 'use strict';
 
-var ms = require('ms'), // Parse time string
-  cwd = process.cwd(), // Current working directory of the process
-  path = require('path'), // Path
-  util = require('./lib/util'), // Util
-  MAXMAXAGE = 60 * 60 * 24 * 365, // The max maxAge set
-  SendStream = require('./lib/send-stream');
+// External lib
+var ms = require('ms');
+var path = require('path');
+var util = require('./lib/util');
+var SendStream = require('./lib/send-stream');
+
+// Variable declaration
+var cwd = process.cwd(); // Current working directory of the process
+var MAXMAXAGE = 60 * 60 * 24 * 365; // The max maxAge set
 
 /**
  * Send
