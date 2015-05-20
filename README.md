@@ -39,7 +39,7 @@ http.createServer(function (request, response){
 
 #### Options
 
-##### dotFiles
+##### *dotFiles*
 
   Set how "dotFiles" are treated when encountered. A dotFile is a file or directory that begins with a dot ("."). Note this check is done on the path itself without checking if the path actually exists on the disk. If `root` is specified, only the dotfiles above the root are checked (i.e. the root itself can be within a dotfile).
 
@@ -49,24 +49,24 @@ http.createServer(function (request, response){
   - `'deny'` Send a 403 for any request for a dotfile.
   - `'ignore'` Pretend like the dotfile does not exist and 404.
 
-##### etag
+##### *etag*
 
   Enable or disable etag generation, defaults to true.
 
-##### extensions
+##### *extensions*
 
   If a given file doesn't exist, try appending one of the given extensions, in the given order. By default, this is disabled (set to `false`). An example value that will serve extension-less HTML files: `['html', 'htm']`.
   This is skipped if the requested file already has an extension.
 
-##### index
+##### *index*
 
   By default send supports "index.html" files, to disable this set `false` or to supply a new index pass a string or an array in preferred order.
 
-##### lastModified
+##### *lastModified*
 
   Enable or disable `Last-Modified` header, defaults to true. Uses the file system's last modified value.
 
-##### maxAge
+##### *maxAge*
 
   Provide a max-age in milliseconds for http caching, defaults to 0.
   This can also be a string accepted by the [ms](https://www.npmjs.org/package/ms#readme) module.
