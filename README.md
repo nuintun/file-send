@@ -93,30 +93,6 @@ var stream = Send.use(request); // The Send.use return a new send stream
 
   The `pipe` method is used to pipe the response into the Node.js HTTP response object, typically `Send.use(req).pipe(res)`.
 
-### stream.url
-
-  Return the normalize request url.
-
-### stream.request
-
-  Return the http request.
-
-### stream.response
-
-  Return the http response.
-
-### stream.redirect(url)
-
-  Redirect url, if header already send, do nothing.
-
-### stream.error(status, [error])
-  Emit http error, if header already send will end the response with error message and status.
-
-### stream.send(path, stat)
-
-  The basic interface, send a file stream to response no filter.
-  If it is not necessary to do not use.
-
 ## Error-handling
 
   By default when no `error` listeners are present an automatic response will be made, otherwise you have full control over the response, aka you may show a 5xx page etc.
