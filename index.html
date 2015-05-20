@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>File-send by Nuintun</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">File-send</h1>
+      <h2 class="project-tagline">A http file send</h2>
+      <a href="https://github.com/Nuintun/file-send" class="btn">View on GitHub</a>
+      <a href="https://github.com/Nuintun/file-send/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/Nuintun/file-send/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="file-send" class="anchor" href="#file-send" aria-hidden="true"><span class="octicon octicon-link"></span></a>file-send</h1>
+
+<blockquote>
+<p>A http file send</p>
+
+<p><a href="https://www.npmjs.org/package/file-send"><img src="http://img.shields.io/npm/v/file-send.svg?style=flat-square" alt="NPM Version"></a>
+<a href="https://www.npmjs.org/package/file-send"><img src="http://img.shields.io/npm/dm/file-send.svg?style=flat-square" alt="Download Status"></a>
+<a href="https://travis-ci.org/Nuintun/file-send"><img src="http://img.shields.io/travis/Nuintun/file-send.svg?style=flat-square&amp;label=linux" alt="Linux Status"></a>
+<a href="https://ci.appveyor.com/project/Nuintun/file-send"><img src="https://img.shields.io/appveyor/ci/Nuintun/file-send.svg?style=flat-square&amp;label=windows" alt="Windows Status"></a>
+<a href="https://coveralls.io/r/Nuintun/file-send?branch=master"><img src="http://img.shields.io/coveralls/Nuintun/file-send/master.svg?style=flat-square" alt="Test Coverage"></a>
+<img src="http://img.shields.io/node/v/file-send.svg?style=flat-square" alt="Node Version">
+<a href="https://david-dm.org/Nuintun/file-send"><img src="http://img.shields.io/david/nuintun/file-send.svg?style=flat-square" alt="Dependencies"></a></p>
+</blockquote>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<div class="highlight highlight-bash"><pre>$ npm install file-send</pre></div>
+
+<h2>
+<a id="api" class="anchor" href="#api" aria-hidden="true"><span class="octicon octicon-link"></span></a>API</h2>
+
+<div class="highlight highlight-js"><pre><span class="pl-k">var</span> http <span class="pl-k">=</span> <span class="pl-c1">require</span>(<span class="pl-s"><span class="pl-pds">'</span>http<span class="pl-pds">'</span></span>),
+  FileSend <span class="pl-k">=</span> <span class="pl-c1">require</span>(<span class="pl-s"><span class="pl-pds">'</span>file-send<span class="pl-pds">'</span></span>),
+  Send <span class="pl-k">=</span> FileSend(<span class="pl-s"><span class="pl-pds">'</span>/<span class="pl-pds">'</span></span>, {
+    etag<span class="pl-k">:</span> <span class="pl-c1">false</span>,
+    maxAge<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>30d<span class="pl-pds">'</span></span>
+  });
+
+http.createServer(<span class="pl-k">function</span> (<span class="pl-smi">request</span>, <span class="pl-smi">response</span>){
+  Send.use(request) <span class="pl-c">// Create a new send stream</span>
+    .pipe(response); <span class="pl-c">// Send stream to client</span>
+});</pre></div>
+
+<h3>
+<a id="filesendroot-options" class="anchor" href="#filesendroot-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>FileSend(root, [options])</h3>
+
+<p>Create a new <code>Send</code> for the given <code>root</code> path and options to initialize.</p>
+
+<h4>
+<a id="options" class="anchor" href="#options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Options</h4>
+
+<h5>
+<a id="dotfiles" class="anchor" href="#dotfiles" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>dotFiles</em>
+</h5>
+
+<p>Set how "dotFiles" are treated when encountered. A dotFile is a file or directory that begins with a dot ("."). Note this check is done on the path itself without checking if the path actually exists on the disk. If <code>root</code> is specified, only the dotfiles above the root are checked (i.e. the root itself can be within a dotfile).</p>
+
+<p>The default value is <code>'ignore'</code>.</p>
+
+<ul>
+<li>
+<code>'allow'</code> No special treatment for dotfiles.</li>
+<li>
+<code>'deny'</code> Send a 403 for any request for a dotfile.</li>
+<li>
+<code>'ignore'</code> Pretend like the dotfile does not exist and 404.</li>
+</ul>
+
+<h5>
+<a id="etag" class="anchor" href="#etag" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>etag</em>
+</h5>
+
+<p>Enable or disable etag generation, defaults to true.</p>
+
+<h5>
+<a id="extensions" class="anchor" href="#extensions" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>extensions</em>
+</h5>
+
+<p>If a given file doesn't exist, try appending one of the given extensions, in the given order. By default, this is disabled (set to <code>false</code>). An example value that will serve extension-less HTML files: <code>['html', 'htm']</code>.
+  This is skipped if the requested file already has an extension.</p>
+
+<h5>
+<a id="index" class="anchor" href="#index" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>index</em>
+</h5>
+
+<p>By default send supports "index.html" files, to disable this set <code>false</code> or to supply a new index pass a string or an array in preferred order.</p>
+
+<h5>
+<a id="lastmodified" class="anchor" href="#lastmodified" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>lastModified</em>
+</h5>
+
+<p>Enable or disable <code>Last-Modified</code> header, defaults to true. Uses the file system's last modified value.</p>
+
+<h5>
+<a id="maxage" class="anchor" href="#maxage" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>maxAge</em>
+</h5>
+
+<p>Provide a max-age in milliseconds for http caching, defaults to 0.
+  This can also be a string accepted by the <a href="https://www.npmjs.org/package/ms#readme">ms</a> module.</p>
+
+<h3>
+<a id="senduserequest" class="anchor" href="#senduserequest" aria-hidden="true"><span class="octicon octicon-link"></span></a>Send.use(request)</h3>
+
+<div class="highlight highlight-js"><pre><span class="pl-k">var</span> stream <span class="pl-k">=</span> Send.use(request); <span class="pl-c">// The Send.use return a new send stream</span></pre></div>
+
+<p>Create a new <code>SendStream</code> for the given <code>request</code> and <code>response</code>.</p>
+
+<h3>
+<a id="events" class="anchor" href="#events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h3>
+
+<p>The <code>SendStream</code> is an event emitter and will emit the following events:</p>
+
+<ul>
+<li>
+<code>error</code> an error occurred <code>(err)</code>
+</li>
+<li>
+<code>directory</code> a directory was requested</li>
+<li>
+<code>file</code> a file was requested <code>(path, stat)</code>
+</li>
+<li>
+<code>headers</code> the headers are about to be set on a file <code>(response, path, stat)</code>
+</li>
+<li>
+<code>stream</code> file streaming has started <code>(stream, next(stream))</code>
+</li>
+<li>
+<code>end</code> streaming has completed</li>
+</ul>
+
+<h3>
+<a id="streampiperesponse" class="anchor" href="#streampiperesponse" aria-hidden="true"><span class="octicon octicon-link"></span></a>stream.pipe(response)</h3>
+
+<p>The <code>pipe</code> method is used to pipe the response into the Node.js HTTP response object, typically <code>Send.use(req).pipe(res)</code>.</p>
+
+<h2>
+<a id="error-handling" class="anchor" href="#error-handling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Error-handling</h2>
+
+<p>By default when no <code>error</code> listeners are present an automatic response will be made, otherwise you have full control over the response, aka you may show a 5xx page etc.</p>
+
+<h2>
+<a id="caching" class="anchor" href="#caching" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caching</h2>
+
+<p>It does <em>not</em> perform internal caching, you should use a reverse proxy cache such as Varnish for this, or those fancy things called CDNs. If your application is small enough that it would benefit from single-node memory caching, it's small enough that it does not need caching at all ;).</p>
+
+<h2>
+<a id="debugging" class="anchor" href="#debugging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugging</h2>
+
+<p>To enable <code>debug()</code> instrumentation:</p>
+
+<pre><code>$ node app -v
+</code></pre>
+
+<p>or:</p>
+
+<pre><code>$ node app -verbose
+</code></pre>
+
+<h2>
+<a id="running-tests" class="anchor" href="#running-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running tests</h2>
+
+<pre><code>$ npm install
+$ npm test
+</code></pre>
+
+<h2>
+<a id="examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<p>Serving from a root directory with custom error-handling:</p>
+
+<div class="highlight highlight-js"><pre><span class="pl-k">var</span> http <span class="pl-k">=</span> <span class="pl-c1">require</span>(<span class="pl-s"><span class="pl-pds">'</span>http<span class="pl-pds">'</span></span>),
+  FileSend <span class="pl-k">=</span> <span class="pl-c1">require</span>(<span class="pl-s"><span class="pl-pds">'</span>file-send<span class="pl-pds">'</span></span>),
+  Send <span class="pl-k">=</span> FileSend(<span class="pl-s"><span class="pl-pds">'</span>/www/example.com/public<span class="pl-pds">'</span></span>); <span class="pl-c">// Set root</span>
+
+<span class="pl-c">// Your custom error-handling logic:</span>
+<span class="pl-k">function</span> <span class="pl-en">error</span>(<span class="pl-smi">err</span>) {
+  <span class="pl-k">var</span> res <span class="pl-k">=</span> <span class="pl-v">this</span>.response;
+  res.statusCode <span class="pl-k">=</span> err.<span class="pl-c1">status</span> <span class="pl-k">||</span> <span class="pl-c1">500</span>;
+  res.end(err.message);
+}
+
+<span class="pl-c">// Your custom headers</span>
+<span class="pl-k">function</span> <span class="pl-en">headers</span>(<span class="pl-smi">res</span>, <span class="pl-smi">path</span>, <span class="pl-smi">stat</span>) {
+  <span class="pl-c">// serve all files for download</span>
+  res.setHeader(<span class="pl-s"><span class="pl-pds">'</span>Content-Disposition<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>attachment<span class="pl-pds">'</span></span>);
+}
+
+<span class="pl-c">// Your custom directory handling logic:</span>
+<span class="pl-k">function</span> <span class="pl-en">directory</span>(<span class="pl-smi">path</span>, <span class="pl-smi">stat</span>) {
+  <span class="pl-c">// TODO You can do something here</span>
+  <span class="pl-c">// Like displays the current directory file list</span>
+  <span class="pl-v">this</span>.response.end(<span class="pl-s"><span class="pl-pds">'</span>This is a directory !<span class="pl-pds">'</span></span>);
+}
+
+<span class="pl-k">var</span> app <span class="pl-k">=</span> http.createServer(<span class="pl-k">function</span>(<span class="pl-smi">request</span>, <span class="pl-smi">response</span>){
+  <span class="pl-c">// Transfer arbitrary files from within /www/example.com/public/*</span>
+  Send.use(request)
+    .on(<span class="pl-s"><span class="pl-pds">'</span>error<span class="pl-pds">'</span></span>, error)
+    .on(<span class="pl-s"><span class="pl-pds">'</span>directory<span class="pl-pds">'</span></span>, directory)
+    .on(<span class="pl-s"><span class="pl-pds">'</span>headers<span class="pl-pds">'</span></span>, headers)
+    .pipe(response);
+}).listen(<span class="pl-c1">3000</span>);</pre></div>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p><a href="LICENSE">MIT</a></p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/Nuintun/file-send">File-send</a> is maintained by <a href="https://github.com/Nuintun">Nuintun</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
+
