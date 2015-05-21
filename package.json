@@ -3,7 +3,7 @@
   "version": "0.1.1",
   "description": "A http file send",
   "author": {
-    "name": "Nuintun",
+    "name": "nuintun",
     "email": "nuintun@qq.com"
   },
   "homepage": "https://nuintun.github.io/file-send",
@@ -18,7 +18,7 @@
   "licenses": [
     {
       "type": "MIT",
-      "url": "https://github.com/Nuintun/file-send/blob/master/LICENSE"
+      "url": "https://github.com/nuintun/file-send/blob/master/LICENSE"
     }
   ],
   "main": "send",
