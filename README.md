@@ -27,6 +27,9 @@ var http = require('http'),
     maxAge: '30d'
   });
 
+// open debug log
+FileSend.debug = true;
+
 http.createServer(function (request, response){
   Send.use(request) // Create a new send stream
     .pipe(response); // Send stream to client

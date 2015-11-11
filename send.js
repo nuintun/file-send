@@ -12,6 +12,7 @@
 var ms = require('ms');
 var path = require('path');
 var util = require('./lib/util');
+var debug = require('./lib/debug');
 var SendStream = require('./lib/send-stream');
 
 // Variable declaration
@@ -174,8 +175,18 @@ Send.prototype.get = function (key){
   return this.options[key];
 };
 
-// Expose mime
-Send.mime = SendStream.mime;
+// Expose extra
+Object.defineProperty(Send, 'debug', {
+  set: function (verbose){
+    verbose = !!verbose;
+    debug.verbose = verbose;
+    this._verbose = verbose;
+  },
+  get: function (){
+    return this._verbose;
+  }
+});
+util.readonlyProperty(Send, 'mime', SendStream.mime);
 
 // Expose send
 module.exports = Send;

@@ -8,9 +8,9 @@ var Send = require('../send');
 var debug = require('../lib/debug');
 var util = require('../lib/util');
 
-debug.verbose = true;
+Send.debug = true;
 debug('File-Send')('%s', 'This is a debug test o(^_^)o');
-debug.verbose = false;
+Send.debug = false;
 util.isType(NaN, 'nan');
 
 // test server
