@@ -107,7 +107,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
   it('should add an ETag header field', function (done){
     request(app)
       .get('/name.txt')
-      .expect('etag', /^"\S{22}=="$/)
+      .expect('etag', /\S+/)
       .end(done);
   });
 
