@@ -9,6 +9,7 @@ node_js:
   - "2.1"
   - "4.2.1"
   - "5.0.0"
+  - "5.7.0"
 sudo: false
 before_script:
   - "npm install mocha"
