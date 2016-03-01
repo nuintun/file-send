@@ -162,7 +162,14 @@ describe('Send(root, options).use(req).pipe(res)', function (){
         request(app)
           .get('/tobi.html')
           .expect('Content-Type', 'text/html; charset=UTF-8')
-          .expect(200, done)
+          .expect(200, function (err){
+            if (err) return done(err);
+
+            request(app)
+              .get('/zip.zip')
+              .expect('Content-Type', 'application/zip')
+              .expect(200, done)
+          })
       });
   });
 
