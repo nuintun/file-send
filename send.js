@@ -146,7 +146,7 @@ function Send(root, options){
  * @returns {SendStream}
  * @api public
  */
-Send.prototype.use = function (requset){
+Send.prototype.parse = function (requset){
   return new SendStream(requset, this.options);
 };
 

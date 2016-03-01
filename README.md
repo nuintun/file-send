@@ -31,7 +31,7 @@ var http = require('http'),
 FileSend.debug = true;
 
 http.createServer(function (request, response){
-  Send.use(request) // Create a new send stream
+  Send.parse(request) // Create a new send stream
     .pipe(response); // Send stream to client
 });
 ```
@@ -74,10 +74,10 @@ http.createServer(function (request, response){
   Provide a max-age in milliseconds for http caching, defaults to 0.
   This can also be a string accepted by the [ms](https://www.npmjs.org/package/ms#readme) module.
 
-### Send.use(request)
+### Send.parse(request)
 
 ```js
-var stream = Send.use(request); // The Send.use return a new send stream
+var stream = Send.parse(request); // The Send.parse return a new send stream
 ```
 
   Create a new `SendStream` for the given `request` and `response`.
@@ -94,7 +94,7 @@ var stream = Send.use(request); // The Send.use return a new send stream
 
 ### stream.pipe(response)
 
-  The `pipe` method is used to pipe the response into the Node.js HTTP response object, typically `Send.use(req).pipe(res)`.
+  The `pipe` method is used to pipe the response into the Node.js HTTP response object, typically `Send.parse(req).pipe(res)`.
 
 ## Error-handling
 
@@ -154,7 +154,7 @@ function directory(path, stat) {
 
 var app = http.createServer(function(request, response){
   // Transfer arbitrary files from within /www/example.com/public/*
-  Send.use(request)
+  Send.parse(request)
     .on('error', error)
     .on('directory', directory)
     .on('headers', headers)

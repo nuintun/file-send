@@ -1,6 +1,6 @@
 {
   "name": "file-send",
-  "version": "0.1.4",
+  "version": "1.0.0",
   "description": "A http file send",
   "author": {
     "name": "nuintun",

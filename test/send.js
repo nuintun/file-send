@@ -27,7 +27,7 @@ var app = http.createServer(function (req, res){
     res.end(http.STATUS_CODES[err.status]);
   }
 
-  send.use(req)
+  send.parse(req)
     .on('directory', directory)
     .on('error', error)
     .pipe(res);
@@ -39,7 +39,7 @@ describe('Send.mime', function (){
   });
 });
 
-describe('Send(root, options).use(req).pipe(res)', function (){
+describe('Send(root, options).parse(req).pipe(res)', function (){
   it('should stream the file contents', function (done){
     request(app)
       .get('/name.txt')
@@ -88,7 +88,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
   it('should handle headers already sent error', function (done){
     var app = http.createServer(function (req, res){
       res.write('0');
-      send.use(req)
+      send.parse(req)
         .pipe(res);
     });
 
@@ -145,7 +145,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
   it('should not override content-type', function (done){
     var app = http.createServer(function (req, res){
       res.setHeader('Content-Type', 'application/x-custom');
-      send.use(req).pipe(res);
+      send.parse(req).pipe(res);
     });
     request(app)
       .get('/nums')
@@ -189,7 +189,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
     var app = http.createServer(function (req, res){
       var send = Send('test/fixtures');
 
-      send.use(req)
+      send.parse(req)
         .on('file', function (){
           // simulate file ENOENT after on open, after stat
           var fn = this.send;
@@ -216,7 +216,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
   it('should 500 on file stream error', function (done){
     var send = Send(fixtures);
     var app = http.createServer(function (req, res){
-      send.use(req)
+      send.parse(req)
         .on('stream', function (stream, next){
           // simulate file error
           process.nextTick(function (){
@@ -236,7 +236,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
     it('should fire when sending file', function (done){
       var cb = after(2, done);
       var server = http.createServer(function (req, res){
-        send.use(req)
+        send.parse(req)
           .on('headers', function (){ cb() })
           .pipe(res);
       });
@@ -249,7 +249,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
     it('should not fire on 404', function (done){
       var cb = after(1, done);
       var server = http.createServer(function (req, res){
-        send.use(req)
+        send.parse(req)
           .on('headers', function (){ cb() })
           .pipe(res);
       });
@@ -262,7 +262,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
     it('should fire on index', function (done){
       var cb = after(2, done);
       var server = http.createServer(function (req, res){
-        send.use(req)
+        send.parse(req)
           .on('headers', function (){ cb() })
           .pipe(res);
       });
@@ -275,7 +275,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
     it('should not fire on redirect', function (done){
       var cb = after(1, done);
       var server = http.createServer(function (req, res){
-        send.use(req)
+        send.parse(req)
           .on('headers', function (){ cb() })
           .pipe(res);
       });
@@ -288,7 +288,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
     it('should provide path', function (done){
       var cb = after(2, done);
       var server = http.createServer(function (req, res){
-        send.use(req)
+        send.parse(req)
           .on('headers', onHeaders)
           .pipe(res);
       });
@@ -307,7 +307,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
     it('should provide stat', function (done){
       var cb = after(2, done);
       var server = http.createServer(function (req, res){
-        send.use(req)
+        send.parse(req)
           .on('headers', onHeaders)
           .pipe(res);
       });
@@ -326,7 +326,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
 
     it('should allow altering headers', function (done){
       var server = http.createServer(function (req, res){
-        send.use(req)
+        send.parse(req)
           .on('headers', onHeaders)
           .pipe(res);
       });
@@ -354,7 +354,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
 
     before(function (){
       server = http.createServer(function (req, res){
-        send.use(req).pipe(res);
+        send.parse(req).pipe(res);
       });
     });
 
@@ -371,7 +371,7 @@ describe('Send(root, options).use(req).pipe(res)', function (){
     it('should respond to errors directly', function (done){
       var app = http.createServer(function (req, res){
         var send = Send('test/fixtures' + req.url);
-        send.use(req).pipe(res);
+        send.parse(req).pipe(res);
       });
 
       request(app)
@@ -902,7 +902,7 @@ describe('Send(file, options).set(key, value)', function (){
     send.get('root');
 
     var app = http.createServer(function (req, res){
-      send.use(req).pipe(res);
+      send.parse(req).pipe(res);
     });
 
     it('should support set root', function (done){
@@ -917,7 +917,7 @@ describe('Send(file, options).set(key, value)', function (){
       var app = http.createServer(function (req, res){
         send.set('etag', false);
 
-        send.use(req).pipe(res);
+        send.parse(req).pipe(res);
       });
 
       request(app)
@@ -934,7 +934,7 @@ describe('Send(file, options).set(key, value)', function (){
       send.set('dotFiles', 'allow');
 
       var app = http.createServer(function (req, res){
-        send.use(req).pipe(res);
+        send.parse(req).pipe(res);
       });
 
       request(app)
@@ -950,7 +950,7 @@ describe('Send(file, options).set(key, value)', function (){
       send.set('extensions', ['htm', 'html', 'txt']);
 
       var app = http.createServer(function (req, res){
-        send.use(req).pipe(res);
+        send.parse(req).pipe(res);
       });
 
       request(app)
@@ -965,7 +965,7 @@ describe('Send(file, options).set(key, value)', function (){
     send.set('index', ['name.html']);
 
     var app = http.createServer(function (req, res){
-      send.use(req).pipe(res);
+      send.parse(req).pipe(res);
     });
 
     it('should support set index', function (done){
@@ -981,7 +981,7 @@ describe('Send(file, options).set(key, value)', function (){
     send.set('lastModified', false);
 
     var app = http.createServer(function (req, res){
-      send.use(req).pipe(res);
+      send.parse(req).pipe(res);
     });
 
     it('should support set lastModified', function (done){
@@ -998,7 +998,7 @@ describe('Send(file, options).set(key, value)', function (){
     send.set('maxAge', Infinity);
 
     var app = http.createServer(function (req, res){
-      send.use(req).pipe(res);
+      send.parse(req).pipe(res);
     });
 
     it('should support set maxAge', function (done){
@@ -1014,7 +1014,7 @@ function createServer(root, opts){
 
   return http.createServer(function onRequest(req, res){
     try {
-      send.use(req).pipe(res);
+      send.parse(req).pipe(res);
     } catch (err) {
       res.statusCode = 500;
       res.end(String(err));
