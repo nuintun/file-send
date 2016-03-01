@@ -9,7 +9,7 @@ var debug = require('../lib/debug');
 var util = require('../lib/util');
 
 Send.debug = true;
-debug('File-Send')('%s', 'This is a debug test o(^_^)o');
+debug('File-Send')('%s', 'This is a debug test, debug status: ' + Send.debug + ' o(^_^)o');
 Send.debug = false;
 util.isType(NaN, 'nan');
 
