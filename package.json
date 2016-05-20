@@ -1,6 +1,6 @@
 {
   "name": "file-send",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A http file send",
   "author": {
     "name": "nuintun",
@@ -42,7 +42,7 @@
     "escape-html": "^1.0.3",
     "on-finished": "^2.3.0",
     "range-parser": "^1.1.0",
-    "readable-stream": "^2.1.2"
+    "readable-stream": "^2.1.4"
   },
   "devDependencies": {
     "after": "^0.8.1",
