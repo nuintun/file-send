@@ -21,7 +21,6 @@
       "url": "https://github.com/nuintun/file-send/blob/master/LICENSE"
     }
   ],
-  "main": "send",
   "engines": {
     "node": ">=0.10.0"
   },
