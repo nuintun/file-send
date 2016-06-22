@@ -12,6 +12,7 @@
 // external lib
 var ms = require('ms');
 var path = require('path');
+var http = require('http');
 var util = require('./lib/util');
 var micromatch = require('micromatch');
 var EventEmitter = require('events').EventEmitter;
@@ -25,7 +26,16 @@ function FileSend(request, options){
     return new FileSend(request, options);
   }
 
+  if (!(request instanceof http.IncomingMessage)) {
+    throw new TypeError('The first argument must be a http request.');
+  }
+
   this.request = request;
+  this.stat = null;
+  this.headers = {};
+  this.statusCode = 200;
+  this.method = this.request.method;
+  this.statusMessage = http.STATUS_CODES[this.statusCode];
 
   options = options || {};
 
@@ -142,15 +152,19 @@ function FileSend(request, options){
 
 FileSend.prototype = Object.create(EventEmitter.prototype, { constructor: { value: FileSend } });
 
-var send = new FileSend(undefined, {
-  ignore: ['*.js']
-});
+http.createServer(function (request, response){
+  var send = new FileSend(request, {
+    ignore: ['*.js']
+  });
 
-console.dir(send);
-console.log(send.root);
-console.log(send.etag);
-console.log(send.ignore);
-console.log(send.ignoreAccess);
-console.log(send.maxAge);
-console.log(send.lastModified);
-console.log(micromatch.any('a.js', send.ignore));
+  console.dir(send);
+  console.log(send.root);
+  console.log(send.etag);
+  console.log(send.ignore);
+  console.log(send.ignoreAccess);
+  console.log(send.maxAge);
+  console.log(send.lastModified);
+  console.log(micromatch.any('a.js', send.ignore));
+
+  response.end('FileSend');
+}).listen(9091, '127.0.0.1');
