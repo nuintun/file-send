@@ -15,7 +15,7 @@ var util = require('./lib/util');
 var micromatch = require('micromatch');
 var EventEmitter = require('events').EventEmitter;
 
-var cwd = process.cwd(); // current working directory of the process
+var CWD = process.cwd(); // current working directory of the process
 var MAXMAXAGE = 60 * 60 * 24 * 365; // the max max-age set
 
 function FileSend(request, options){
@@ -32,7 +32,7 @@ function FileSend(request, options){
       if (!__root) {
         __root = util.isType(options.root, 'string')
           ? path.resolve(options.root)
-          : cwd;
+          : CWD;
 
         __root = util.posixPath(__root + path.sep);
       }
