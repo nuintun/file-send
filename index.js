@@ -146,6 +146,7 @@ var send = new FileSend(undefined, {
   ignore: ['*.js']
 });
 
+console.dir(send);
 console.log(send.root);
 console.log(send.etag);
 console.log(send.ignore);
