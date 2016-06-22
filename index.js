@@ -25,13 +25,17 @@ var EventEmitter = require('events').EventEmitter;
 var CWD = process.cwd(); // current working directory
 var MAXMAXAGE = 60 * 60 * 24 * 365; // the max max-age set
 
-function onend(statusCode, path){
-  console.log(statusCode);
-  switch (statusCode) {
-    case 304:
-      var url = escapeHtml(path);
+function onend(){
+  switch (this.statusCode) {
+    case 301:
+      var location = escapeHtml(arguments[0]);
+      var message = 'Redirecting to <a href="' + location + '">' + location + '</a>';
 
-      return 'Redirecting to <a href="' + url + '">' + url + '</a>';
+      this.headers['Content-Type'] = 'text/html; charset=UTF-8';
+      this.headers['Content-Length'] = Buffer.byteLength(message);
+      this.headers['X-Content-Type-Options'] = 'nosniff';
+
+      return message;
       break;
     default:
       break;
@@ -289,11 +293,17 @@ FileSend.prototype.status = function (statusCode){
  * @api private
  */
 FileSend.prototype.end = function (){
-  var args = [this.statusCode, this.path];
+  this.stream.end(this.onend.apply(this, arguments));
+};
 
-  args.concat(args.slice.call(arguments, 0));
+FileSend.prototype.redirect = function (path){
+  this.status(301);
 
-  this.stream.end(this.onend.apply(this, args));
+  var location = util.posixPath(path + '/');
+
+  this.headers['Location'] = location;
+
+  this.end(location);
 };
 
 FileSend.prototype.read = function (response){
@@ -311,7 +321,6 @@ FileSend.prototype.read = function (response){
     return this.end();
   }
 
-  this.status(304);
   this.end();
 };
 
