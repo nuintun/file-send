@@ -9,16 +9,22 @@
 
 'use strict';
 
+// external lib
 var ms = require('ms');
 var path = require('path');
 var util = require('./lib/util');
 var micromatch = require('micromatch');
 var EventEmitter = require('events').EventEmitter;
 
-var CWD = process.cwd(); // current working directory of the process
+// variable declaration
+var CWD = process.cwd(); // current working directory
 var MAXMAXAGE = 60 * 60 * 24 * 365; // the max max-age set
 
 function FileSend(request, options){
+  if (!(this instanceof FileSend)) {
+    return new FileSend(request, options);
+  }
+
   this.request = request;
 
   options = options || {};
