@@ -29,7 +29,7 @@ function FileSend(request, options){
 
   options = options || {};
 
-  var __root, __etag, __ignore, __maxAge, __lastModified;
+  var __root, __etag, __ignore, __ignoreAccess, __maxAge, __lastModified;
 
   // root
   util.defineProperty(this, 'root', {
@@ -66,18 +66,42 @@ function FileSend(request, options){
     enumerable: true,
     get: function (){
       if (!__ignore) {
-        __ignore = Array.isArray(options.ignore)
-          ? options.ignore
-          : [options.ignore];
+        if (this.ignoreAccess !== 'allow') {
+          __ignore = Array.isArray(options.ignore)
+            ? options.ignore
+            : [options.ignore];
 
-        __ignore = __ignore.filter(function (pattern){
-          return util.isType(pattern, 'string')
-            || util.isType(pattern, 'regexp')
-            || util.isType(pattern, 'function');
-        });
+          __ignore = __ignore.filter(function (pattern){
+            return util.isType(pattern, 'string')
+              || util.isType(pattern, 'regexp')
+              || util.isType(pattern, 'function');
+          });
+        } else {
+          __ignore = [];
+        }
       }
 
       return __ignore;
+    }
+  });
+
+  // ignore-access
+  util.defineProperty(this, 'ignoreAccess', {
+    enumerable: true,
+    get: function (){
+      if (!__ignoreAccess) {
+        switch (options.ignoreAccess) {
+          case 'allow':
+          case 'deny':
+          case 'ignore':
+            __ignoreAccess = options.ignoreAccess;
+            break;
+          default:
+            __ignoreAccess = 'deny';
+        }
+      }
+
+      return __ignoreAccess;
     }
   });
 
@@ -125,6 +149,7 @@ var send = new FileSend(undefined, {
 console.log(send.root);
 console.log(send.etag);
 console.log(send.ignore);
+console.log(send.ignoreAccess);
 console.log(send.maxAge);
 console.log(send.lastModified);
 console.log(micromatch.any('a.js', send.ignore));
