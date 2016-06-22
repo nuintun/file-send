@@ -157,7 +157,6 @@ http.createServer(function (request, response){
     ignore: ['*.js']
   });
 
-  console.dir(send);
   console.log(send.root);
   console.log(send.etag);
   console.log(send.ignore);
