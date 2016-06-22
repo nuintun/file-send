@@ -54,6 +54,26 @@ function FileSend(request, options){
     }
   });
 
+  // max-age
+  util.defineProperty(this, 'maxAge', {
+    enumerable: true,
+    get: function (){
+      if (!__maxAge) {
+        __maxAge = util.isType(options.maxAge, 'string')
+          ? (ms(options.maxAge) || 0) / 1000
+          : Number(options.maxAge);
+
+        __maxAge = __maxAge >= 0
+          ? Math.min(__maxAge, MAXMAXAGE)
+          : MAXMAXAGE;
+
+        __maxAge = Math.floor(__maxAge);
+      }
+
+      return __maxAge;
+    }
+  });
+
   // last-modified
   util.defineProperty(this, 'lastModified', {
     enumerable: true,
@@ -67,30 +87,13 @@ function FileSend(request, options){
       return __lastModified;
     }
   });
-
-  // max-age
-  util.defineProperty(this, 'maxAge', {
-    enumerable: true,
-    get: function (){
-      if (!__root) {
-        __maxAge = util.isType(options.maxAge, 'string')
-          ? (ms(options.maxAge) || 0) / 1000
-          : Number(options.maxAge);
-
-        __maxAge = __maxAge >= 0
-          ? Math.min(__maxAge, MAXMAXAGE)
-          : 0;
-
-        __maxAge = Math.floor(__maxAge);
-      }
-
-      return __maxAge;
-    }
-  });
 }
 
 FileSend.prototype = Object.create(EventEmitter.prototype, { constructor: { value: FileSend } });
 
 var send = new FileSend();
 
-console.log(send);
+console.log(send.root);
+console.log(send.etag);
+console.log(send.maxAge);
+console.log(send.lastModified);
