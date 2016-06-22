@@ -13,7 +13,9 @@
 var ms = require('ms');
 var path = require('path');
 var http = require('http');
+var fresh = require('fresh');
 var util = require('./lib/util');
+var parseUrl = require('url').parse;
 var micromatch = require('micromatch');
 var through = require('./lib/through');
 var EventEmitter = require('events').EventEmitter;
@@ -31,16 +33,42 @@ function FileSend(request, options){
     throw new TypeError('The first argument must be a http request.');
   }
 
-  this.request = request;
-  this.stat = null;
   this.headers = {};
   this.statusCode = 200;
+  this.request = request;
   this.method = this.request.method;
-  this.statusMessage = http.STATUS_CODES[this.statusCode];
+  this.statusMessage = http.STATUS_CODES[200];
 
   options = options || {};
 
-  var root, etag, ignore, ignoreAccess, maxAge, lastModified;
+  var url, pathname, root, etag, ignore, ignoreAccess, maxAge, lastModified;
+
+  // url
+  util.defineProperty(this, 'url', {
+    enumerable: true,
+    get: function (){
+      if (!url) {
+        url = util.decodeURI(request.url);
+        url = -1 ? url : util.posixPath(url);
+      }
+
+      return url;
+    }
+  });
+
+  // pathname
+  util.defineProperty(this, 'pathname', {
+    enumerable: true,
+    get: function (){
+      if (!pathname) {
+        pathname = this.url === -1
+          ? ''
+          : parseUrl(this.url).pathname;
+      }
+
+      return pathname;
+    }
+  });
 
   // root
   util.defineProperty(this, 'root', {
@@ -170,8 +198,69 @@ FileSend.prototype.initialize = function (){
   this.stream.end();
 };
 
+/**
+ * check if this is a conditional GET request.
+ * @return {Boolean}
+ * @api private
+ */
+FileSend.prototype.isConditionalGET = function (){
+  return this.request.headers['if-none-match']
+    || this.request.headers['if-modified-since'];
+};
+
+/**
+ * check if the request is cacheable, aka
+ * responded with 2xx or 304 (see RFC 2616 section 14.2{5,6}).
+ * @param response
+ * @return {Boolean}
+ * @api private
+ */
+FileSend.prototype.isCachable = function (response){
+  var statusCode = response.statusCode;
+
+  return statusCode === 304
+    || (statusCode >= 200 && statusCode < 300);
+};
+
+/**
+ * Check if the cache is fresh.
+ * @param response
+ * @return {Boolean}
+ * @api private
+ */
+FileSend.prototype.isFresh = function (response){
+  return fresh(this.request.headers, {
+    'etag': response.getHeader('etag'),
+    'last-modified': response.getHeader('last-modified')
+  });
+};
+
+/**
+ * Check if the range is fresh.
+ * @param response
+ * @return {Boolean}
+ * @api private
+ */
+FileSend.prototype.isRangeFresh = function (response){
+  var ifRange = this.request.headers['if-range'];
+
+  if (!ifRange) {
+    return true;
+  }
+
+  return ~ifRange.indexOf('"')
+    ? ~ifRange.indexOf(response.getHeader('etag'))
+    : Date.parse(response.getHeader('last-modified')) <= Date.parse(ifRange);
+};
+
 FileSend.prototype.pipe = function (response){
   if (response instanceof http.OutgoingMessage) {
+    // conditional GET support
+    if (this.isConditionalGET() && this.isCachable(response) && this.isFresh(response)) {
+      this.statusCode = 304;
+      this.statusMessage = http.STATUS_CODES[304];
+    }
+
     response.writeHead(this.statusCode, this.statusMessage, this.headers);
   }
 
@@ -185,13 +274,14 @@ http.createServer(function (request, response){
     ignore: ['*.js']
   });
 
-  // console.log(send.root);
-  // console.log(send.etag);
-  // console.log(send.ignore);
-  // console.log(send.ignoreAccess);
-  // console.log(send.maxAge);
-  // console.log(send.lastModified);
-  // console.log(micromatch.any('a.js', send.ignore));
+  console.log('url:', send.url);
+  console.log('pathname:', send.pathname);
+  console.log('root:', send.root);
+  console.log('etag:', send.etag);
+  console.log('ignore:', send.ignore);
+  console.log('ignore-access:', send.ignoreAccess);
+  console.log('max-age:', send.maxAge);
+  console.log('last-modified:', send.lastModified);
 
   var stream = through();
 
