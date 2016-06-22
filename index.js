@@ -29,7 +29,7 @@ function FileSend(request, options){
 
   options = options || {};
 
-  var __root, __etag, __lastModified, __maxAge;
+  var __root, __etag, __ignore, __maxAge, __lastModified;
 
   // root
   util.defineProperty(this, 'root', {
@@ -58,6 +58,26 @@ function FileSend(request, options){
       }
 
       return __etag;
+    }
+  });
+
+  // ignore
+  util.defineProperty(this, 'ignore', {
+    enumerable: true,
+    get: function (){
+      if (!__ignore) {
+        __ignore = Array.isArray(options.ignore)
+          ? options.ignore
+          : [options.ignore];
+
+        __ignore = __ignore.filter(function (pattern){
+          return util.isType(pattern, 'string')
+            || util.isType(pattern, 'regexp')
+            || util.isType(pattern, 'function');
+        });
+      }
+
+      return __ignore;
     }
   });
 
@@ -98,9 +118,13 @@ function FileSend(request, options){
 
 FileSend.prototype = Object.create(EventEmitter.prototype, { constructor: { value: FileSend } });
 
-var send = new FileSend();
+var send = new FileSend(undefined, {
+  ignore: ['*.js']
+});
 
 console.log(send.root);
 console.log(send.etag);
+console.log(send.ignore);
 console.log(send.maxAge);
 console.log(send.lastModified);
+console.log(micromatch.any('a.js', send.ignore));
