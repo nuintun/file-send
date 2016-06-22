@@ -18,11 +18,25 @@ var util = require('./lib/util');
 var parseUrl = require('url').parse;
 var micromatch = require('micromatch');
 var through = require('./lib/through');
+var escapeHtml = require('escape-html');
 var EventEmitter = require('events').EventEmitter;
 
 // variable declaration
 var CWD = process.cwd(); // current working directory
 var MAXMAXAGE = 60 * 60 * 24 * 365; // the max max-age set
+
+function onend(statusCode, path){
+  console.log(statusCode);
+  switch (statusCode) {
+    case 304:
+      var url = escapeHtml(path);
+
+      return 'Redirecting to <a href="' + url + '">' + url + '</a>';
+      break;
+    default:
+      break;
+  }
+}
 
 function FileSend(request, options){
   if (!(this instanceof FileSend)) {
@@ -34,14 +48,12 @@ function FileSend(request, options){
   }
 
   this.headers = {};
-  this.statusCode = 200;
   this.request = request;
   this.method = this.request.method;
-  this.statusMessage = http.STATUS_CODES[200];
 
   options = options || {};
 
-  var url, pathname, root, etag, ignore, ignoreAccess, maxAge, lastModified;
+  var url, path, root, etag, ignore, ignoreAccess, maxAge, lastModified, stream;
 
   // url
   util.defineProperty(this, 'url', {
@@ -56,17 +68,17 @@ function FileSend(request, options){
     }
   });
 
-  // pathname
-  util.defineProperty(this, 'pathname', {
+  // path
+  util.defineProperty(this, 'path', {
     enumerable: true,
     get: function (){
-      if (!pathname) {
-        pathname = this.url === -1
-          ? ''
+      if (!path) {
+        path = this.url === -1
+          ? url
           : parseUrl(this.url).pathname;
       }
 
-      return pathname;
+      return path;
     }
   });
 
@@ -180,23 +192,32 @@ function FileSend(request, options){
 
   // stream
   util.defineProperty(this, 'stream', {
-    value: null,
+    value: through(),
     writable: true,
     enumerable: false
   });
 
-  this.initialize();
+  // stream
+  util.defineProperty(this, '_stream', {
+    enumerable: false,
+    set: function (value){
+      stream = value;
+    },
+    get: function (){
+      return stream || this.stream;
+    }
+  });
+
+  this.onend = util.isType(options.onend, 'function')
+    ? options.onend
+    : onend;
+
+  this.status(200);
 }
 
 FileSend.prototype = Object.create(EventEmitter.prototype, {
   constructor: { value: FileSend }
 });
-
-FileSend.prototype.initialize = function (){
-  this.stream = through();
-  this.stream.push('hello world !');
-  this.stream.end();
-};
 
 /**
  * check if this is a conditional GET request.
@@ -253,18 +274,54 @@ FileSend.prototype.isRangeFresh = function (response){
     : Date.parse(response.getHeader('last-modified')) <= Date.parse(ifRange);
 };
 
+/**
+ * set response status
+ * @param statusCode
+ * @api private
+ */
+FileSend.prototype.status = function (statusCode){
+  this.statusCode = statusCode;
+  this.statusMessage = http.STATUS_CODES[statusCode];
+};
+
+/**
+ * end response
+ * @api private
+ */
+FileSend.prototype.end = function (){
+  var args = [this.statusCode, this.path];
+
+  args.concat(args.slice.call(arguments, 0));
+
+  this.stream.end(this.onend.apply(this, args));
+};
+
+FileSend.prototype.read = function (response){
+  // path error
+  if (this.path === -1) {
+    this.status(400);
+
+    return this.end();
+  }
+
+  // conditional GET support
+  if (this.isConditionalGET() && this.isCachable(response) && this.isFresh(response)) {
+    this.status(304);
+
+    return this.end();
+  }
+
+  this.status(304);
+  this.end();
+};
+
 FileSend.prototype.pipe = function (response){
   if (response instanceof http.OutgoingMessage) {
-    // conditional GET support
-    if (this.isConditionalGET() && this.isCachable(response) && this.isFresh(response)) {
-      this.statusCode = 304;
-      this.statusMessage = http.STATUS_CODES[304];
-    }
-
+    this.read(response);
     response.writeHead(this.statusCode, this.statusMessage, this.headers);
   }
 
-  this.stream = this.stream.pipe(response);
+  this._stream = this._stream.pipe(response);
 
   return this;
 };
@@ -274,16 +331,14 @@ http.createServer(function (request, response){
     ignore: ['*.js']
   });
 
-  console.log('url:', send.url);
-  console.log('pathname:', send.pathname);
-  console.log('root:', send.root);
-  console.log('etag:', send.etag);
-  console.log('ignore:', send.ignore);
-  console.log('ignore-access:', send.ignoreAccess);
-  console.log('max-age:', send.maxAge);
-  console.log('last-modified:', send.lastModified);
+  // console.log('url:', send.url);
+  // console.log('path:', send.path);
+  // console.log('root:', send.root);
+  // console.log('etag:', send.etag);
+  // console.log('ignore:', send.ignore);
+  // console.log('ignore-access:', send.ignoreAccess);
+  // console.log('max-age:', send.maxAge);
+  // console.log('last-modified:', send.lastModified);
 
-  var stream = through();
-
-  send.pipe(stream).pipe(response);
+  send.pipe(response);
 }).listen(9091, '127.0.0.1');
