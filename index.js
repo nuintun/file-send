@@ -12,6 +12,7 @@
 var ms = require('ms');
 var path = require('path');
 var util = require('./lib/util');
+var micromatch = require('micromatch');
 var EventEmitter = require('events').EventEmitter;
 
 var cwd = process.cwd(); // current working directory of the process
