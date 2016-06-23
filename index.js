@@ -18,7 +18,6 @@ var util = require('./lib/util');
 var parseUrl = require('url').parse;
 var micromatch = require('micromatch');
 var through = require('./lib/through');
-var escapeHtml = require('escape-html');
 var EventEmitter = require('events').EventEmitter;
 
 // variable declaration
@@ -112,9 +111,10 @@ function FileSend(request, options){
           : [options.ignore];
 
         ignore = ignore.filter(function (pattern){
-          return util.isType(pattern, 'string')
+          return pattern
+            && (util.isType(pattern, 'string')
             || util.isType(pattern, 'regexp')
-            || util.isType(pattern, 'function');
+            || util.isType(pattern, 'function'));
         });
       }
 
@@ -303,11 +303,11 @@ FileSend.prototype.error = function (status, message){
  * dir
  * @api private
  */
-FileSend.prototype.dir = function (dir, stat){
+FileSend.prototype.dir = function (realpath, stat){
   // if have event directory listener, use user define
   if (listenerCount(this, 'dir') > 0) {
     // emit event directory
-    return this.emit('dir', dir, stat);
+    return this.emit('dir', realpath, stat);
   }
 
   this.error(403);
@@ -333,14 +333,9 @@ FileSend.prototype.read = function (response){
     return this.error(400);
   }
 
-  // conditional GET support
-  if (this.isConditionalGET() && this.isCachable(response) && this.isFresh(response)) {
-    this.status(304);
+  console.log(this.path.slice(1), this.ignore);
 
-    return this.stream.end();
-  }
-
-  if (this.ignore.length && micromatch(this.path, this.ignore)) {
+  if (this.ignore.length && micromatch.any(this.path.slice(1), this.ignore)) {
     switch (this.ignoreAccess) {
       case 'deny':
         return this.error(403);
@@ -348,7 +343,14 @@ FileSend.prototype.read = function (response){
         return this.error(404);
     }
   }
-  
+
+  // conditional GET support
+  if (this.isConditionalGET() && this.isCachable(response) && this.isFresh(response)) {
+    this.status(304);
+
+    return this.stream.end();
+  }
+
   this.stream.end();
 };
 
@@ -365,7 +367,8 @@ FileSend.prototype.pipe = function (response){
 
 http.createServer(function (request, response){
   var send = new FileSend(request, {
-    ignore: ['*.js']
+    ignore: ['**/*.js'],
+    ignoreAccess: 'ignore'
   });
 
   // console.log('url:', send.url);
