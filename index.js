@@ -11,19 +11,25 @@
 
 // external lib
 var ms = require('ms');
+var fs = require('fs');
 var path = require('path');
 var http = require('http');
 var fresh = require('fresh');
 var util = require('./lib/util');
+var async = require('./lib/async');
 var parseUrl = require('url').parse;
 var micromatch = require('micromatch');
 var through = require('./lib/through');
 var EventEmitter = require('events').EventEmitter;
 
 // variable declaration
+var SEP = path.sep;
 var CWD = process.cwd(); // current working directory
 var MAXMAXAGE = 60 * 60 * 24 * 365; // the max max-age set
+var NOTFOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
 
+var join = path.join;
+var resolve = path.resolve;
 var listenerCount = EventEmitter.listenerCount
   || function (emitter, type){ return emitter.listeners(type).length; };
 
@@ -42,7 +48,8 @@ function FileSend(request, options){
 
   options = options || {};
 
-  var url, path, root, etag, ignore, ignoreAccess, maxAge, lastModified, stream;
+  var url, path, realpath, root, etag, ignore,
+    ignoreAccess, maxAge, lastModified, index, stream;
 
   // url
   util.defineProperty(this, 'url', {
@@ -54,6 +61,22 @@ function FileSend(request, options){
       }
 
       return url;
+    }
+  });
+
+  // root
+  util.defineProperty(this, 'root', {
+    enumerable: true,
+    get: function (){
+      if (!root) {
+        root = util.isType(options.root, 'string')
+          ? resolve(options.root)
+          : CWD;
+
+        root = util.posixPath(join(root, SEP));
+      }
+
+      return root;
     }
   });
 
@@ -71,19 +94,14 @@ function FileSend(request, options){
     }
   });
 
-  // root
-  util.defineProperty(this, 'root', {
+  util.defineProperty(this, 'realpath', {
     enumerable: true,
     get: function (){
-      if (!root) {
-        root = util.isType(options.root, 'string')
-          ? path.resolve(options.root)
-          : CWD;
-
-        root = util.posixPath(root + path.sep);
+      if (!realpath) {
+        realpath = util.posixPath(join(this.root, this.path));
       }
 
-      return root;
+      return realpath;
     }
   });
 
@@ -175,6 +193,24 @@ function FileSend(request, options){
     }
   });
 
+  // last-modified
+  util.defineProperty(this, 'index', {
+    enumerable: true,
+    get: function (){
+      if (!index) {
+        index = Array.isArray(options.index)
+          ? options.index
+          : [options.index];
+
+        index = index.filter(function (index){
+          return index && util.isType(index, 'string');
+        });
+      }
+
+      return index;
+    }
+  });
+
   // stream
   util.defineProperty(this, 'stream', {
     value: through(),
@@ -191,6 +227,11 @@ function FileSend(request, options){
     get: function (){
       return stream || this.stream;
     }
+  });
+
+  // path has trailing slash
+  util.defineProperty(this, 'hasTrailingSlash', {
+    value: this.path.slice(-1) === '/'
   });
 
   this.views = options.views || {};
@@ -271,14 +312,12 @@ FileSend.prototype.status = function (statusCode){
  * error
  * @api private
  */
-FileSend.prototype.error = function (status, message){
+FileSend.prototype.error = function (response, status, message){
   switch (arguments.length) {
-    case 0:
-      break;
-    case 1:
+    case 2:
       this.status(status);
       break;
-    case 2:
+    case 3:
       this.statusCode = status;
       this.statusMessage = message;
       break;
@@ -293,9 +332,10 @@ FileSend.prototype.error = function (status, message){
 
   // emit if listeners instead of responding
   if (listenerCount(this, 'error') > 0) {
-    return this.emit('error', error);
+    return this.emit('error', response, error);
   }
 
+  this.writeHead(response);
   this.stream.end(message);
 };
 
@@ -303,20 +343,21 @@ FileSend.prototype.error = function (status, message){
  * dir
  * @api private
  */
-FileSend.prototype.dir = function (realpath, stat){
+FileSend.prototype.dir = function (response, realpath, stats){
   // if have event directory listener, use user define
   if (listenerCount(this, 'dir') > 0) {
     // emit event directory
-    return this.emit('dir', realpath, stat);
+    return this.emit('dir', response, realpath, stats);
   }
 
-  this.error(403);
+  this.error(response, 403);
 };
 
-FileSend.prototype.redirect = function (){
+FileSend.prototype.redirect = function (response, location){
   this.status(301);
 
-  var location = encodeURI(this.path.slice(-1) === '/' ? this.path : this.path + '/');
+  location = encodeURI(location);
+
   var message = 'Redirecting to <a href="' + location + '">' + location + '</a>';
 
   this.headers['Content-Type'] = 'text/html; charset=UTF-8';
@@ -324,31 +365,70 @@ FileSend.prototype.redirect = function (){
   this.headers['X-Content-Type-Options'] = 'nosniff';
   this.headers['Location'] = location;
 
-  this.stream.end();
+  this.writeHead(response);
+  this.stream.end(message);
+};
+
+FileSend.prototype.writeHead = function (response){
+  if (!response.headersSent) {
+    response.writeHead(this.statusCode, this.statusMessage, this.headers);
+
+    if (listenerCount(this, 'headers') > 0) {
+      this.emit('headers', response, this.headers);
+    }
+  }
 };
 
 FileSend.prototype.read = function (response){
+  var context = this;
+
   // path error
   if (this.path === -1) {
-    return this.error(400);
+    return this.error(response, 400);
   }
 
-  console.log(this.path.slice(1), this.ignore);
-
-  if (this.ignore.length && micromatch.any(this.path.slice(1), this.ignore)) {
+  if (this.ignore.length && micromatch.any(this.path.slice(1), this.ignore, { dot: true })) {
     switch (this.ignoreAccess) {
       case 'deny':
-        return this.error(403);
+        return this.error(response, 403);
       case 'ignore':
-        return this.error(404);
+        return this.error(response, 404);
     }
   }
 
   // conditional GET support
   if (this.isConditionalGET() && this.isCachable(response) && this.isFresh(response)) {
     this.status(304);
+    this.writeHead(response);
 
     return this.stream.end();
+  }
+
+  if (this.hasTrailingSlash) {
+    return fs.stat(this.realpath, function (error, stats){
+      if (error) {
+        // 404 error
+        if (~NOTFOUND.indexOf(error.code)) {
+          return context.error(response, 404);
+        }
+
+        return context.error(response, 500);
+      }
+
+      async.series(context.index.map(function (index){
+        return context.path + index;
+      }), function (path, next){
+        fs.stat(join(context.root, path), function (error){
+          if (error) {
+            next()
+          } else {
+            context.redirect(response, util.posixPath(path));
+          }
+        });
+      }, function (){
+        context.dir(response, context.realpath, stats);
+      });
+    });
   }
 
   this.stream.end();
@@ -357,7 +437,6 @@ FileSend.prototype.read = function (response){
 FileSend.prototype.pipe = function (response){
   if (response instanceof http.OutgoingMessage) {
     this.read(response);
-    response.writeHead(this.statusCode, this.statusMessage, this.headers);
   }
 
   this._stream = this._stream.pipe(response);
@@ -367,8 +446,8 @@ FileSend.prototype.pipe = function (response){
 
 http.createServer(function (request, response){
   var send = new FileSend(request, {
-    ignore: ['**/*.js'],
-    ignoreAccess: 'ignore'
+    ignore: ['**/*.css'],
+    index: ['util.js']
   });
 
   // console.log('url:', send.url);
