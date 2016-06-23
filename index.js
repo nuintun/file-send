@@ -25,22 +25,8 @@ var EventEmitter = require('events').EventEmitter;
 var CWD = process.cwd(); // current working directory
 var MAXMAXAGE = 60 * 60 * 24 * 365; // the max max-age set
 
-function onend(){
-  switch (this.statusCode) {
-    case 301:
-      var location = escapeHtml(arguments[0]);
-      var message = 'Redirecting to <a href="' + location + '">' + location + '</a>';
-
-      this.headers['Content-Type'] = 'text/html; charset=UTF-8';
-      this.headers['Content-Length'] = Buffer.byteLength(message);
-      this.headers['X-Content-Type-Options'] = 'nosniff';
-
-      return message;
-      break;
-    default:
-      break;
-  }
-}
+var listenerCount = EventEmitter.listenerCount
+  || function (emitter, type){ return emitter.listeners(type).length; };
 
 function FileSend(request, options){
   if (!(this instanceof FileSend)) {
@@ -212,9 +198,7 @@ function FileSend(request, options){
     }
   });
 
-  this.onend = util.isType(options.onend, 'function')
-    ? options.onend
-    : onend;
+  this.views = options.views || {};
 
   this.status(200);
 }
@@ -289,39 +273,69 @@ FileSend.prototype.status = function (statusCode){
 };
 
 /**
- * end response
+ * error
  * @api private
  */
-FileSend.prototype.end = function (){
-  this.stream.end(this.onend.apply(this, arguments));
+FileSend.prototype.error = function (status, message){
+  status = status || this.statusCode;
+  message = message || this.statusMessage;
+
+  this.statusCode = status;
+  this.statusMessage = message;
+
+  var error = new Error(this.statusMessage);
+
+  error.statusCode = this.statusCode;
+
+  // emit if listeners instead of responding
+  if (listenerCount(this, 'error') > 0) {
+    return this.emit('error', error);
+  }
+
+  this.stream.end(this.statusMessage);
 };
 
-FileSend.prototype.redirect = function (path){
+/**
+ * dir
+ * @api private
+ */
+FileSend.prototype.dir = function (){
+  // emit if listeners instead of responding
+  if (listenerCount(this, 'error') > 0) {
+    return this.emit('error', error);
+  }
+
+  this.stream.end();
+};
+
+FileSend.prototype.redirect = function (){
   this.status(301);
 
-  var location = util.posixPath(path + '/');
+  var location = encodeURI(this.path.slice(-1) === '/' ? this.path : this.path + '/');
+  var message = 'Redirecting to <a href="' + location + '">' + location + '</a>';
 
+  this.headers['Content-Type'] = 'text/html; charset=UTF-8';
+  this.headers['Content-Length'] = Buffer.byteLength(message);
+  this.headers['X-Content-Type-Options'] = 'nosniff';
   this.headers['Location'] = location;
 
-  this.end(location);
+  this.stream.end();
 };
 
 FileSend.prototype.read = function (response){
   // path error
   if (this.path === -1) {
-    this.status(400);
-
-    return this.end();
+    return this.error(400);
   }
 
   // conditional GET support
   if (this.isConditionalGET() && this.isCachable(response) && this.isFresh(response)) {
     this.status(304);
 
-    return this.end();
+    return this.stream.end();
   }
 
-  this.end();
+  this.stream.end();
 };
 
 FileSend.prototype.pipe = function (response){
