@@ -14,12 +14,15 @@ var ms = require('ms');
 var fs = require('fs');
 var path = require('path');
 var http = require('http');
+var etag = require('etag');
 var fresh = require('fresh');
+var mime = require('mime-types');
 var util = require('./lib/util');
 var async = require('./lib/async');
 var parseUrl = require('url').parse;
 var micromatch = require('micromatch');
 var through = require('./lib/through');
+var parseRange = require('range-parser');
 var EventEmitter = require('events').EventEmitter;
 
 // variable declaration
@@ -43,6 +46,7 @@ function FileSend(request, options){
   }
 
   this.headers = {};
+  this.ranges = [];
   this.request = request;
   this.method = this.request.method;
 
@@ -249,44 +253,41 @@ FileSend.prototype = Object.create(EventEmitter.prototype, {
  * @api private
  */
 FileSend.prototype.isConditionalGET = function (){
-  return this.request.headers['if-none-match']
-    || this.request.headers['if-modified-since'];
+  return !!(this.request.headers['if-none-match']
+  || this.request.headers['if-modified-since']);
 };
 
 /**
  * check if the request is cacheable, aka
  * responded with 2xx or 304 (see RFC 2616 section 14.2{5,6}).
- * @param response
  * @return {Boolean}
  * @api private
  */
-FileSend.prototype.isCachable = function (response){
-  var statusCode = response.statusCode;
+FileSend.prototype.isCachable = function (){
+  var statusCode = this.statusCode;
 
   return statusCode === 304
     || (statusCode >= 200 && statusCode < 300);
 };
 
 /**
- * Check if the cache is fresh.
- * @param response
+ * check if the cache is fresh.
  * @return {Boolean}
  * @api private
  */
-FileSend.prototype.isFresh = function (response){
+FileSend.prototype.isFresh = function (){
   return fresh(this.request.headers, {
-    'etag': response.getHeader('etag'),
-    'last-modified': response.getHeader('last-modified')
+    'etag': this.headers['ETag'],
+    'last-modified': this.headers['Last-Modified']
   });
 };
 
 /**
  * Check if the range is fresh.
- * @param response
  * @return {Boolean}
  * @api private
  */
-FileSend.prototype.isRangeFresh = function (response){
+FileSend.prototype.isRangeFresh = function (){
   var ifRange = this.request.headers['if-range'];
 
   if (!ifRange) {
@@ -294,8 +295,159 @@ FileSend.prototype.isRangeFresh = function (response){
   }
 
   return ~ifRange.indexOf('"')
-    ? ~ifRange.indexOf(response.getHeader('etag'))
-    : Date.parse(response.getHeader('last-modified')) <= Date.parse(ifRange);
+    ? ~ifRange.indexOf(this.headers['ETag'])
+    : Date.parse(this.headers['Last-Modified']) <= Date.parse(ifRange);
+};
+
+/**
+ * set headers
+ * @param response
+ * @param path
+ * @param stats
+ * @api private
+ */
+FileSend.prototype.setHeaders = function (response, path, stats){
+  var type;
+  var charset;
+  var contentType = response.getHeader('Content-Type');
+
+  // not override custom set
+  if (contentType) {
+    this.headers['Content-Type'] = contentType;
+  } else {
+    // get type
+    type = mime.lookup(path);
+
+    if (type) {
+      // get charset
+      charset = mime.charset(type);
+
+      // set content-type
+      this.headers['Content-Type'] = type + (charset ? '; charset=' + charset : '');
+    }
+  }
+
+  // set accept-ranges
+  this.headers['Accept-Ranges'] = 'bytes';
+
+  // set cache-control
+  if (!response.getHeader('Cache-Control')) {
+    this.headers['Cache-Control'] = 'public, max-age=' + this.maxAge;
+  }
+
+  // set last-modified
+  if (this.lastModified && !response.getHeader('Last-Modified')) {
+    // get mtime utc string
+    this.headers['Last-Modified'] = stats.mtime.toUTCString();
+  }
+
+  // set etag
+  if (this.etag && !response.getHeader('ETag')) {
+    this.headers['ETag'] = etag(stats, {
+      weak: false // disable weak etag
+    });
+  }
+};
+
+/**
+ * parse range
+ * @param {Object} response
+ * @param {Object} stats
+ * @api private
+ */
+FileSend.prototype.parseRange = function (response, stats){
+  var start;
+  var end;
+  var boundary;
+  var endBoundary;
+  var rangeFresh;
+  var contentType;
+  var context = this;
+  var size = stats.size;
+  var ranges = this.requset.headers['range'];
+
+  // Range support
+  if (ranges) {
+    // Range fresh
+    rangeFresh = this.isRangeFresh(response);
+
+    if (rangeFresh) {
+      // parse range
+      ranges = parseRange(size, ranges);
+
+      // valid ranges, support multiple ranges
+      if (util.isType(ranges, 'array') && ranges.type === 'bytes') {
+        this.status(206);
+
+        // multiple ranges
+        if (ranges.length > 1) {
+          // reset content length
+          size = 0;
+          // range boundary
+          boundary = util.boundaryGenerator();
+
+          // if user set content-type use user define
+          contentType = this.headers['Content-Type'] || 'application/octet-stream';
+
+          // set multipart/byteranges
+          this.headers['Content-Type'] = 'multipart/byteranges; boundary=<' + boundary + '>';
+
+          // create boundary and end boundary
+          boundary = '--<' + boundary + '>';
+          endBoundary = '\r\n' + boundary + '--';
+          boundary += '\r\nContent-Type: ' + contentType;
+
+          // loop ranges
+          ranges.forEach(function (range, i){
+            var _boundary;
+
+            // range start and end
+            start = range.start;
+            end = range.end;
+
+            // set fields
+            _boundary = (i == 0 ? '' : '\r\n') + boundary
+              + '\r\nContent-Range: ' + 'bytes ' + start
+              + '-' + end + '/' + stats.size + '\r\n\r\n';
+
+            // set property
+            range.boundary = _boundary;
+            size += end - start + Buffer.byteLength(_boundary) + 1;
+
+            // cache range
+            context.ranges.push(range);
+          });
+
+          // the last add end boundary
+          this.ranges[context.ranges.length - 1].endBoundary = endBoundary;
+          size += Buffer.byteLength(endBoundary);
+        } else {
+          this.ranges.push(ranges[0]);
+
+          start = ranges[0].start;
+          end = ranges[0].end;
+
+          // set content-range
+          this.headers['Content-Range'] = 'bytes ' + start + '-' + end + '/' + size;
+
+          // reset content length
+          size = end - start + 1;
+        }
+      } else if (ranges === -1) {
+        // set Content-Range
+        this.headers['Content-Range'] = 'bytes */' + size;
+
+        // unsatisfiable 416
+        return this.error(response, 416);
+      }
+
+      // free ranges
+      ranges = null;
+    }
+  }
+
+  // set Content-length
+  this.headers['Content-Length'] = size;
 };
 
 /**
@@ -379,6 +531,10 @@ FileSend.prototype.writeHead = function (response){
   }
 };
 
+FileSend.prototype.createReadStream = function (){
+
+};
+
 FileSend.prototype.read = function (response){
   var context = this;
 
@@ -394,14 +550,6 @@ FileSend.prototype.read = function (response){
       case 'ignore':
         return this.error(response, 404);
     }
-  }
-
-  // conditional GET support
-  if (this.isConditionalGET() && this.isCachable(response) && this.isFresh(response)) {
-    this.status(304);
-    this.writeHead(response);
-
-    return this.stream.end();
   }
 
   if (this.hasTrailingSlash) {
@@ -431,7 +579,29 @@ FileSend.prototype.read = function (response){
     });
   }
 
-  this.stream.end();
+  fs.stat(this.realpath, function (error, stats){
+    if (error) {
+      // 404 error
+      if (~NOTFOUND.indexOf(error.code)) {
+        return context.error(response, 404);
+      }
+
+      return context.error(response, 500);
+    }
+
+    context.setHeaders(response, context.realpath, stats);
+
+    // conditional get support
+    if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
+      context.status(304);
+      context.writeHead(response);
+
+      return context.stream.end();
+    }
+
+    context.writeHead(response);
+    context.stream.end();
+  });
 };
 
 FileSend.prototype.pipe = function (response){
