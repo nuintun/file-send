@@ -277,22 +277,31 @@ FileSend.prototype.status = function (statusCode){
  * @api private
  */
 FileSend.prototype.error = function (status, message){
-  status = status || this.statusCode;
-  message = message || this.statusMessage;
+  switch (arguments.length) {
+    case 0:
+      break;
+    case 1:
+      this.status(status);
+      break;
+    case 2:
+      this.statusCode = status;
+      this.statusMessage = message;
+      break;
+  }
 
-  this.statusCode = status;
-  this.statusMessage = message;
+  status = this.statusCode;
+  message = this.statusMessage;
 
-  var error = new Error(this.statusMessage);
+  var error = new Error(message);
 
-  error.statusCode = this.statusCode;
+  error.statusCode = status;
 
   // emit if listeners instead of responding
   if (listenerCount(this, 'error') > 0) {
     return this.emit('error', error);
   }
 
-  this.stream.end(this.statusMessage);
+  this.stream.end(message);
 };
 
 /**
