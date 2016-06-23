@@ -107,19 +107,15 @@ function FileSend(request, options){
     enumerable: true,
     get: function (){
       if (!ignore) {
-        if (this.ignoreAccess !== 'allow') {
-          ignore = Array.isArray(options.ignore)
-            ? options.ignore
-            : [options.ignore];
+        ignore = Array.isArray(options.ignore)
+          ? options.ignore
+          : [options.ignore];
 
-          ignore = ignore.filter(function (pattern){
-            return util.isType(pattern, 'string')
-              || util.isType(pattern, 'regexp')
-              || util.isType(pattern, 'function');
-          });
-        } else {
-          ignore = [];
-        }
+        ignore = ignore.filter(function (pattern){
+          return util.isType(pattern, 'string')
+            || util.isType(pattern, 'regexp')
+            || util.isType(pattern, 'function');
+        });
       }
 
       return ignore;
@@ -132,7 +128,6 @@ function FileSend(request, options){
     get: function (){
       if (!ignoreAccess) {
         switch (options.ignoreAccess) {
-          case 'allow':
           case 'deny':
           case 'ignore':
             ignoreAccess = options.ignoreAccess;
@@ -315,17 +310,7 @@ FileSend.prototype.dir = function (dir, stat){
     return this.emit('dir', dir, stat);
   }
 
-  switch (this.ignoreAccess) {
-    case 'allow':
-      this.stream.end();
-      break;
-    case 'deny':
-      this.error(403);
-      break;
-    case 'ignore':
-      this.error(404);
-      break;
-  }
+  this.error(403);
 };
 
 FileSend.prototype.redirect = function (){
@@ -355,6 +340,15 @@ FileSend.prototype.read = function (response){
     return this.stream.end();
   }
 
+  if (this.ignore.length && micromatch(this.path, this.ignore)) {
+    switch (this.ignoreAccess) {
+      case 'deny':
+        return this.error(403);
+      case 'ignore':
+        return this.error(404);
+    }
+  }
+  
   this.stream.end();
 };
 
