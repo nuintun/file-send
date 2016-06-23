@@ -302,11 +302,10 @@ FileSend.prototype.isRangeFresh = function (){
 /**
  * set headers
  * @param response
- * @param path
  * @param stats
  * @api private
  */
-FileSend.prototype.setHeaders = function (response, path, stats){
+FileSend.prototype.setHeaders = function (response, stats){
   var type;
   var charset;
   var contentType = response.getHeader('Content-Type');
@@ -316,7 +315,7 @@ FileSend.prototype.setHeaders = function (response, path, stats){
     this.headers['Content-Type'] = contentType;
   } else {
     // get type
-    type = mime.lookup(path);
+    type = mime.lookup(this.path);
 
     if (type) {
       // get charset
@@ -332,7 +331,7 @@ FileSend.prototype.setHeaders = function (response, path, stats){
 
   // set cache-control
   if (!response.getHeader('Cache-Control')) {
-    this.headers['Cache-Control'] = 'public, max-age=' + this.maxAge;
+    this.headers['Cache-Control'] = this.maxAge ? 'public, max-age=' + this.maxAge : 'no-cache';
   }
 
   // set last-modified
@@ -364,12 +363,12 @@ FileSend.prototype.parseRange = function (response, stats){
   var contentType;
   var context = this;
   var size = stats.size;
-  var ranges = this.requset.headers['range'];
+  var ranges = this.request.headers['range'];
 
   // Range support
   if (ranges) {
     // Range fresh
-    rangeFresh = this.isRangeFresh(response);
+    rangeFresh = this.isRangeFresh();
 
     if (rangeFresh) {
       // parse range
@@ -589,7 +588,8 @@ FileSend.prototype.read = function (response){
       return context.error(response, 500);
     }
 
-    context.setHeaders(response, context.realpath, stats);
+    context.setHeaders(response, stats);
+    // context.parseRange(response, stats);
 
     // conditional get support
     if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
@@ -617,7 +617,8 @@ FileSend.prototype.pipe = function (response){
 http.createServer(function (request, response){
   var send = new FileSend(request, {
     ignore: ['**/*.css'],
-    index: ['util.js']
+    index: ['util.js'],
+    maxAge: 0
   });
 
   // console.log('url:', send.url);
