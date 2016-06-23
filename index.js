@@ -16,10 +16,14 @@ var path = require('path');
 var http = require('http');
 var etag = require('etag');
 var fresh = require('fresh');
+var destroy = require('destroy');
 var mime = require('mime-types');
 var util = require('./lib/util');
 var async = require('./lib/async');
 var parseUrl = require('url').parse;
+var encodeUrl = require('encodeurl');
+var onFinished = require('on-finished');
+var escapeHtml = require('escape-html');
 var micromatch = require('micromatch');
 var through = require('./lib/through');
 var parseRange = require('range-parser');
@@ -505,11 +509,13 @@ FileSend.prototype.dir = function (response, realpath, stats){
 };
 
 FileSend.prototype.redirect = function (response, location){
+  var html = escapeHtml(location);
+
+  location = encodeUrl(location);
+
+  var message = 'Redirecting to <a href="' + location + '">' + html + '</a>';
+
   this.status(301);
-
-  location = encodeURI(location);
-
-  var message = 'Redirecting to <a href="' + location + '">' + location + '</a>';
 
   this.headers['Content-Type'] = 'text/html; charset=UTF-8';
   this.headers['Content-Length'] = Buffer.byteLength(message);
@@ -530,8 +536,85 @@ FileSend.prototype.writeHead = function (response){
   }
 };
 
-FileSend.prototype.createReadStream = function (){
+FileSend.prototype.createReadStream = function (response){
+  var context = this;
+  var isFinished = false;
+  var ranges = this.ranges;
+  var stream = this.stream;
 
+  // stream error
+  function onerror(error){
+    // request already finished
+    if (isFinished) return;
+
+    // destroy stream
+    destroy(stream);
+
+    // 404 error
+    if (~NOTFOUND.indexOf(error.code)) {
+      return context.error(response, 404);
+    }
+
+    context.error(response, 500);
+  }
+
+  // contat range
+  function concatRange(){
+    var range;
+    var lenRanges;
+    var fileStream;
+
+    // request already finished
+    if (isFinished) return;
+
+    range = ranges.shift() || {};
+    lenRanges = ranges.length;
+    fileStream = fs.createReadStream(context.realpath, range);
+
+    // push boundary
+    range.boundary && stream.push(range.boundary);
+
+    // error handling code-smell
+    fileStream.on('error', function (error){
+      // call onerror
+      onerror(error);
+      // destroy file stream
+      destroy(fileStream);
+    });
+
+    // stream end
+    fileStream.on('end', function (){
+      if (lenRanges > 0) {
+        // recurse ranges
+        setImmediate(concatRange);
+      } else {
+        // push end boundary
+        range.endBoundary && stream.push(range.endBoundary);
+
+        // end stream
+        stream.end();
+      }
+
+      // destroy file stream
+      destroy(fileStream);
+    });
+
+    // pipe data to stream
+    fileStream.pipe(stream, { end: false });
+  }
+
+  // error handling code-smell
+  stream.on('error', onerror);
+
+  // response finished, done with the fd
+  onFinished(response, function (){
+    isFinished = true;
+
+    // destroy stream
+    destroy(stream);
+  });
+
+  concatRange();
 };
 
 FileSend.prototype.read = function (response){
@@ -589,7 +672,7 @@ FileSend.prototype.read = function (response){
     }
 
     context.setHeaders(response, stats);
-    // context.parseRange(response, stats);
+    context.parseRange(response, stats);
 
     // conditional get support
     if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
@@ -600,7 +683,7 @@ FileSend.prototype.read = function (response){
     }
 
     context.writeHead(response);
-    context.stream.end();
+    context.createReadStream(response);
   });
 };
 
