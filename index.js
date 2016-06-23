@@ -572,16 +572,12 @@ FileSend.prototype.createReadStream = function (response){
 
   // contat range
   function concatRange(){
-    var range;
-    var lenRanges;
-    var fileStream;
-
     // request already finished
     if (isFinished) return;
 
-    range = ranges.shift() || {};
-    lenRanges = ranges.length;
-    fileStream = fs.createReadStream(context.realpath, range);
+    var range = ranges.shift() || {};
+    var lenRanges = ranges.length;
+    var fileStream = fs.createReadStream(context.realpath, range);
 
     // push boundary
     range.boundary && stream.push(range.boundary);
