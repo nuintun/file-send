@@ -335,7 +335,10 @@ FileSend.prototype.setHeaders = function (response, stats){
 
   // set cache-control
   if (!response.getHeader('Cache-Control')) {
-    this.headers['Cache-Control'] = this.maxAge ? 'public, max-age=' + this.maxAge : 'no-cache';
+    var cacheControl = this.request.headers['cache-control'];
+    var canCache = this.maxAge && cacheControl !== 'no-cache' && cacheControl !== 'max-age=0';
+
+    this.headers['Cache-Control'] = canCache ? 'public, max-age=' + this.maxAge : 'no-cache';
   }
 
   // set last-modified
@@ -495,6 +498,19 @@ FileSend.prototype.error = function (response, status, message){
 };
 
 /**
+ * stat error
+ * @api private
+ */
+FileSend.prototype.statError = function (response, error){
+  // 404 error
+  if (~NOTFOUND.indexOf(error.code)) {
+    return this.error(response, 404);
+  }
+
+  this.error(response, 500);
+};
+
+/**
  * dir
  * @api private
  */
@@ -550,12 +566,8 @@ FileSend.prototype.createReadStream = function (response){
     // destroy stream
     destroy(stream);
 
-    // 404 error
-    if (~NOTFOUND.indexOf(error.code)) {
-      return context.error(response, 404);
-    }
-
-    context.error(response, 500);
+    // stat error
+    context.statError(response, error);
   }
 
   // contat range
@@ -617,6 +629,25 @@ FileSend.prototype.createReadStream = function (response){
   concatRange();
 };
 
+FileSend.prototype.readIndex = function (response, stats){
+  var context = this;
+  var path = this.hasTrailingSlash ? context.path : context.path + '/';
+
+  async.series(this.index.map(function (index){
+    return path + index;
+  }), function (path, next){
+    fs.stat(join(context.root, path), function (error){
+      if (error) {
+        next()
+      } else {
+        context.redirect(response, util.posixPath(path));
+      }
+    });
+  }, function (){
+    context.dir(response, context.realpath, stats);
+  });
+};
+
 FileSend.prototype.read = function (response){
   var context = this;
 
@@ -637,38 +668,21 @@ FileSend.prototype.read = function (response){
   if (this.hasTrailingSlash) {
     return fs.stat(this.realpath, function (error, stats){
       if (error) {
-        // 404 error
-        if (~NOTFOUND.indexOf(error.code)) {
-          return context.error(response, 404);
-        }
-
-        return context.error(response, 500);
+        return context.statError(response, error);
       }
 
-      async.series(context.index.map(function (index){
-        return context.path + index;
-      }), function (path, next){
-        fs.stat(join(context.root, path), function (error){
-          if (error) {
-            next()
-          } else {
-            context.redirect(response, util.posixPath(path));
-          }
-        });
-      }, function (){
-        context.dir(response, context.realpath, stats);
-      });
+      context.readIndex(response, stats);
     });
   }
 
   fs.stat(this.realpath, function (error, stats){
     if (error) {
-      // 404 error
-      if (~NOTFOUND.indexOf(error.code)) {
-        return context.error(response, 404);
-      }
+      // stat error
+      return context.statError(response, error);
+    }
 
-      return context.error(response, 500);
+    if (stats.isDirectory()) {
+      return context.readIndex(response, stats);
     }
 
     context.setHeaders(response, stats);
@@ -699,9 +713,7 @@ FileSend.prototype.pipe = function (response){
 
 http.createServer(function (request, response){
   var send = new FileSend(request, {
-    ignore: ['**/*.css'],
-    index: ['util.js'],
-    maxAge: 0
+    index: ['index.html']
   });
 
   // console.log('url:', send.url);
