@@ -308,14 +308,24 @@ FileSend.prototype.error = function (status, message){
  * dir
  * @api private
  */
-FileSend.prototype.dir = function (){
+FileSend.prototype.dir = function (dir, stat){
   // if have event directory listener, use user define
   if (listenerCount(this, 'dir') > 0) {
     // emit event directory
-    return this.emit('dir');
+    return this.emit('dir', dir, stat);
   }
 
-  this.stream.end();
+  switch (this.ignoreAccess) {
+    case 'allow':
+      this.stream.end();
+      break;
+    case 'deny':
+      this.error(403);
+      break;
+    case 'ignore':
+      this.error(404);
+      break;
+  }
 };
 
 FileSend.prototype.redirect = function (){
