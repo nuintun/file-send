@@ -309,9 +309,10 @@ FileSend.prototype.error = function (status, message){
  * @api private
  */
 FileSend.prototype.dir = function (){
-  // emit if listeners instead of responding
-  if (listenerCount(this, 'error') > 0) {
-    return this.emit('error', error);
+  // if have event directory listener, use user define
+  if (listenerCount(this, 'dir') > 0) {
+    // emit event directory
+    return this.emit('dir');
   }
 
   this.stream.end();
