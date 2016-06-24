@@ -651,11 +651,9 @@ FileSend.prototype.redirect = function (response, location){
  */
 FileSend.prototype.writeHead = function (response){
   if (!response.headersSent) {
+    this.emit('headers', response, this.headers);
+    
     response.writeHead(this.statusCode, this.statusMessage, this.headers);
-
-    if (listenerCount(this, 'headers') > 0) {
-      this.emit('headers', response, this.headers);
-    }
   }
 };
 
@@ -850,19 +848,4 @@ FileSend.prototype.pipe = function (response){
   return this;
 };
 
-http.createServer(function (request, response){
-  var send = new FileSend(request, {
-    index: ['index.html']
-  });
-
-  // console.log('url:', send.url);
-  // console.log('path:', send.path);
-  // console.log('root:', send.root);
-  // console.log('etag:', send.etag);
-  // console.log('ignore:', send.ignore);
-  // console.log('ignore-access:', send.ignoreAccess);
-  // console.log('max-age:', send.maxAge);
-  // console.log('last-modified:', send.lastModified);
-
-  send.pipe(response);
-}).listen(8080, '127.0.0.1');
+module.exports = FileSend;
