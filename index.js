@@ -181,11 +181,11 @@ function FileSend(request, options){
     get: function (){
       if (!maxAge) {
         maxAge = util.isType(options.maxAge, 'string')
-          ? (ms(options.maxAge) || 0) / 1000
+          ? ms(options.maxAge) / 1000
           : Number(options.maxAge);
 
-        maxAge = maxAge >= 0
-          ? Math.min(maxAge, MAXMAXAGE)
+        maxAge = !isNaN(maxAge)
+          ? Math.min(Math.max(0, maxAge), MAXMAXAGE)
           : 0;
 
         maxAge = Math.floor(maxAge);
