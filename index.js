@@ -22,10 +22,10 @@ var util = require('./lib/util');
 var async = require('./lib/async');
 var parseUrl = require('url').parse;
 var encodeUrl = require('encodeurl');
-var onFinished = require('on-finished');
-var escapeHtml = require('escape-html');
 var micromatch = require('micromatch');
 var through = require('./lib/through');
+var onFinished = require('on-finished');
+var escapeHtml = require('escape-html');
 var parseRange = require('range-parser');
 var EventEmitter = require('events').EventEmitter;
 
