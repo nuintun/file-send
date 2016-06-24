@@ -774,6 +774,7 @@ FileSend.prototype.read = function (response){
     return this.error(response, 400);
   }
 
+  // is ignore path or file
   if (context.isIgnore(this.path.slice(1))) {
     switch (this.ignoreAccess) {
       case 'deny':
@@ -783,6 +784,7 @@ FileSend.prototype.read = function (response){
     }
   }
 
+  // is directory
   if (this.hasTrailingSlash) {
     return fs.stat(this.realpath, function (error, stats){
       if (error) {
@@ -793,16 +795,19 @@ FileSend.prototype.read = function (response){
     });
   }
 
+  // other
   fs.stat(this.realpath, function (error, stats){
+    // stat error
     if (error) {
-      // stat error
       return context.statError(response, error);
     }
 
+    // is directory
     if (stats.isDirectory()) {
       return context.readIndex(response, stats);
     }
 
+    // set headers and parse range
     context.setHeaders(response, stats);
     context.parseRange(response, stats);
 
@@ -814,6 +819,7 @@ FileSend.prototype.read = function (response){
       return context.stream.end();
     }
 
+    // write head and read file
     context.writeHead(response);
     context.createReadStream(response);
   });
