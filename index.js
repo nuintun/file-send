@@ -186,7 +186,7 @@ function FileSend(request, options){
 
         maxAge = maxAge >= 0
           ? Math.min(maxAge, MAXMAXAGE)
-          : MAXMAXAGE;
+          : 0;
 
         maxAge = Math.floor(maxAge);
       }
