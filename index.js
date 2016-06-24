@@ -540,27 +540,27 @@ FileSend.prototype.status = function (statusCode){
 /**
  * error
  * @param response
- * @param status
- * @param message
+ * @param statusCode
+ * @param statusMessage
  * @api private
  */
-FileSend.prototype.error = function (response, status, message){
+FileSend.prototype.error = function (response, statusCode, statusMessage){
   switch (arguments.length) {
     case 2:
-      this.status(status);
+      this.status(statusCode);
       break;
     case 3:
-      this.statusCode = status;
-      this.statusMessage = message;
+      this.statusCode = statusCode;
+      this.statusMessage = statusMessage;
       break;
   }
 
-  status = this.statusCode;
-  message = this.statusMessage;
+  statusCode = this.statusCode;
+  statusMessage = this.statusMessage;
 
-  var error = new Error(message);
+  var error = new Error(statusMessage);
 
-  error.statusCode = status;
+  error.statusCode = statusCode;
 
   // next method
   var next = function (message){
