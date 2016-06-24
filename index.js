@@ -409,7 +409,7 @@ FileSend.prototype.setHeaders = function (response, stats){
   // set cache-control
   if (!response.getHeader('Cache-Control')) {
     var cacheControl = this.request.headers['cache-control'];
-    var canCache = this.maxAge && cacheControl !== 'no-cache' && cacheControl !== 'max-age=0';
+    var canCache = this.maxAge && cacheControl !== 'no-cache';
 
     this.setHeader('Cache-Control', canCache ? 'public, max-age=' + this.maxAge : 'no-cache');
   }
@@ -573,6 +573,11 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
     return this.emit('error', response, error, next);
   }
 
+  // set headers
+  this.setHeader('Cache-Control', 'private');
+  this.setHeader('Content-Type', 'text/html; charset=UTF-8');
+  this.setHeader('Content-Length', Buffer.byteLength(statusMessage));
+
   // next
   next(statusMessage);
 };
@@ -627,6 +632,7 @@ FileSend.prototype.redirect = function (response, location){
 
   this.status(301);
 
+  this.setHeader('Cache-Control', 'no-cache');
   this.setHeader('Content-Type', 'text/html; charset=UTF-8');
   this.setHeader('Content-Length', Buffer.byteLength(message));
   this.setHeader('X-Content-Type-Options', 'nosniff');
