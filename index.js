@@ -625,6 +625,10 @@ FileSend.prototype.createReadStream = function (response){
   concatRange();
 };
 
+FileSend.prototype.isIgnore = function (path){
+  return this.ignore.length && micromatch.any(path, this.ignore, { dot: true });
+};
+
 FileSend.prototype.readIndex = function (response, stats){
   var context = this;
   var path = this.hasTrailingSlash ? context.path : context.path + '/';
@@ -632,7 +636,13 @@ FileSend.prototype.readIndex = function (response, stats){
   async.series(this.index.map(function (index){
     return path + index;
   }), function (path, next){
-    fs.stat(join(context.root, path), function (error){
+    path = join(context.root, path);
+
+    if (context.isIgnore(path)) {
+      return next();
+    }
+
+    fs.stat(path, function (error){
       if (error) {
         next()
       } else {
@@ -652,7 +662,7 @@ FileSend.prototype.read = function (response){
     return this.error(response, 400);
   }
 
-  if (this.ignore.length && micromatch.any(this.path.slice(1), this.ignore, { dot: true })) {
+  if (context.isIgnore(this.path.slice(1))) {
     switch (this.ignoreAccess) {
       case 'deny':
         return this.error(response, 403);
@@ -722,4 +732,4 @@ http.createServer(function (request, response){
   // console.log('last-modified:', send.lastModified);
 
   send.pipe(response);
-}).listen(9091, '127.0.0.1');
+}).listen(8080, '127.0.0.1');
