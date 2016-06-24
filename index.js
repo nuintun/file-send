@@ -409,7 +409,7 @@ FileSend.prototype.setHeaders = function (response, stats){
   // set cache-control
   if (!response.getHeader('Cache-Control')) {
     var cacheControl = this.request.headers['cache-control'];
-    var canCache = this.maxAge && cacheControl && cacheControl.toLowerCase() !== 'no-cache';
+    var canCache = this.maxAge > 0 && cacheControl !== 'no-cache';
 
     this.setHeader('Cache-Control', canCache ? 'public, max-age=' + this.maxAge : 'no-cache');
   }
