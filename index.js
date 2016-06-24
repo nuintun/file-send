@@ -797,6 +797,10 @@ FileSend.prototype.read = function (response){
         return context.statError(response, error);
       }
 
+      if (!stats.isDirectory()) {
+        return context.error(response, 404);
+      }
+
       context.readIndex(response, stats);
     });
   }
