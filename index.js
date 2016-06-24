@@ -246,7 +246,7 @@ function FileSend(request, options){
   });
 
   // headers names
-  util.defineProperty(this, 'headersNames', {
+  util.defineProperty(this, 'headerNames', {
     value: {},
     writable: true,
     enumerable: false
@@ -341,12 +341,12 @@ FileSend.prototype.setHeader = function (name, value){
   if (name && value && util.isType(name, 'string')) {
     var key = name.toLowerCase();
 
-    if (this.headersNames.hasOwnProperty(key)) {
-      delete this.headers[this.headersNames[key]];
+    if (this.headerNames.hasOwnProperty(key)) {
+      delete this.headers[this.headerNames[key]];
     }
 
     this.headers[name] = value;
-    this.headersNames[key] = name;
+    this.headerNames[key] = name;
   }
 };
 
@@ -358,8 +358,8 @@ FileSend.prototype.getHeader = function (name){
   if (name && util.isType(name, 'string')) {
     var key = name.toLowerCase();
 
-    if (this.headersNames.hasOwnProperty(key)) {
-      return this.headers[this.headersNames[key]];
+    if (this.headerNames.hasOwnProperty(key)) {
+      return this.headers[this.headerNames[key]];
     }
   }
 };
@@ -373,7 +373,7 @@ FileSend.prototype.removeHeader = function (name){
     var key = name.toLowerCase();
 
     delete this.headers[name];
-    delete this.headersNames[key];
+    delete this.headerNames[key];
   }
 };
 
