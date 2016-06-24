@@ -11,7 +11,7 @@ var first = true;
 http.createServer(function (request, response){
   var send = new FileSend(request, {
     maxAge: '3day',
-    ignore: ['((**)|/).*'],
+    ignore: [],
     index: ['index.html']
   });
 
