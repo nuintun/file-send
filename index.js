@@ -751,7 +751,7 @@ FileSend.prototype.readIndex = function (response, stats){
 
     fs.stat(path, function (error){
       if (error) {
-        next()
+        next();
       } else {
         context.redirect(response, util.posixPath(path));
       }
