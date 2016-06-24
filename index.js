@@ -234,7 +234,7 @@ function FileSend(request, options){
     enumerable: false
   });
 
-  // stream
+  // pipe returned stream
   util.defineProperty(this, '_stream', {
     enumerable: false,
     set: function (value){
@@ -243,6 +243,13 @@ function FileSend(request, options){
     get: function (){
       return stream || this.stream;
     }
+  });
+
+  // headers names
+  util.defineProperty(this, 'headersNames', {
+    value: {},
+    writable: true,
+    enumerable: false
   });
 
   // path has trailing slash
@@ -332,7 +339,14 @@ FileSend.prototype.isIgnore = function (path){
  */
 FileSend.prototype.setHeader = function (name, value){
   if (name && value && util.isType(name, 'string')) {
-    this.headers[name.toLowerCase()] = value;
+    var key = name.toLowerCase();
+
+    if (this.headersNames.hasOwnProperty(key)) {
+      delete this.headers[this.headersNames[key]];
+    }
+
+    this.headers[name] = value;
+    this.headersNames[key] = name;
   }
 };
 
@@ -342,7 +356,11 @@ FileSend.prototype.setHeader = function (name, value){
  */
 FileSend.prototype.getHeader = function (name){
   if (name && util.isType(name, 'string')) {
-    return this.headers[name.toLowerCase()];
+    var key = name.toLowerCase();
+
+    if (this.headersNames.hasOwnProperty(key)) {
+      return this.headers[this.headersNames[key]];
+    }
   }
 };
 
@@ -352,7 +370,10 @@ FileSend.prototype.getHeader = function (name){
  */
 FileSend.prototype.removeHeader = function (name){
   if (name && util.isType(name, 'string')) {
-    delete this.headers[name.toLowerCase()];
+    var key = name.toLowerCase();
+
+    delete this.headers[name];
+    delete this.headersNames[key];
   }
 };
 
