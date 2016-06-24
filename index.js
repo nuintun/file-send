@@ -574,7 +574,7 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
   }
 
   // next
-  next(message);
+  next(statusMessage);
 };
 
 /**
