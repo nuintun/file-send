@@ -657,7 +657,9 @@ FileSend.prototype.redirect = function (response, location){
  */
 FileSend.prototype.writeHead = function (response){
   if (!response.headersSent) {
-    this.emit('headers', response, this.headers);
+    if (listenerCount(this, 'headers') > 0) {
+      this.emit('headers', response, this.headers);
+    }
 
     response.writeHead(this.statusCode, this.statusMessage, this.headers);
   }
