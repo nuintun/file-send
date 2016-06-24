@@ -96,6 +96,8 @@ function FileSend(request, options){
     }
   });
 
+  var parsedUrl = parseUrl(this.url, true);
+
   // path
   util.defineProperty(this, 'path', {
     enumerable: true,
@@ -103,11 +105,17 @@ function FileSend(request, options){
       if (!path) {
         path = this.url === -1
           ? url
-          : parseUrl(this.url).pathname;
+          : parsedUrl.pathname;
       }
 
       return path;
     }
+  });
+
+  // query
+  util.defineProperty(this, 'query', {
+    enumerable: true,
+    value: parsedUrl.query
   });
 
   util.defineProperty(this, 'realpath', {
@@ -256,8 +264,6 @@ function FileSend(request, options){
   util.defineProperty(this, 'hasTrailingSlash', {
     value: this.path.slice(-1) === '/'
   });
-
-  this.views = options.views || {};
 
   this.status(200);
 }
@@ -652,7 +658,7 @@ FileSend.prototype.redirect = function (response, location){
 FileSend.prototype.writeHead = function (response){
   if (!response.headersSent) {
     this.emit('headers', response, this.headers);
-    
+
     response.writeHead(this.statusCode, this.statusMessage, this.headers);
   }
 };

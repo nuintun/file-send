@@ -23,6 +23,7 @@ http.createServer(function (request, response){
   console.log('URL:', colors.green.bold(send.url));
   console.log('PATH:', colors.yellow.bold(send.path));
   console.log('REALPATH:', colors.cyan.bold(send.realpath));
+  console.log('QUERY:', colors.green.bold(JSON.stringify(send.query, null, 2)));
 
   send.pipe(response).on('headers', function (){
     console.log('HEADERS:', colors.magenta.bold(JSON.stringify(send.headers, null, 2)));
