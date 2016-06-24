@@ -751,13 +751,11 @@ FileSend.prototype.readIndex = function (response, stats){
   async.series(this.index.map(function (index){
     return path + index;
   }), function (path, next){
-    path = join(context.root, path);
-
     if (context.isIgnore(path)) {
       return next();
     }
 
-    fs.stat(path, function (error){
+    fs.stat(join(context.root, path), function (error){
       if (error) {
         next();
       } else {
