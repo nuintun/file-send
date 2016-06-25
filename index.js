@@ -63,6 +63,9 @@ function FileSend(request, options){
   this.ranges = [];
   this.request = request;
   this.method = this.request.method;
+  this.charset = util.isType(options.charset, 'string')
+    ? options.charset
+    : null;
   this.glob = options.glob || {};
 
   if (!this.glob.hasOwnProperty('dot')) {
@@ -395,7 +398,8 @@ FileSend.prototype.removeHeader = function (name){
  * @api private
  */
 FileSend.prototype.setHeaders = function (response, stats){
-  var type, charset;
+  var type;
+  var charset = this.charset;
   var contentType = response.getHeader('Content-Type');
 
   // not override custom set
@@ -407,7 +411,7 @@ FileSend.prototype.setHeaders = function (response, stats){
 
     if (type) {
       // get charset
-      charset = mime.charset(type);
+      charset = charset && mime.charset(type) ? charset : null;
 
       // set content-type
       this.setHeader('Content-Type', type + (charset ? '; charset=' + charset : ''));
