@@ -57,12 +57,17 @@ function FileSend(request, options){
     throw new TypeError('The first argument must be a http request.');
   }
 
+  options = options || {};
+
   this.headers = {};
   this.ranges = [];
   this.request = request;
   this.method = this.request.method;
+  this.glob = options.glob || {};
 
-  options = options || {};
+  if (!this.glob.hasOwnProperty('dot')) {
+    this.glob.dot = true;
+  }
 
   var url, path, realpath, root, etag, ignore,
     ignoreAccess, maxAge, lastModified, index, stream;
@@ -335,7 +340,7 @@ FileSend.prototype.isRangeFresh = function (){
  * @api private
  */
 FileSend.prototype.isIgnore = function (path){
-  return this.ignore.length && micromatch.any(path, this.ignore, { dot: true });
+  return this.ignore.length && micromatch.any(path, this.ignore, this.glob);
 };
 
 /**
