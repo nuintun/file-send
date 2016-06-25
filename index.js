@@ -792,7 +792,7 @@ FileSend.prototype.read = function (response){
   }
 
   // is ignore path or file
-  if (context.isIgnore(this.path.slice(1))) {
+  if (context.isIgnore(this.path)) {
     switch (this.ignoreAccess) {
       case 'deny':
         return this.error(response, 403);
