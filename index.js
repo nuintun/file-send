@@ -400,7 +400,13 @@ FileSend.prototype.removeHeader = function (name){
 FileSend.prototype.setHeaders = function (response, stats){
   var type;
   var charset = this.charset;
+  var eTag = response.getHeader('ETag');
   var contentType = response.getHeader('Content-Type');
+  var cacheControl = response.getHeader('Cache-Control');
+  var lastModified = response.getHeader('Last-Modified');
+
+  // set accept-ranges
+  this.setHeader('Accept-Ranges', 'bytes');
 
   // not override custom set
   if (contentType) {
@@ -418,12 +424,12 @@ FileSend.prototype.setHeaders = function (response, stats){
     }
   }
 
-  // set accept-ranges
-  this.setHeader('Accept-Ranges', 'bytes');
-
   // set cache-control
-  if (!response.getHeader('Cache-Control')) {
-    var cacheControl = this.request.headers['cache-control'];
+  if (cacheControl) {
+    this.setHeader('Cache-Control', cacheControl);
+  } else {
+    cacheControl = this.request.headers['cache-control'];
+
     var canCache = this.maxAge > 0 && cacheControl !== 'no-cache';
 
     cacheControl = !canCache && this.maxAge > 0 ? 'no-cache' : 'private';
@@ -432,16 +438,25 @@ FileSend.prototype.setHeaders = function (response, stats){
   }
 
   // set last-modified
-  if (this.lastModified && !response.getHeader('Last-Modified')) {
-    // get mtime utc string
-    this.setHeader('Last-Modified', stats.mtime.toUTCString());
+  if (this.lastModified) {
+    if (lastModified) {
+      // get mtime utc string
+      this.setHeader('Last-Modified', lastModified);
+    } else {
+      // get mtime utc string
+      this.setHeader('Last-Modified', stats.mtime.toUTCString());
+    }
   }
 
   // set etag
-  if (this.etag && !response.getHeader('ETag')) {
-    this.setHeader('ETag', etag(stats, {
-      weak: false // disable weak etag
-    }));
+  if (this.etag) {
+    if (eTag) {
+      this.setHeader('ETag', eTag);
+    } else {
+      this.setHeader('ETag', etag(stats, {
+        weak: false // disable weak etag
+      }));
+    }
   }
 };
 
