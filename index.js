@@ -736,7 +736,7 @@ FileSend.prototype.createReadStream = function (response){
     fileStream.on('end', function (){
       if (lenRanges > 0) {
         // recurse ranges
-        process.nextTick(concatRange);
+        concatRange();
       } else {
         // push end boundary
         range.endBoundary && stream.push(range.endBoundary);
