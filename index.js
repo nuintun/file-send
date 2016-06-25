@@ -717,7 +717,7 @@ FileSend.prototype.createReadStream = function (response){
     fileStream.on('end', function (){
       if (lenRanges > 0) {
         // recurse ranges
-        setImmediate(concatRange);
+        process.nextTick(concatRange);
       } else {
         // push end boundary
         range.endBoundary && stream.push(range.endBoundary);
@@ -788,16 +788,22 @@ FileSend.prototype.read = function (response){
 
   // path error
   if (this.path === -1) {
-    return this.error(response, 400);
+    return process.nextTick(function (){
+      context.error(response, 400);
+    });
   }
 
   // is ignore path or file
   if (context.isIgnore(this.path)) {
     switch (this.ignoreAccess) {
       case 'deny':
-        return this.error(response, 403);
+        return process.nextTick(function (){
+          context.error(response, 403);
+        });
       case 'ignore':
-        return this.error(response, 404);
+        return process.nextTick(function (){
+          context.error(response, 404);
+        });
     }
   }
 
