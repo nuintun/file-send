@@ -449,11 +449,11 @@ FileSend.prototype.setHeaders = function (response, stats){
  */
 FileSend.prototype.parseRange = function (response, stats){
   var start, end;
-  var boundary, endBoundary;
   var rangeFresh;
   var contentType;
   var context = this;
   var size = stats.size;
+  var boundary, endBoundary;
   var ranges = this.request.headers['range'];
 
   // Range support
