@@ -406,6 +406,7 @@ FileSend.prototype.end = function (message){
   message && this.stream.write(message);
 
   this.stream.emit('end');
+  this.stream.unpipe();
 };
 
 /**
