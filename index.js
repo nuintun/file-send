@@ -549,9 +549,6 @@ FileSend.prototype.parseRange = function (response, stats){
         // unsatisfiable 416
         return this.error(response, 416);
       }
-
-      // free ranges
-      ranges = null;
     }
   }
 
