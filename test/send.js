@@ -200,13 +200,11 @@ describe('Send(req, options).pipe(res)', function (){
       .expect(500, done);
   });
 
-  return;
-
   describe('"headers" event', function (){
     it('should fire when sending file', function (done){
       var cb = after(2, done);
       var server = http.createServer(function (req, res){
-        send.parse(req)
+        Send(req, { root: fixtures })
           .on('headers', function (){ cb() })
           .pipe(res);
       });
@@ -219,7 +217,7 @@ describe('Send(req, options).pipe(res)', function (){
     it('should not fire on 404', function (done){
       var cb = after(1, done);
       var server = http.createServer(function (req, res){
-        send.parse(req)
+        Send(req, { root: fixtures })
           .on('headers', function (){ cb() })
           .pipe(res);
       });
@@ -230,9 +228,9 @@ describe('Send(req, options).pipe(res)', function (){
     });
 
     it('should fire on index', function (done){
-      var cb = after(2, done);
+      var cb = after(1, done);
       var server = http.createServer(function (req, res){
-        send.parse(req)
+        Send(req, { root: fixtures, index: ['index.html'] })
           .on('headers', function (){ cb() })
           .pipe(res);
       });
@@ -243,69 +241,28 @@ describe('Send(req, options).pipe(res)', function (){
     });
 
     it('should not fire on redirect', function (done){
-      var cb = after(1, done);
       var server = http.createServer(function (req, res){
-        send.parse(req)
-          .on('headers', function (){ cb() })
+        Send(req, { root: fixtures })
           .pipe(res);
       });
 
       request(server)
         .get('/pets')
-        .expect(301, cb);
-    });
-
-    it('should provide path', function (done){
-      var cb = after(2, done);
-      var server = http.createServer(function (req, res){
-        send.parse(req)
-          .on('headers', onHeaders)
-          .pipe(res);
-      });
-
-      function onHeaders(res, filePath){
-        assert.ok(filePath);
-        assert.equal(path.normalize(filePath), path.normalize(path.join(fixtures, 'nums')));
-        cb();
-      }
-
-      request(server)
-        .get('/nums')
-        .expect(200, '123456789', cb);
-    });
-
-    it('should provide stat', function (done){
-      var cb = after(2, done);
-      var server = http.createServer(function (req, res){
-        send.parse(req)
-          .on('headers', onHeaders)
-          .pipe(res);
-      });
-
-      function onHeaders(res, path, stat){
-        assert.ok(stat);
-        assert.ok('ctime' in stat);
-        assert.ok('mtime' in stat);
-        cb();
-      }
-
-      request(server)
-        .get('/nums')
-        .expect(200, '123456789', cb);
+        .expect(301, done);
     });
 
     it('should allow altering headers', function (done){
       var server = http.createServer(function (req, res){
-        send.parse(req)
+        Send(req, { root: fixtures })
           .on('headers', onHeaders)
           .pipe(res);
       });
 
-      function onHeaders(res, path, stat){
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Content-Type', 'text/x-custom');
-        res.setHeader('ETag', 'W/"everything"');
-        res.setHeader('X-Created', stat.ctime.toUTCString());
+      function onHeaders(){
+        this.setHeader('Cache-Control', 'no-cache');
+        this.setHeader('Content-Type', 'text/x-custom');
+        this.setHeader('ETag', 'W/"everything"');
+        this.setHeader('X-Created', fs.statSync(this.realpath).ctime.toUTCString());
       }
 
       request(server)
@@ -320,11 +277,10 @@ describe('Send(req, options).pipe(res)', function (){
 
   describe('when no "directory" listeners are present', function (){
     var server;
-    var send = Send(fixtures);
 
     before(function (){
       server = http.createServer(function (req, res){
-        send.parse(req).pipe(res);
+        Send(req, { root: fixtures }).pipe(res);
       });
     });
 
@@ -332,7 +288,7 @@ describe('Send(req, options).pipe(res)', function (){
       request(server)
         .get('/pets')
         .expect('Location', '/pets/')
-        .expect('Content-Type', 'text/html; charset=utf-8')
+        .expect('Content-Type', 'text/html; charset=UTF-8')
         .expect(301, 'Redirecting to <a href="/pets/">/pets/</a>', done);
     });
   });
@@ -340,8 +296,7 @@ describe('Send(req, options).pipe(res)', function (){
   describe('when no "error" listeners are present', function (){
     it('should respond to errors directly', function (done){
       var app = http.createServer(function (req, res){
-        var send = Send('test/fixtures' + req.url);
-        send.parse(req).pipe(res);
+        Send(req, { root: 'test/fixtures' + req.url }).pipe(res);
       });
 
       request(app)
@@ -359,7 +314,8 @@ describe('Send(req, options).pipe(res)', function (){
 
           request(app)
             .get('/name.txt')
-            .set('If-None-Match', res.headers.etag)
+            .set('If-None-Match', res.headers['etag'])
+            .set('If-Modified-Since', res.headers['last-modified'])
             .expect(shouldNotHaveHeader('Content-Length'))
             .expect(shouldNotHaveHeader('Content-Type'))
             .expect(304, done);
@@ -992,8 +948,8 @@ describe('Send(req, options).pipe(res)', function (){
 //   });
 // }
 //
-// function shouldNotHaveHeader(header){
-//   return function (res){
-//     assert.ok(!(header.toLowerCase() in res.headers), 'should not have header ' + header);
-//   }
-// }
+function shouldNotHaveHeader(header){
+  return function (res){
+    assert.ok(res.headers.hasOwnProperty(header.toLowerCase()));
+  }
+}
