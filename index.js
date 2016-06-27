@@ -398,6 +398,17 @@ FileSend.prototype.removeHeader = function (name){
 };
 
 /**
+ * end
+ * @param message
+ * @api private
+ */
+FileSend.prototype.end = function (message){
+  message && this.stream.write(message);
+
+  this.stream.emit('end');
+};
+
+/**
  * set headers
  * @param response
  * @param stats
@@ -600,7 +611,7 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
   // next method
   var next = function (message){
     if (this.writeHead(response)) {
-      this.stream.end(message);
+      this.end(message);
     }
   }.bind(this);
 
@@ -647,7 +658,7 @@ FileSend.prototype.dir = function (response, realpath, stats){
     // emit event directory
     return this.emit('dir', response, realpath, stats, function (message){
       if (this.writeHead(response)) {
-        this.stream.end(message);
+        this.end(message);
       }
     }.bind(this));
   }
@@ -679,7 +690,7 @@ FileSend.prototype.redirect = function (response, location){
   this.setHeader('Location', location);
 
   if (this.writeHead(response)) {
-    this.stream.end(message);
+    this.end(message);
   }
 };
 
@@ -694,11 +705,18 @@ FileSend.prototype.writeHead = function (response){
       this.emit('headers', response, this.headers);
     }
 
-    response.writeHead(this.statusCode, this.statusMessage, this.headers);
+    var headers = this.headers;
+
+    response.statusCode = this.statusCode;
+    response.statusMessage = this.statusMessage;
+
+    Object.keys(headers).forEach(function (name){
+      response.setHeader(name, headers[name]);
+    });
 
     return true;
   } else {
-    this.stream.end('Can\'t set headers after they are sent.');
+    this.end('Can\'t set headers after they are sent.');
 
     return false;
   }
@@ -718,7 +736,7 @@ FileSend.prototype.createReadStream = function (response){
   // stream error
   function onerror(error){
     // request already finished
-    if (isFinished) return;
+    if (!isFinished) return;
 
     // stat error
     context.statError(response, error);
@@ -874,7 +892,7 @@ FileSend.prototype.read = function (response){
     if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
       context.status(304);
 
-      return context.writeHead(response) && context.stream.end();
+      return context.writeHead(response) && context.end();
     }
 
     // write head and read file
@@ -893,13 +911,24 @@ FileSend.prototype.pipe = function (response){
   if (response instanceof http.OutgoingMessage) {
     var stream = this.stream;
 
-    // response finished, done with the fd
-    onFinished(response, function (){
+    this._stream.on('error', function (error){
+      this.statError(response, error);
+    }.bind(this));
+
+    stream.on('end', function (){
+      response.end();
+
+      this.emit('end');
+
       // destroy stream
       destroy(stream);
-    });
+    }.bind(this));
 
     this.read(response);
+  } else {
+    this._stream.on('error', function (error){
+      response.emit('error', error);
+    }.bind(this));
   }
 
   this._stream = this._stream.pipe(response);
