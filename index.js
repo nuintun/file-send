@@ -12,6 +12,7 @@
 // external lib
 var ms = require('ms');
 var fs = require('fs');
+var url = require('url');
 var path = require('path');
 var http = require('http');
 var etag = require('etag');
@@ -20,7 +21,6 @@ var destroy = require('destroy');
 var mime = require('mime-types');
 var util = require('./lib/util');
 var async = require('./lib/async');
-var parseUrl = require('url').parse;
 var encodeUrl = require('encodeurl');
 var micromatch = require('micromatch');
 var through = require('./lib/through');
@@ -38,6 +38,8 @@ var NOTFOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
 // common method
 var join = path.join;
 var resolve = path.resolve;
+var parseUrl = url.parse;
+var formatUrl = url.format;
 var listenerCount = EventEmitter.listenerCount
   || function (emitter, type){ return emitter.listeners(type).length; };
 
@@ -104,16 +106,19 @@ function FileSend(request, options){
     }
   });
 
-  var parsedUrl = parseUrl(this.url, true);
+  // path
+  util.defineProperty(this, '_url', {
+    value: this.url !== -1 ? parseUrl(this.url, true) : ''
+  });
 
   // path
   util.defineProperty(this, 'path', {
     enumerable: true,
     get: function (){
       if (!path) {
-        path = this.url === -1
-          ? url
-          : parsedUrl.pathname;
+        path = this.url !== -1
+          ? this._url.pathname
+          : '';
       }
 
       return path;
@@ -123,7 +128,7 @@ function FileSend(request, options){
   // query
   util.defineProperty(this, 'query', {
     enumerable: true,
-    value: parsedUrl.query
+    value: this._url.query
   });
 
   util.defineProperty(this, 'realpath', {
@@ -653,6 +658,10 @@ FileSend.prototype.dir = function (response, realpath, stats){
  * @api private
  */
 FileSend.prototype.redirect = function (response, location){
+  this._url.pathname = location;
+
+  location = formatUrl(this._url);
+
   var html = escapeHtml(location);
 
   location = encodeUrl(location);
