@@ -880,9 +880,7 @@ FileSend.prototype.read = function (response){
     if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
       context.status(304);
 
-      if (context.writeHead(response)) {
-        return context.stream.end();
-      }
+      return context.writeHead(response) && context.stream.end();
     }
 
     // write head and read file
