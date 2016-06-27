@@ -487,7 +487,6 @@ FileSend.prototype.parseRange = function (response, stats){
   var start, end;
   var rangeFresh;
   var contentType;
-  var context = this;
   var size = stats.size;
   var boundary, endBoundary;
   var ranges = this.request.headers['range'];
@@ -541,8 +540,8 @@ FileSend.prototype.parseRange = function (response, stats){
             size += end - start + Buffer.byteLength(_boundary) + 1;
 
             // cache range
-            context.ranges.push(range);
-          });
+            this.ranges.push(range);
+          }, this);
 
           // the last add end boundary
           this.ranges[this.ranges.length - 1].endBoundary = endBoundary;
@@ -728,28 +727,27 @@ FileSend.prototype.writeHead = function (response){
  * @api private
  */
 FileSend.prototype.createReadStream = function (response){
-  var context = this;
   var isFinished = false;
   var ranges = this.ranges;
   var stream = this.stream;
 
   // stream error
-  function onerror(error){
+  var onerror = function (error){
     // request already finished
     if (!isFinished) return;
 
     // stat error
-    context.statError(response, error);
-  }
+    this.statError(response, error);
+  }.bind(this);
 
   // contat range
-  function concatRange(){
+  var concatRange = function (){
     // request already finished
     if (isFinished) return;
 
     var range = ranges.shift() || {};
     var lenRanges = ranges.length;
-    var fileStream = fs.createReadStream(context.realpath, range);
+    var fileStream = fs.createReadStream(this.realpath, range);
 
     // push boundary
     range.boundary && stream.push(range.boundary);
@@ -781,7 +779,7 @@ FileSend.prototype.createReadStream = function (response){
 
     // pipe data to stream
     fileStream.pipe(stream, { end: false });
-  }
+  }.bind(this);
 
   // error handling code-smell
   stream.on('error', onerror);
@@ -909,19 +907,20 @@ FileSend.prototype.read = function (response){
  */
 FileSend.prototype.pipe = function (response){
   if (response instanceof http.OutgoingMessage) {
-    var stream = this.stream;
-
     this._stream.on('error', function (error){
       this.statError(response, error);
     }.bind(this));
 
-    stream.on('end', function (){
+    this.stream.on('end', function (){
       response.end();
 
-      this.emit('end');
-
       // destroy stream
-      destroy(stream);
+      destroy(this.stream);
+
+      // emit end event
+      if (listenerCount(this, 'end') > 0) {
+        this.emit('end');
+      }
     }.bind(this));
 
     this.read(response);
