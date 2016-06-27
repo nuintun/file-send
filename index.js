@@ -482,7 +482,7 @@ FileSend.prototype.parseRange = function (response, stats){
 
     if (rangeFresh) {
       // parse range
-      ranges = parseRange(size, ranges);
+      ranges = parseRange(size, ranges, { combine: true });
 
       // valid ranges, support multiple ranges
       if (util.isType(ranges, 'array') && ranges.type === 'bytes') {
