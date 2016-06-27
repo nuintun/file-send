@@ -924,13 +924,14 @@ FileSend.prototype.pipe = function (response){
     }.bind(this));
 
     this.read(response);
+    this._stream.pipe(response);
   } else {
     this._stream.on('error', function (error){
       response.emit('error', error);
     }.bind(this));
-  }
 
-  this._stream = this._stream.pipe(response);
+    this._stream = this._stream.pipe(response);
+  }
 
   return this;
 };
