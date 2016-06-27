@@ -117,7 +117,7 @@ function FileSend(request, options){
       if (!path) {
         path = this.url === -1
           ? this.url
-          : this._url.pathname;
+          : util.decodeURI(this._url.pathname);
       }
 
       return path;
@@ -134,7 +134,9 @@ function FileSend(request, options){
     enumerable: true,
     get: function (){
       if (!realpath) {
-        realpath = util.posixPath(join(this.root, this.path));
+        realpath = this.path === -1
+          ? this.path
+          : util.posixPath(join(this.root, this.path));
       }
 
       return realpath;
@@ -274,7 +276,7 @@ function FileSend(request, options){
 
   // path has trailing slash
   util.defineProperty(this, 'hasTrailingSlash', {
-    value: this.path.slice(-1) === '/'
+    value: this.path === -1 ? false : this.path.slice(-1) === '/'
   });
 
   this.status(200);
@@ -356,7 +358,7 @@ FileSend.prototype.isIgnore = function (path){
  * @param value
  */
 FileSend.prototype.setHeader = function (name, value){
-  if (name && value && util.isType(name, 'string')) {
+  if (name && util.isType(name, 'string')) {
     var key = name.toLowerCase();
 
     if (this.headerNames.hasOwnProperty(key)) {
@@ -814,7 +816,7 @@ FileSend.prototype.read = function (response){
   var context = this;
 
   // path error
-  if (this.path === -1) {
+  if (this.realpath === -1) {
     return process.nextTick(function (){
       context.error(response, 400);
     });
