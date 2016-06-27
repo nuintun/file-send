@@ -610,6 +610,7 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
   this.setHeader('Cache-Control', 'private');
   this.setHeader('Content-Type', 'text/html; charset=UTF-8');
   this.setHeader('Content-Length', Buffer.byteLength(statusMessage));
+  this.setHeader('X-Content-Type-Options', 'nosniff');
 
   // next
   next(statusMessage);
