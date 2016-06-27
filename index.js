@@ -790,7 +790,11 @@ FileSend.prototype.readIndex = function (response, stats){
       }
     });
   }, function (){
-    context.dir(response, context.realpath, stats);
+    if (context.hasTrailingSlash) {
+      context.dir(response, context.realpath, stats);
+    } else {
+      context.redirect(response, context.path + '/');
+    }
   });
 };
 
