@@ -39,7 +39,6 @@ var NOTFOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
 var join = path.join;
 var resolve = path.resolve;
 var parseUrl = url.parse;
-var formatUrl = url.format;
 var listenerCount = EventEmitter.listenerCount
   || function (emitter, type){ return emitter.listeners(type).length; };
 
@@ -108,7 +107,7 @@ function FileSend(request, options){
 
   // path
   util.defineProperty(this, '_url', {
-    value: this.url !== -1 ? parseUrl(this.url, true) : ''
+    value: this.url === -1 ? {} : parseUrl(this.url, true)
   });
 
   // path
@@ -116,9 +115,9 @@ function FileSend(request, options){
     enumerable: true,
     get: function (){
       if (!path) {
-        path = this.url !== -1
-          ? this._url.pathname
-          : '';
+        path = this.url === -1
+          ? this.url
+          : this._url.pathname;
       }
 
       return path;
@@ -658,9 +657,7 @@ FileSend.prototype.dir = function (response, realpath, stats){
  * @api private
  */
 FileSend.prototype.redirect = function (response, location){
-  this._url.pathname = location;
-
-  location = formatUrl(this._url);
+  location = location + (this._url.search || '') + (this._url.hash || '');
 
   var html = escapeHtml(location);
 
