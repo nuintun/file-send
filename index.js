@@ -532,7 +532,7 @@ FileSend.prototype.parseRange = function (response, stats){
           });
 
           // the last add end boundary
-          this.ranges[context.ranges.length - 1].endBoundary = endBoundary;
+          this.ranges[this.ranges.length - 1].endBoundary = endBoundary;
           size += Buffer.byteLength(endBoundary);
         } else {
           this.ranges.push(ranges[0]);
@@ -779,7 +779,7 @@ FileSend.prototype.createReadStream = function (response){
  */
 FileSend.prototype.readIndex = function (response, stats){
   var context = this;
-  var path = this.hasTrailingSlash ? context.path : context.path + '/';
+  var path = this.hasTrailingSlash ? this.path : this.path + '/';
 
   async.series(this.index.map(function (index){
     return path + index;
@@ -820,7 +820,7 @@ FileSend.prototype.read = function (response){
   }
 
   // is ignore path or file
-  if (context.isIgnore(this.path)) {
+  if (this.isIgnore(this.path)) {
     switch (this.ignoreAccess) {
       case 'deny':
         return process.nextTick(function (){
