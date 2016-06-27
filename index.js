@@ -599,8 +599,9 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
 
   // next method
   var next = function (message){
-    this.writeHead(response);
-    this.stream.end(message);
+    if (this.writeHead(response)) {
+      this.stream.end(message);
+    }
   }.bind(this);
 
   // emit if listeners instead of responding
@@ -645,8 +646,9 @@ FileSend.prototype.dir = function (response, realpath, stats){
   if (listenerCount(this, 'dir') > 0) {
     // emit event directory
     return this.emit('dir', response, realpath, stats, function (message){
-      this.writeHead(response);
-      this.stream.end(message);
+      if (this.writeHead(response)) {
+        this.stream.end(message);
+      }
     }.bind(this));
   }
 
@@ -676,8 +678,9 @@ FileSend.prototype.redirect = function (response, location){
   this.setHeader('X-Content-Type-Options', 'nosniff');
   this.setHeader('Location', location);
 
-  this.writeHead(response);
-  this.stream.end(message);
+  if (this.writeHead(response)) {
+    this.stream.end(message);
+  }
 };
 
 /**
@@ -692,6 +695,12 @@ FileSend.prototype.writeHead = function (response){
     }
 
     response.writeHead(this.statusCode, this.statusMessage, this.headers);
+
+    return true;
+  } else {
+    this.stream.end('Can\'t set headers after they are sent.');
+
+    return false;
   }
 };
 
@@ -816,7 +825,7 @@ FileSend.prototype.read = function (response){
   var context = this;
 
   // path -1 or null byte(s)
-  if (this.realpath === -1 || this.realpath.indexOf('\0')) {
+  if (this.realpath === -1 || ~this.realpath.indexOf('\0')) {
     return process.nextTick(function (){
       context.error(response, 400);
     });
@@ -870,14 +879,16 @@ FileSend.prototype.read = function (response){
     // conditional get support
     if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
       context.status(304);
-      context.writeHead(response);
 
-      return context.stream.end();
+      if (context.writeHead(response)) {
+        return context.stream.end();
+      }
     }
 
     // write head and read file
-    context.writeHead(response);
-    context.createReadStream(response);
+    if (context.writeHead(response)) {
+      context.createReadStream(response);
+    }
   });
 };
 
