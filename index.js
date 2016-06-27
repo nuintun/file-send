@@ -815,8 +815,8 @@ FileSend.prototype.readIndex = function (response, stats){
 FileSend.prototype.read = function (response){
   var context = this;
 
-  // path error
-  if (this.realpath === -1) {
+  // path -1 or null byte(s)
+  if (this.realpath === -1 || this.realpath.indexOf('\0')) {
     return process.nextTick(function (){
       context.error(response, 400);
     });
