@@ -720,9 +720,6 @@ FileSend.prototype.createReadStream = function (response){
     // request already finished
     if (isFinished) return;
 
-    // destroy stream
-    destroy(stream);
-
     // stat error
     context.statError(response, error);
   }
@@ -774,9 +771,6 @@ FileSend.prototype.createReadStream = function (response){
   // response finished, done with the fd
   onFinished(response, function (){
     isFinished = true;
-
-    // destroy stream
-    destroy(stream);
   });
 
   // concat range
@@ -897,6 +891,14 @@ FileSend.prototype.read = function (response){
  */
 FileSend.prototype.pipe = function (response){
   if (response instanceof http.OutgoingMessage) {
+    var stream = this.stream;
+
+    // response finished, done with the fd
+    onFinished(response, function (){
+      // destroy stream
+      destroy(stream);
+    });
+
     this.read(response);
   }
 
