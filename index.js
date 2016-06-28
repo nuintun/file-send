@@ -841,6 +841,13 @@ FileSend.prototype.read = function (response){
     });
   }
 
+  // malicious path
+  if (util.isOutBound(this.realpath, this.root)) {
+    return process.nextTick(function (){
+      context.error(response, 403);
+    });
+  }
+
   // is ignore path or file
   if (this.isIgnore(this.path)) {
     switch (this.ignoreAccess) {
