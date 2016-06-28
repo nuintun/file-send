@@ -14,7 +14,7 @@ function createServer(root, port){
       root: root || './',
       maxAge: '3day',
       ignore: ['/**/.*?(/*.*|/)'],
-      index: ['index.html']
+      index: ['pets', 'name.txt']
     });
 
     if (first) {

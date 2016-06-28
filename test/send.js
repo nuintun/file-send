@@ -744,7 +744,7 @@ describe('Options', function (){
     it('should default to 0', function (done){
       request(app)
         .get('/name.txt')
-        .expect('Cache-Control', 'public, max-age=0', done);
+        .expect('Cache-Control', 'public, private', done);
     });
 
     it('should floor to integer', function (done){

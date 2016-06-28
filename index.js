@@ -840,7 +840,7 @@ FileSend.prototype.readIndex = function (response, stats){
     }
 
     fs.stat(join(context.root, path), function (error, stats){
-      if (error || stats.isDirectory()) {
+      if (error || !stats.isFile()) {
         next();
       } else {
         context.redirect(response, util.posixPath(path));
