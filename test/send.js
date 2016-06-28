@@ -125,6 +125,12 @@ describe('Send(req, options)', function (){
       .expect(404, 'Not Found', done);
   });
 
+  it('should 404 if the file with trailing slash', function (done){
+    request(app)
+      .get('/nums/')
+      .expect(404, 'Not Found', done);
+  });
+
   it('should 301 if the directory exists', function (done){
     request(app)
       .get('/pets')
