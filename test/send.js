@@ -641,8 +641,6 @@ describe('Options', function (){
       });
 
       it('should 403 for ignore index', function (done){
-        // var cb = after(1, done);
-
         request(createServer(fixtures, {
           index: ['name.txt'],
           ignore: ['/**/name.txt']
