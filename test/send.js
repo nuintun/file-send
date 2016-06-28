@@ -640,6 +640,12 @@ describe('Options', function (){
           .expect(403, done);
       });
 
+      it('should 403 for ignore index', function (done){
+        request(createServer(path.join(fixtures, '.mine'), { ignore: ['/**/name.txt'] }))
+          .get('/name.txt')
+          .expect(403, done);
+      });
+
       it('should send files in root ignore directory', function (done){
         request(createServer(path.join(fixtures, '.mine'), { ignore: ['/**/.*?(/*.*|/)'] }))
           .get('/name.txt')
