@@ -210,8 +210,13 @@ describe('Send(req, options)', function (){
     it('should fire when sending file', function (done){
       var cb = after(2, done);
       var server = http.createServer(function (req, res){
+
         Send(req, { root: fixtures })
-          .on('headers', function (){ cb() })
+          .on('headers', function (){
+            this.setHeader('Server', 'nengine');
+            this.removeHeader('Server');
+            cb();
+          })
           .pipe(res);
       });
 
