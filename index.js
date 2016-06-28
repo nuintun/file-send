@@ -811,6 +811,9 @@ FileSend.prototype.createReadStream = function (response){
     // emit end event
     this.emit('end');
   }, this);
+
+  // pipe to response
+  this._stream.pipe(response);
 };
 
 /**
@@ -947,7 +950,6 @@ FileSend.prototype.pipe = function (response){
     }.bind(this));
 
     this.read(response);
-    this._stream.pipe(response);
   } else {
     this._stream.on('error', function (error){
       response.emit('error', error);
