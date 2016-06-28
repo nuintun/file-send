@@ -34,7 +34,10 @@ function createServer(root, port){
         console.log('HEADERS:', colors.magenta.bold(JSON.stringify(send.headers, null, 2)));
       })
       .on('end', function (){
-        console.log('--------------------------------------------------------------------');
+        console.log('--------------------------------------------------------------------end');
+      })
+      .on('close', function (){
+        console.log('--------------------------------------------------------------------close');
       });
   }).listen(port || 8080, '127.0.0.1');
 

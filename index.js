@@ -731,6 +731,8 @@ FileSend.prototype.createReadStream = function (response){
   var ranges = this.ranges;
   var stream = this.stream;
 
+  ranges = ranges.length === 0 ? [{}] : ranges;
+
   // stream error
   var onerror = function (error){
     // request already finished
@@ -740,17 +742,24 @@ FileSend.prototype.createReadStream = function (response){
     this.statError(response, error);
   }.bind(this);
 
+  // error handling code-smell
+  stream.on('error', onerror);
+
+  // response finished, done with the fd
+  onFinished(response, function (){
+    isFinished = true;
+  });
+
   // contat range
-  var concatRange = function (){
+  async.series(ranges, function (range, next){
     // request already finished
     if (isFinished) return;
 
-    var range = ranges.shift() || {};
-    var lenRanges = ranges.length;
+    // create file stream
     var fileStream = fs.createReadStream(this.realpath, range);
 
     // push boundary
-    range.boundary && stream.push(range.boundary);
+    range.boundary && stream.write(range.boundary);
 
     // error handling code-smell
     fileStream.on('error', function (error){
@@ -762,35 +771,27 @@ FileSend.prototype.createReadStream = function (response){
 
     // stream end
     fileStream.on('end', function (){
-      if (lenRanges > 0) {
-        // recurse ranges
-        concatRange();
-      } else {
-        // push end boundary
-        range.endBoundary && stream.push(range.endBoundary);
-
-        // end stream
-        stream.end();
-      }
+      // unpipe
+      fileStream.unpipe(stream);
 
       // destroy file stream
       destroy(fileStream);
+
+      // next
+      next();
     });
 
     // pipe data to stream
     fileStream.pipe(stream, { end: false });
-  }.bind(this);
+  }, function (){
+    var range = ranges[ranges.length - 1];
 
-  // error handling code-smell
-  stream.on('error', onerror);
+    // push end boundary
+    range.endBoundary && stream.write(range.endBoundary);
 
-  // response finished, done with the fd
-  onFinished(response, function (){
-    isFinished = true;
-  });
-
-  // concat range
-  concatRange();
+    // end stream
+    stream.emit('end');
+  }, this);
 };
 
 /**
@@ -918,15 +919,24 @@ FileSend.prototype.pipe = function (response){
       this.statError(response, error);
     }.bind(this));
 
-    this.stream.on('end', function (){
-      // response end
-      response.end();
+    // bind end close
+    response.on('close', function (){
+      // emit end event
+      if (listenerCount(this, 'close') > 0) {
+        this.emit('close');
+      }
+    }.bind(this));
 
+    // bind end event
+    this.stream.on('end', function (){
       // unpipe response
       this.stream.unpipe(response);
 
       // destroy stream
       destroy(this.stream);
+
+      // response end
+      response.end();
 
       // emit end event
       if (listenerCount(this, 'end') > 0) {
