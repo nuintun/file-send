@@ -930,7 +930,7 @@ FileSend.prototype.pipe = function (response){
     // bind end event
     this.stream.on('end', function (){
       // unpipe response
-      this.stream.unpipe(response);
+      this._stream.unpipe(response);
 
       // destroy stream
       destroy(this.stream);
