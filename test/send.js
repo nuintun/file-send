@@ -642,7 +642,7 @@ describe('Options', function (){
 
       it('should 403 for ignore index', function (done){
         request(createServer(path.join(fixtures, '.mine'), { ignore: ['/**/name.txt'] }))
-          .get('/name.txt')
+          .get('/')
           .expect(403, done);
       });
 
