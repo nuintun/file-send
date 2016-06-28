@@ -554,193 +554,123 @@ describe('Send(req, options)', function (){
     });
   });
 
-  describe('dotFiles', function (){
-    it('should default to "ignore"', function (done){
+  describe('ignore', function (){
+    it('should default not ignore', function (done){
       var server = createServer(fixtures);
 
       request(server)
         .get('/.hidden')
-        .expect(404);
+        .expect(200);
 
       request(server)
         .get('/.mine/name.txt')
-        .expect(404, done);
+        .expect(200, done);
     });
 
-    describe('when "allow"', function (){
-      var server = createServer(fixtures, { dotFiles: 'allow' });
+    it('should can ignore match', function (done){
+      var server = createServer(fixtures, { ignore: ['/**/.*?(/*.*|/)'] });
 
-      it('should send dotfile', function (done){
-        request(server)
-          .get('/.hidden')
-          .expect(200, /secret/, done);
-      });
+      request(server)
+        .get('/.hidden')
+        .expect(403);
 
-      it('should send within dotfile directory', function (done){
-        request(server)
-          .get('/.mine/name.txt')
-          .expect(200, /tobi/, done);
-      });
-
-      it('should 404 for non-existent dotfile', function (done){
-        request(server)
-          .get('/.nothere')
-          .expect(404, done);
-      });
+      request(server)
+        .get('/.mine/name.txt')
+        .expect(403, done);
     });
+  });
 
-    describe('when "deny"', function (){
-      var server = createServer(fixtures, { dotFiles: 'deny' });
+  describe('ignoreAccess', function (){
+    describe('should default to "deny"', function (){
+      var server = createServer(fixtures, { ignore: ['/**/.*?(/*.*|/)'] });
 
-      it('should 403 for dotfile', function (done){
+      it('should 403 for ignore', function (done){
         request(server)
           .get('/.hidden')
           .expect(403, done);
       });
 
-      it('should 403 for dotfile directory', function (done){
+      it('should 403 for ignore directory', function (done){
         request(server)
           .get('/.mine')
           .expect(403, done);
       });
 
-      it('should 403 for dotfile directory with trailing slash', function (done){
+      it('should 403 for ignore directory with trailing slash', function (done){
         request(server)
           .get('/.mine/')
           .expect(403, done);
       });
 
-      it('should 403 for file within dotfile directory', function (done){
+      it('should 403 for file within ignore directory', function (done){
         request(server)
           .get('/.mine/name.txt')
           .expect(403, done);
       });
 
-      it('should 403 for non-existent dotfile', function (done){
+      it('should 403 for non-existent ignore', function (done){
         request(server)
           .get('/.nothere')
           .expect(403, done);
       });
 
-      it('should 403 for non-existent dotfile directory', function (done){
+      it('should 403 for non-existent ignore directory', function (done){
         request(server)
           .get('/.what/name.txt')
           .expect(403, done);
       });
 
-      it('should send files in root dotfile directory', function (done){
-        request(createServer(path.join(fixtures, '.mine'), { dotfiles: 'deny' }))
+      it('should send files in root ignore directory', function (done){
+        request(createServer(path.join(fixtures, '.mine'), { ignore: ['/**/.*?(/*.*|/)'] }))
           .get('/name.txt')
           .expect(200, /tobi/, done);
       });
     });
 
     describe('when "ignore"', function (){
-      var server = createServer(fixtures, { dotFiles: 'ignore' });
+      var server = createServer(fixtures, { ignore: ['/**/.*?(/*.*|/)'], ignoreAccess: 'ignore' });
 
-      it('should 404 for dotfile', function (done){
+      it('should 404 for ignore', function (done){
         request(server)
           .get('/.hidden')
           .expect(404, done)
       });
 
-      it('should 404 for dotfile directory', function (done){
+      it('should 404 for ignore directory', function (done){
         request(server)
           .get('/.mine')
           .expect(404, done);
       });
 
-      it('should 404 for dotfile directory with trailing slash', function (done){
+      it('should 404 for ignore directory with trailing slash', function (done){
         request(server)
           .get('/.mine/')
           .expect(404, done);
       });
 
-      it('should 404 for file within dotfile directory', function (done){
+      it('should 404 for file within ignore directory', function (done){
         request(server)
           .get('/.mine/name.txt')
           .expect(404, done);
       });
 
-      it('should 404 for non-existent dotfile', function (done){
+      it('should 404 for non-existent ignore', function (done){
         request(server)
           .get('/.nothere')
           .expect(404, done);
       });
 
-      it('should 404 for non-existent dotfile directory', function (done){
+      it('should 404 for non-existent ignore directory', function (done){
         request(server)
           .get('/.what/name.txt')
           .expect(404, done);
       });
 
-      it('should send files in root dotfile directory', function (done){
-        request(createServer(path.join(fixtures, '.mine'), { dotfiles: 'ignore' }))
+      it('should send files in root ignore directory', function (done){
+        request(createServer(path.join(fixtures, '.mine'), { ignore: ['/**/.*?(/*.*|/)'], ignoreAccess: 'ignore' }))
           .get('/name.txt')
           .expect(200, /tobi/, done);
       });
-    });
-  });
-
-  describe('extensions', function (){
-    it('should be not be enabled by default', function (done){
-      var server = createServer(fixtures);
-
-      request(server)
-        .get('/tobi')
-        .expect(404, done);
-    });
-
-    it('should be configurable', function (done){
-      var server = createServer(fixtures, { extensions: 'txt' });
-
-      request(server)
-        .get('/name')
-        .expect(200, 'tobi');
-
-      request(server)
-        .get('/pets')
-        .expect(301, done);
-    });
-
-    it('should support disabling extensions', function (done){
-      var server = createServer(fixtures, { extensions: false });
-
-      request(server)
-        .get('/name')
-        .expect(404, done);
-    });
-
-    it('should support fallbacks', function (done){
-      var server = createServer(fixtures, { extensions: ['htm', 'html', 'txt'] });
-
-      request(server)
-        .get('/name')
-        .expect(200, '<p>tobi</p>', done);
-    });
-
-    it('should 404 if nothing found', function (done){
-      var server = createServer(fixtures, { extensions: ['htm', 'html', 'txt'] });
-
-      request(server)
-        .get('/bob')
-        .expect(404, done);
-    });
-
-    it('should skip directories', function (done){
-      var server = createServer(fixtures, { extensions: ['file', 'dir'] });
-
-      request(server)
-        .get('/name')
-        .expect(404, done);
-    });
-
-    it('should not search if file has extension', function (done){
-      var server = createServer(fixtures, { extensions: 'html' });
-
-      request(server)
-        .get('/thing.html')
-        .expect(404, done);
     });
   });
 

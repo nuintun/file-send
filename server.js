@@ -13,7 +13,7 @@ function createServer(root, port){
     var send = new FileSend(request, {
       root: root || './',
       maxAge: '3day',
-      ignore: ['/**/.*?(/*.*)'],
+      ignore: ['/**/.*?(/*.*|/)'],
       index: ['index.html']
     });
 
