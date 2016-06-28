@@ -20,9 +20,14 @@ try {
 var dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
 var fixtures = path.join(__dirname, 'fixtures');
 var app = http.createServer(function (req, res){
-  Send(req, { root: fixtures }).on('dir', function (response){
-    this.error(response, 403);
-  }).pipe(res);
+  Send(req, { root: fixtures })
+    .on('dir', function (response, realpath, stats, next){
+      this.status(403);
+      next(this.statusMessage);
+    })
+    .on('end', function (){ })
+    .on('close', function (){ })
+    .pipe(res);
 });
 
 describe('Send(req, options)', function (){
