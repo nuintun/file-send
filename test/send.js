@@ -17,7 +17,7 @@ var app = http.createServer(function (req, res){
   Send(req, { root: fixtures }).pipe(res);
 });
 
-describe('Send(req, options).pipe(res)', function (){
+describe('Send(req, options)', function (){
   it('should stream the file contents', function (done){
     request(app)
       .get('/name.txt')
@@ -197,15 +197,6 @@ describe('Send(req, options).pipe(res)', function (){
 
     request(app)
       .get('/name.txt')
-      .expect(function (res){
-        console.log();
-        console.log(res.statusCode);
-        console.log();
-        console.log(JSON.stringify(res.headers, null, 2));
-        console.log();
-
-        res.pipe(fs.createWriteStream('range.txt'));
-      })
       .expect(500, done);
   });
 
@@ -284,7 +275,7 @@ describe('Send(req, options).pipe(res)', function (){
     });
   });
 
-  describe('when no "directory" listeners are present', function (){
+  describe('when no "dir" listeners are present', function (){
     var server;
 
     before(function (){
@@ -345,7 +336,7 @@ describe('Send(req, options).pipe(res)', function (){
     });
   });
 
-  describe('with Range request', function (){
+  describe('with range request', function (){
     it('should support byte ranges', function (done){
       request(app)
         .get('/nums')
@@ -510,7 +501,7 @@ describe('Send(req, options).pipe(res)', function (){
   });
 });
 
-describe('Send(req, options)', function (){
+describe('Options', function (){
   describe('root', function (){
     it('should join root', function (done){
       request(createServer(fixtures))
@@ -555,7 +546,7 @@ describe('Send(req, options)', function (){
   });
 
   describe('ignore', function (){
-    it('should default not ignore', function (done){
+    it('should default no ignore', function (done){
       var server = createServer(fixtures);
 
       request(server)
@@ -675,18 +666,26 @@ describe('Send(req, options)', function (){
   });
 
   describe('index', function (){
-    it('should default to index.html', function (done){
+    it('should default no index', function (done){
       request(app)
         .get('/pets/')
-        .expect(fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), done)
+        .expect(403, done)
     });
 
     it('should be configurable', function (done){
-      var app = createServer(fixtures, { index: 'tobi.html' });
+      var cb = after(1, done);
+
+      var app = http.createServer(function (req, res){
+        Send(req, { root: fixtures, index: 'tobi.html' })
+          .on('headers', function (){
+            cb();
+          })
+          .pipe(res);
+      });
 
       request(app)
         .get('/')
-        .expect(200, '<p>tobi</p>', done);
+        .expect(200, '<p>tobi</p>', cb);
     });
 
     it('should support disabling', function (done){
@@ -698,19 +697,35 @@ describe('Send(req, options)', function (){
     });
 
     it('should support fallbacks', function (done){
-      var app = createServer(fixtures, { index: ['default.htm', 'index.html'] });
+      var cb = after(1, done);
+
+      var app = http.createServer(function (req, res){
+        Send(req, { root: fixtures, index: ['default.htm', 'index.html'] })
+          .on('headers', function (){
+            cb();
+          })
+          .pipe(res);
+      });
 
       request(app)
         .get('/pets/')
-        .expect(200, fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), done);
+        .expect(200, fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), cb);
     });
 
     it('should not follow directories', function (done){
-      var app = createServer(fixtures, { index: ['pets', 'name.txt'] });
+      var cb = after(1, done);
+
+      var app = http.createServer(function (req, res){
+        Send(req, { root: fixtures, index: ['pets', 'name.txt'] })
+          .on('headers', function (){
+            cb();
+          })
+          .pipe(res);
+      });
 
       request(app)
         .get('/')
-        .expect(200, 'tobi', done);
+        .expect(200, 'tobi', cb);
     });
   });
 
