@@ -185,6 +185,8 @@ describe('Send(req, options).pipe(res)', function (){
 
   it('should 500 on file stream error', function (done){
     var app = http.createServer(function (req, res){
+      res.write('hello');
+
       Send(req, { root: fixtures })
         .pipe(through(function (chunk, enc, next){
           // simulate file error
@@ -197,6 +199,15 @@ describe('Send(req, options).pipe(res)', function (){
 
     request(app)
       .get('/name.txt')
+      .expect(function (res){
+        console.log();
+        console.log(res.statusCode);
+        console.log();
+        console.log(JSON.stringify(res.headers, null, 2));
+        console.log();
+
+        res.pipe(fs.createWriteStream('range.txt'));
+      })
       .expect(500, done);
   });
 

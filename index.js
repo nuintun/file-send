@@ -399,13 +399,21 @@ FileSend.prototype.removeHeader = function (name){
 
 /**
  * end
+ * @param response
  * @param message
  * @api private
  */
-FileSend.prototype.end = function (message){
-  message && this.stream.write(message);
+FileSend.prototype.end = function (response, message){
+  this._stream.unpipe(response);
 
-  this.stream.emit('end');
+  message && response.write(message);
+
+  // emit end event
+  if (listenerCount(this, 'end') > 0) {
+    this.emit('end');
+  }
+
+  response.end();
 };
 
 /**
@@ -563,13 +571,17 @@ FileSend.prototype.parseRange = function (response, stats){
         this.setHeader('Content-Range', 'bytes */' + size);
 
         // unsatisfiable 416
-        return this.error(response, 416);
+        this.error(response, 416);
+
+        return false;
       }
     }
   }
 
   // set content-length
   this.setHeader('Content-Length', size);
+
+  return true;
 };
 
 /**
@@ -610,7 +622,7 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
   // next method
   var next = function (message){
     if (this.writeHead(response)) {
-      this.end(message);
+      this.end(response, message);
     }
   }.bind(this);
 
@@ -657,7 +669,7 @@ FileSend.prototype.dir = function (response, realpath, stats){
     // emit event directory
     return this.emit('dir', response, realpath, stats, function (message){
       if (this.writeHead(response)) {
-        this.end(message);
+        this.end(response, message);
       }
     }.bind(this));
   }
@@ -689,7 +701,7 @@ FileSend.prototype.redirect = function (response, location){
   this.setHeader('Location', location);
 
   if (this.writeHead(response)) {
-    this.end(message);
+    this.end(response, message);
   }
 };
 
@@ -715,7 +727,7 @@ FileSend.prototype.writeHead = function (response){
 
     return true;
   } else {
-    this.end('Can\'t set headers after they are sent.');
+    this.end(response, 'Can\'t set headers after they are sent.');
 
     return false;
   }
@@ -790,7 +802,12 @@ FileSend.prototype.createReadStream = function (response){
     range.endBoundary && stream.write(range.endBoundary);
 
     // end stream
-    stream.emit('end');
+    stream.end();
+
+    // emit end event
+    if (listenerCount(this, 'end') > 0) {
+      this.emit('end');
+    }
   }, this);
 };
 
@@ -892,18 +909,20 @@ FileSend.prototype.read = function (response){
 
     // set headers and parse range
     context.setHeaders(response, stats);
-    context.parseRange(response, stats);
 
-    // conditional get support
-    if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
-      context.status(304);
+    if (context.parseRange(response, stats)) {
 
-      return context.writeHead(response) && context.end();
-    }
+      // conditional get support
+      if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
+        context.status(304);
 
-    // write head and read file
-    if (context.writeHead(response)) {
-      context.createReadStream(response);
+        return context.writeHead(response) && context.end(response);
+      }
+
+      // write head and read file
+      if (context.writeHead(response)) {
+        context.createReadStream(response);
+      }
     }
   });
 };
@@ -924,20 +943,6 @@ FileSend.prototype.pipe = function (response){
       // emit end event
       if (listenerCount(this, 'close') > 0) {
         this.emit('close');
-      }
-    }.bind(this));
-
-    // bind end event
-    this.stream.on('end', function (){
-      // unpipe response
-      this._stream.unpipe(response);
-
-      // response end
-      response.end();
-
-      // emit end event
-      if (listenerCount(this, 'end') > 0) {
-        this.emit('end');
       }
     }.bind(this));
 
