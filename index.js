@@ -615,23 +615,14 @@ FileSend.prototype.status = function (statusCode){
  * error
  * @param response
  * @param statusCode
- * @param statusMessage
  * @api private
  */
-FileSend.prototype.error = function (response, statusCode, statusMessage){
-  switch (arguments.length) {
-    case 2:
-      this.status(statusCode);
-      break;
-    case 3:
-      this.statusCode = statusCode;
-      this.statusMessage = statusMessage;
-      break;
-  }
+FileSend.prototype.error = function (response, statusCode){
+  this.status(statusCode);
 
   statusCode = this.statusCode;
-  statusMessage = this.statusMessage;
 
+  var statusMessage = this.statusMessage;
   var error = new Error(statusMessage);
 
   error.statusCode = statusCode;

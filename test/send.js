@@ -20,7 +20,10 @@ try {
 var dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
 var fixtures = path.join(__dirname, 'fixtures');
 var app = http.createServer(function (req, res){
-  Send(req, { root: fixtures }).pipe(res);
+  Send(req, { root: fixtures }).on('dir', function (response, realpath, stats, next){
+    this.error(response, 403);
+    next();
+  }).pipe(res);
 });
 
 describe('Send(req, options)', function (){
@@ -210,6 +213,10 @@ describe('Send(req, options)', function (){
     it('should fire when sending file', function (done){
       var cb = after(2, done);
       var server = http.createServer(function (req, res){
+        res.setHeader('Cache-Control', 'private');
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('ETag', '"9-150f5bc45c8"');
+        res.setHeader('Last-Modified', 'Wed, 11 Nov 2015 08:49:28 GMT');
 
         Send(req, { root: fixtures })
           .on('headers', function (){
