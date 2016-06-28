@@ -185,8 +185,6 @@ describe('Send(req, options).pipe(res)', function (){
 
   it('should 500 on file stream error', function (done){
     var app = http.createServer(function (req, res){
-      res.write('hello');
-
       Send(req, { root: fixtures })
         .pipe(through(function (chunk, enc, next){
           // simulate file error

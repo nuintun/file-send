@@ -291,7 +291,7 @@ FileSend.prototype = Object.create(EventEmitter.prototype, {
 });
 
 /**
- * check if this is a conditional GET request.
+ * check if this is a conditional GET request
  * @return {Boolean}
  * @api private
  */
@@ -302,7 +302,7 @@ FileSend.prototype.isConditionalGET = function (){
 
 /**
  * check if the request is cacheable, aka
- * responded with 2xx or 304 (see RFC 2616 section 14.2{5,6}).
+ * responded with 2xx or 304 (see RFC 2616 section 14.2{5,6})
  * @return {Boolean}
  * @api private
  */
@@ -314,7 +314,7 @@ FileSend.prototype.isCachable = function (){
 };
 
 /**
- * check if the cache is fresh.
+ * check if the cache is fresh
  * @return {Boolean}
  * @api private
  */
@@ -326,7 +326,7 @@ FileSend.prototype.isFresh = function (){
 };
 
 /**
- * Check if the range is fresh.
+ * Check if the range is fresh
  * @return {Boolean}
  * @api private
  */
@@ -398,6 +398,18 @@ FileSend.prototype.removeHeader = function (name){
 };
 
 /**
+ * emit event
+ * @param event
+ * @api private
+ */
+FileSend.prototype.emitEvent = function (event){
+  // emit end event
+  if (listenerCount(this, event) > 0) {
+    this.emit.apply(this, [].slice.call(arguments));
+  }
+};
+
+/**
  * end
  * @param response
  * @param message
@@ -409,9 +421,7 @@ FileSend.prototype.end = function (response, message){
   message && response.write(message);
 
   // emit end event
-  if (listenerCount(this, 'end') > 0) {
-    this.emit('end');
-  }
+  this.emitEvent('end');
 
   response.end();
 };
@@ -627,9 +637,7 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
   }.bind(this);
 
   // emit if listeners instead of responding
-  if (listenerCount(this, 'error') > 0) {
-    return this.emit('error', response, error, next);
-  }
+  this.emitEvent('error', response, error, next);
 
   // set headers
   this.setHeader('Cache-Control', 'private');
@@ -667,7 +675,7 @@ FileSend.prototype.dir = function (response, realpath, stats){
   // if have event directory listener, use user define
   if (listenerCount(this, 'dir') > 0) {
     // emit event directory
-    return this.emit('dir', response, realpath, stats, function (message){
+    return this.emitEvent('dir', response, realpath, stats, function (message){
       if (this.writeHead(response)) {
         this.end(response, message);
       }
@@ -713,7 +721,7 @@ FileSend.prototype.redirect = function (response, location){
 FileSend.prototype.writeHead = function (response){
   if (!response.headersSent) {
     if (listenerCount(this, 'headers') > 0) {
-      this.emit('headers', response, this.headers);
+      this.emitEvent('headers', response, this.headers);
     }
 
     var headers = this.headers;
@@ -806,7 +814,7 @@ FileSend.prototype.createReadStream = function (response){
 
     // emit end event
     if (listenerCount(this, 'end') > 0) {
-      this.emit('end');
+      this.emitEvent('end');
     }
   }, this);
 };
@@ -942,7 +950,7 @@ FileSend.prototype.pipe = function (response){
     response.on('close', function (){
       // emit end event
       if (listenerCount(this, 'close') > 0) {
-        this.emit('close');
+        this.emitEvent('close');
       }
     }.bind(this));
 
@@ -950,7 +958,7 @@ FileSend.prototype.pipe = function (response){
     this._stream.pipe(response);
   } else {
     this._stream.on('error', function (error){
-      response.emit('error', error);
+      response.emitEvent('error', error);
     }.bind(this));
 
     this._stream = this._stream.pipe(response);
