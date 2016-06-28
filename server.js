@@ -18,7 +18,8 @@ function createServer(root, port){
     });
 
     if (first) {
-      first = false;
+      first = !first;
+
       console.log('--------------------------------------------------------------------');
     }
 
@@ -32,12 +33,7 @@ function createServer(root, port){
       .pipe(response)
       .on('headers', function (){
         console.log('HEADERS:', colors.magenta.bold(JSON.stringify(send.headers, null, 2)));
-      })
-      .on('end', function (){
-        console.log('--------------------------------------------------------------------end');
-      })
-      .on('close', function (){
-        console.log('--------------------------------------------------------------------close');
+        console.log('--------------------------------------------------------------------');
       });
   }).listen(port || 8080, '127.0.0.1');
 
