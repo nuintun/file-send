@@ -243,11 +243,11 @@ describe('Send(req, options)', function (){
         .expect(200, '123456789', cb);
     });
 
-    it('should not fire on 404', function (done){
-      var cb = after(1, done);
+    it('should fire on 404', function (done){
+      var cb = after(2, done);
       var server = http.createServer(function (req, res){
         Send(req, { root: fixtures })
-          .on('headers', function (){ cb() })
+          .on('headers', function (){ cb(); })
           .pipe(res);
       });
 
@@ -260,7 +260,7 @@ describe('Send(req, options)', function (){
       var cb = after(1, done);
       var server = http.createServer(function (req, res){
         Send(req, { root: fixtures, index: ['index.html'] })
-          .on('headers', function (){ cb() })
+          .on('headers', function (){ cb(); })
           .pipe(res);
       });
 
@@ -269,15 +269,17 @@ describe('Send(req, options)', function (){
         .expect(200, /tobi/, cb);
     });
 
-    it('should not fire on redirect', function (done){
+    it('should fire on redirect', function (done){
+      var cb = after(2, done);
       var server = http.createServer(function (req, res){
         Send(req, { root: fixtures })
+          .on('headers', function (){ cb(); })
           .pipe(res);
       });
 
       request(server)
         .get('/pets')
-        .expect(301, done);
+        .expect(301, cb);
     });
 
     it('should allow altering headers', function (done){
@@ -641,10 +643,20 @@ describe('Options', function (){
       });
 
       it('should 403 for ignore index', function (done){
-        request(createServer(fixtures, {
-          index: ['name.txt'],
-          ignore: ['/**/name.txt']
-        })).get('/').expect(403, done);
+        var cb = after(1, done);
+        var app = http.createServer(function (req, res){
+          Send(req, {
+            root: fixtures,
+            index: ['name.txt'],
+            ignore: ['/**/name.txt']
+          }).on('headers', function (){
+            cb();
+          }).on('dir', function (response){
+            this.error(response, 404);
+          }).pipe(res);
+        });
+
+        request(app).get('/').expect(403, cb);
       });
 
       it('should send files in root ignore directory', function (done){
