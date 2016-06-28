@@ -406,7 +406,6 @@ FileSend.prototype.end = function (message){
   message && this.stream.write(message);
 
   this.stream.emit('end');
-  this.stream.unpipe();
 };
 
 /**
@@ -913,7 +912,11 @@ FileSend.prototype.pipe = function (response){
     }.bind(this));
 
     this.stream.on('end', function (){
+      // response end
       response.end();
+
+      // unpipe response
+      this.stream.unpipe(response);
 
       // destroy stream
       destroy(this.stream);
