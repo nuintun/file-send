@@ -290,6 +290,9 @@ FileSend.prototype = Object.create(EventEmitter.prototype, {
   constructor: { value: FileSend }
 });
 
+// origin emit method
+var emit = FileSend.prototype.emit;
+
 /**
  * check if this is a conditional GET request
  * @return {Boolean}
@@ -400,12 +403,16 @@ FileSend.prototype.removeHeader = function (name){
 /**
  * emit event
  * @param event
- * @api private
+ * @returns {boolean}
  */
-FileSend.prototype.emitEvent = function (event){
-  // emit end event
+FileSend.prototype.emit = function (event){
+  // emit event
   if (listenerCount(this, event) > 0) {
-    this.emit.apply(this, [].slice.call(arguments));
+    emit.apply(this, [].slice.call(arguments));
+
+    return true;
+  } else {
+    return false;
   }
 };
 
@@ -421,7 +428,7 @@ FileSend.prototype.end = function (response, message){
   message && response.write(message);
 
   // emit end event
-  this.emitEvent('end');
+  this.emit('end');
 
   response.end();
 };
@@ -637,7 +644,7 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
   }.bind(this);
 
   // emit if listeners instead of responding
-  this.emitEvent('error', response, error, next);
+  if (this.emit('error', response, error, next)) return;
 
   // set headers
   this.setHeader('Cache-Control', 'private');
@@ -673,14 +680,14 @@ FileSend.prototype.statError = function (response, error){
  */
 FileSend.prototype.dir = function (response, realpath, stats){
   // if have event directory listener, use user define
-  if (listenerCount(this, 'dir') > 0) {
-    // emit event directory
-    return this.emitEvent('dir', response, realpath, stats, function (message){
+  // emit event directory
+  if (
+    this.emit('dir', response, realpath, stats, function (message){
       if (this.writeHead(response)) {
         this.end(response, message);
       }
-    }.bind(this));
-  }
+    }.bind(this))
+  ) return;
 
   this.error(response, 403);
 };
@@ -720,9 +727,7 @@ FileSend.prototype.redirect = function (response, location){
  */
 FileSend.prototype.writeHead = function (response){
   if (!response.headersSent) {
-    if (listenerCount(this, 'headers') > 0) {
-      this.emitEvent('headers', response, this.headers);
-    }
+    this.emit('headers', response, this.headers);
 
     var headers = this.headers;
 
@@ -813,9 +818,7 @@ FileSend.prototype.createReadStream = function (response){
     stream.end();
 
     // emit end event
-    if (listenerCount(this, 'end') > 0) {
-      this.emitEvent('end');
-    }
+    this.emit('end');
   }, this);
 };
 
@@ -948,17 +951,15 @@ FileSend.prototype.pipe = function (response){
 
     // bind end close
     response.on('close', function (){
-      // emit end event
-      if (listenerCount(this, 'close') > 0) {
-        this.emitEvent('close');
-      }
+      // emit close event
+      this.emit('close');
     }.bind(this));
 
     this.read(response);
     this._stream.pipe(response);
   } else {
     this._stream.on('error', function (error){
-      response.emitEvent('error', error);
+      response.emit('error', error);
     }.bind(this));
 
     this._stream = this._stream.pipe(response);
