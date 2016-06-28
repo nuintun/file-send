@@ -9,6 +9,12 @@ var util = require('../lib/util');
 var through = require('../lib/through');
 
 util.isType(NaN, 'nan');
+util.isType(new Error(), 'error');
+(through()).destroy();
+
+try {
+  Send('');
+} catch (e) {}
 
 // test server
 var dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
