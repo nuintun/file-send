@@ -39,8 +39,7 @@ var NOTFOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
 var join = path.join;
 var resolve = path.resolve;
 var parseUrl = url.parse;
-var listenerCount = EventEmitter.listenerCount
-  || function (emitter, type){ return emitter.listeners(type).length; };
+var listenerCount = EventEmitter.listenerCount;
 
 /**
  * file send constructor
