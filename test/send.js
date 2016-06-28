@@ -205,6 +205,7 @@ describe('Send(req, options)', function (){
   it('should 500 on file stream error', function (done){
     var app = http.createServer(function (req, res){
       Send(req, { root: fixtures })
+        .pipe(through())
         .pipe(through(function (chunk, enc, next){
           // simulate file error
           process.nextTick(function (){
