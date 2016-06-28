@@ -932,9 +932,6 @@ FileSend.prototype.pipe = function (response){
       // unpipe response
       this._stream.unpipe(response);
 
-      // destroy stream
-      destroy(this.stream);
-
       // response end
       response.end();
 
