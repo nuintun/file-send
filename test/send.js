@@ -22,7 +22,7 @@ var fixtures = path.join(__dirname, 'fixtures');
 var app = http.createServer(function (req, res){
   Send(req, { root: fixtures })
     .on('dir', function (response, realpath, stats, next){
-      this.status(403);
+      this.status(response, 403);
       next(this.statusMessage);
     })
     .on('end', function (){ })

@@ -277,8 +277,6 @@ function FileSend(request, options){
   util.defineProperty(this, 'hasTrailingSlash', {
     value: this.path === -1 ? false : this.path.slice(-1) === '/'
   });
-
-  this.status(200);
 }
 
 /**
@@ -526,7 +524,7 @@ FileSend.prototype.parseRange = function (response, stats){
 
       // valid ranges, support multiple ranges
       if (util.isType(ranges, 'array') && ranges.type === 'bytes') {
-        this.status(206);
+        this.status(response, 206);
 
         // multiple ranges
         if (ranges.length > 1) {
@@ -602,12 +600,16 @@ FileSend.prototype.parseRange = function (response, stats){
 
 /**
  * set response status
+ * @param response
  * @param statusCode
  * @api private
  */
-FileSend.prototype.status = function (statusCode){
+FileSend.prototype.status = function (response, statusCode){
   this.statusCode = statusCode;
   this.statusMessage = http.STATUS_CODES[statusCode];
+
+  response.statusCode = this.statusCode;
+  response.statusMessage = this.statusMessage;
 };
 
 /**
@@ -617,7 +619,7 @@ FileSend.prototype.status = function (statusCode){
  * @api private
  */
 FileSend.prototype.error = function (response, statusCode){
-  this.status(statusCode);
+  this.status(response, statusCode);
 
   statusCode = this.statusCode;
 
@@ -628,9 +630,11 @@ FileSend.prototype.error = function (response, statusCode){
 
   // next method
   var next = function (message){
-    if (this.writeHead(response)) {
-      this.end(response, message);
+    if (response.headersSent) {
+      return this.headersSent(response);
     }
+
+    this.end(response, message);
   }.bind(this);
 
   // emit if listeners instead of responding
@@ -673,9 +677,11 @@ FileSend.prototype.dir = function (response, realpath, stats){
   // emit event directory
   if (
     this.emit('dir', response, realpath, stats, function (message){
-      if (this.writeHead(response)) {
-        this.end(response, message);
+      if (response.headersSent) {
+        return this.headersSent(response);
       }
+
+      this.end(response, message);
     }.bind(this))
   ) return;
 
@@ -697,7 +703,7 @@ FileSend.prototype.redirect = function (response, location){
 
   var message = 'Redirecting to <a href="' + location + '">' + html + '</a>';
 
-  this.status(301);
+  this.status(response, 301);
 
   this.setHeader('Cache-Control', 'no-cache');
   this.setHeader('Content-Type', 'text/html; charset=UTF-8');
@@ -705,9 +711,16 @@ FileSend.prototype.redirect = function (response, location){
   this.setHeader('X-Content-Type-Options', 'nosniff');
   this.setHeader('Location', location);
 
-  if (this.writeHead(response)) {
-    this.end(response, message);
-  }
+  this.end(response, message);
+};
+
+/**
+ * headers already sent
+ * @param response
+ * @api private
+ */
+FileSend.prototype.headersSent = function (response){
+  this.end(response, 'Can\'t set headers after they are sent.');
 };
 
 /**
@@ -716,24 +729,13 @@ FileSend.prototype.redirect = function (response, location){
  * @api private
  */
 FileSend.prototype.writeHead = function (response){
-  if (!response.headersSent) {
-    this.emit('headers', response, this.headers);
+  this.emit('headers', response, this.headers);
 
-    var headers = this.headers;
+  var headers = this.headers;
 
-    response.statusCode = this.statusCode;
-    response.statusMessage = this.statusMessage;
-
-    Object.keys(headers).forEach(function (name){
-      response.setHeader(name, headers[name]);
-    });
-
-    return true;
-  } else {
-    this.end(response, 'Can\'t set headers after they are sent.');
-
-    return false;
-  }
+  Object.keys(headers).forEach(function (name){
+    response.setHeader(name, headers[name]);
+  });
 };
 
 /**
@@ -918,17 +920,23 @@ FileSend.prototype.read = function (response){
 
       // conditional get support
       if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
-        context.status(304);
+        context.status(response, 304);
 
-        return context.writeHead(response) && context.end(response);
+        return context.end(response);
       }
 
       // write head and read file
-      if (context.writeHead(response)) {
-        context.createReadStream(response);
-      }
+      context.createReadStream(response);
     }
   });
+};
+
+var originWriteHead = http.ServerResponse.prototype.writeHead;
+
+http.ServerResponse.prototype.writeHead = function (){
+  this.emit('headers');
+
+  originWriteHead.apply(this, arguments);
 };
 
 /**
@@ -937,9 +945,15 @@ FileSend.prototype.read = function (response){
  * @returns {FileSend}
  */
 FileSend.prototype.pipe = function (response){
-  if (response instanceof http.OutgoingMessage) {
+  if (response instanceof http.ServerResponse) {
+    // bind error event
     this._stream.on('error', function (error){
       this.statError(response, error);
+    }.bind(this));
+
+    // bind headers event
+    response.on('headers', function (){
+      this.writeHead(response);
     }.bind(this));
 
     // bind end close
@@ -948,6 +962,7 @@ FileSend.prototype.pipe = function (response){
       this.emit('close');
     }.bind(this));
 
+    this.status(response, 200);
     this.read(response);
   } else {
     this._stream.on('error', function (error){
