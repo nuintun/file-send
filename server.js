@@ -2,6 +2,8 @@
  * Created by nuintun on 2016/6/24.
  */
 
+'use strict';
+
 var http = require('http');
 var FileSend = require('./index');
 var colors = require('colors/safe');
