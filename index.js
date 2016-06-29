@@ -40,6 +40,14 @@ var join = path.join;
 var resolve = path.resolve;
 var parseUrl = url.parse;
 var listenerCount = EventEmitter.listenerCount;
+var originWriteHead = http.ServerResponse.prototype.writeHead;
+
+// add http response write headers events
+http.ServerResponse.prototype.writeHead = function (){
+  this.emit('headers');
+
+  originWriteHead.apply(this, arguments);
+};
 
 /**
  * file send constructor
@@ -929,14 +937,6 @@ FileSend.prototype.read = function (response){
       context.createReadStream(response);
     }
   });
-};
-
-var originWriteHead = http.ServerResponse.prototype.writeHead;
-
-http.ServerResponse.prototype.writeHead = function (){
-  this.emit('headers');
-
-  originWriteHead.apply(this, arguments);
 };
 
 /**
