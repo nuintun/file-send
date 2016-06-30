@@ -151,7 +151,7 @@ function FileSend(request, options){
       return realpath;
     }
   });
-  
+
   // query
   util.defineProperty(this, 'query', {
     enumerable: true,
@@ -881,6 +881,9 @@ FileSend.prototype.read = function (response){
     });
   }
 
+  // set status
+  this.status(response, response.statusCode || 200);
+
   // path -1 or null byte(s)
   if (this.realpath === -1 || ~this.realpath.indexOf('\0')) {
     return process.nextTick(function (){
@@ -977,7 +980,6 @@ FileSend.prototype.pipe = function (response){
       this.emit('close');
     }.bind(this));
 
-    this.status(response, 200);
     this.read(response);
   } else {
     this._stream.on('error', function (error){
