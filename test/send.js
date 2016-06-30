@@ -342,16 +342,19 @@ describe('Send(req, options)', function (){
     });
 
     it('should fire on index', function (done){
-      var cb = after(1, done);
+      var cb = after(2, done);
       var server = http.createServer(function (req, res){
         Send(req, { root: fixtures, index: ['index.html'] })
-          .on('headers', function (){ cb(); })
+          .on('headers', function (){
+            cb();
+          })
           .pipe(res);
       });
 
       request(server)
         .get('/pets/')
-        .expect(200, /tobi/, cb);
+        .expect('Location', '/pets/index.html')
+        .expect(301, cb);
     });
 
     it('should fire on redirect', function (done){
@@ -364,6 +367,7 @@ describe('Send(req, options)', function (){
 
       request(server)
         .get('/pets')
+        .expect('Location', '/pets/')
         .expect(301, cb);
     });
 
@@ -728,7 +732,7 @@ describe('Options', function (){
       });
 
       it('should 403 for ignore index', function (done){
-        var cb = after(1, done);
+        var cb = after(2, done);
         var app = http.createServer(function (req, res){
           Send(req, {
             root: fixtures,
@@ -741,7 +745,7 @@ describe('Options', function (){
           }).pipe(res);
         });
 
-        request(app).get('/').expect(403, cb);
+        request(app).get('/').expect(404, cb);
       });
 
       it('should send files in root ignore directory', function (done){
@@ -806,7 +810,7 @@ describe('Options', function (){
     });
 
     it('should be configurable', function (done){
-      var cb = after(1, done);
+      var cb = after(2, done);
 
       var app = http.createServer(function (req, res){
         Send(req, { root: fixtures, index: 'tobi.html' })
@@ -818,7 +822,8 @@ describe('Options', function (){
 
       request(app)
         .get('/')
-        .expect(200, '<p>tobi</p>', cb);
+        .expect('Location', '/tobi.html')
+        .expect(301, cb);
     });
 
     it('should support disabling', function (done){
@@ -830,7 +835,7 @@ describe('Options', function (){
     });
 
     it('should support fallbacks', function (done){
-      var cb = after(1, done);
+      var cb = after(2, done);
 
       var app = http.createServer(function (req, res){
         Send(req, { root: fixtures, index: ['default.htm', 'index.html'] })
@@ -842,11 +847,12 @@ describe('Options', function (){
 
       request(app)
         .get('/pets/')
-        .expect(200, fs.readFileSync(path.join(fixtures, 'pets', 'index.html'), 'utf8'), cb);
+        .expect('Location', '/pets/index.html')
+        .expect(301, cb);
     });
 
     it('should not follow directories', function (done){
-      var cb = after(1, done);
+      var cb = after(2, done);
 
       var app = http.createServer(function (req, res){
         Send(req, { root: fixtures, index: ['pets', 'name.txt'] })
@@ -858,7 +864,8 @@ describe('Options', function (){
 
       request(app)
         .get('/')
-        .expect(200, 'tobi', cb);
+        .expect('Location', '/name.txt')
+        .expect(301, cb);
     });
   });
 
