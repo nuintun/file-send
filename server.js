@@ -10,46 +10,25 @@ const colors = require('colors/safe');
 const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
 
-var first = true;
-
 function createServer(root, port){
   http.createServer(function (request, response){
-    var last = false;
     var send = new FileSend(request, {
       root: root || './',
       maxAge: '3day',
       ignore: ['/**/.*?(/*.*|/)'],
-      index: ['pets', 'name.txt']
+      index: ['index.html']
     });
 
-    if (first) {
-      first = !first;
-
-      console.log('--------------------------------------------------------------------');
-    }
-
-    console.log('ROOT:', colors.red.bold(send.root));
-    console.log('URL:', colors.green.bold(send.url));
-    console.log('PATH:', colors.yellow.bold(send.path));
-    console.log('REALPATH:', colors.cyan.bold(send.realpath));
-    console.log('QUERY:', colors.green.bold(JSON.stringify(send.query, null, 2)));
-
-    function always(){
-      if (!last) {
-        last = true;
-
-        console.log('--------------------------------------------------------------------');
-      }
-    }
-
-    send
-      .pipe(response)
-      .on('headers', function (){
-        console.log('HEADERS:', colors.magenta.bold(JSON.stringify(send.headers, null, 2)));
-        always();
-      })
-      .on('end', always)
-      .on('close', always);
+    send.pipe(response).on('headers', function (response, headers){
+      console.log('ROOT:', colors.green.bold(send.root));
+      console.log('URL:', colors.magenta.bold(send.url));
+      console.log('QUERY:', colors.magenta.bold(JSON.stringify(send.query, null, 2)));
+      console.log('PATH:', colors.yellow.bold(send.path));
+      console.log('REALPATH:', colors.yellow.bold(send.realpath));
+      console.log('STATUS:', colors.cyan.bold(send.statusCode));
+      console.log('HEADERS:', colors.cyan.bold(JSON.stringify(headers, null, 2)));
+      console.log('---------------------------------------------------------------');
+    });
   }).listen(port || 8080, '127.0.0.1');
 }
 
@@ -59,7 +38,12 @@ if (cluster.isMaster) {
     cluster.fork().on('listening', (function (i){
       return function (address){
         // Worker is listening
-        console.log(colors.green.bold('Server thread ' + i + ' run at port:'), colors.cyan.bold(address.port));
+        if (i === 3) {
+          console.log(
+            colors.green.bold('Server run at port:'),
+            colors.cyan.bold(address.port)
+          );
+        }
       };
     }(i)));
   }
