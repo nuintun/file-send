@@ -22,7 +22,7 @@ function createServer(root, port){
 
     send.pipe(response).on('headers', function (response, headers){
       var message = 'URL      : ' + colors.green.bold(send.url)
-        + '\r\nPATH     : ' + colors.magenta.bold(send.path)
+        + '\r\nPATH     : ' + colors.yellow.bold(send.path)
         + '\r\nROOT     : ' + colors.magenta.bold(send.root)
         + '\r\nREALPATH : ' + colors.magenta.bold(send.realpath)
         + '\r\nSTATUS   : ' + colors.cyan.bold(send.statusCode)
