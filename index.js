@@ -44,7 +44,9 @@ var originWriteHead = http.ServerResponse.prototype.writeHead;
 
 // add http response write headers events
 http.ServerResponse.prototype.writeHead = function (){
-  this.emit('headers');
+  if (listenerCount(this, 'headers') > 0) {
+    this.emit('headers');
+  }
 
   originWriteHead.apply(this, arguments);
 };
