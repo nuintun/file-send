@@ -4,9 +4,11 @@
 
 'use strict';
 
-var http = require('http');
-var FileSend = require('./index');
-var colors = require('colors/safe');
+const http = require('http');
+const FileSend = require('./index');
+const colors = require('colors/safe');
+const cluster = require('cluster');
+const numCPUs = require('os').cpus().length;
 
 var first = true;
 
@@ -37,12 +39,19 @@ function createServer(root, port){
         console.log('HEADERS:', colors.magenta.bold(JSON.stringify(send.headers, null, 2)));
         console.log('--------------------------------------------------------------------');
       });
-  }).listen(port || 8080, '127.0.0.1');
-
-  console.log(colors.green.bold('Server run at port:'), colors.cyan.bold(port || 8080));
+  }).listen(port || 8080, '127.0.0.1', function (){
+    console.log(colors.green.bold('Server run at port:'), colors.cyan.bold(port || 8080), '');
+  });
 }
 
-createServer();
-createServer('./test/fixtures', 9091);
-
-
+if (cluster.isMaster) {
+  // Fork workers.
+  for (var i = 0; i < numCPUs; i++) {
+    cluster.fork();
+  }
+} else {
+  // Workers can share any TCP connection
+  // In this case it is an HTTP server
+  createServer();
+  // createServer('./test/fixtures', 9091);
+}
