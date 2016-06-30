@@ -80,7 +80,7 @@ describe('Send(req, options)', function (){
   });
 
   it('should handle headers already sent error', function (done){
-    var cb = after(2, done);
+    var cb = after(3, done);
     var app = http.createServer(function (req, res){
       res.write('0');
       Send(req, { root: fixtures }).pipe(res);
@@ -89,6 +89,20 @@ describe('Send(req, options)', function (){
     request(app)
       .get('/nums')
       .expect(200, '0Can\'t set headers after they are sent.', cb);
+
+    app = http.createServer(function (req, res){
+      Send(req, { root: fixtures })
+        .on('error', function (response, error, next){
+          this.status(response, 404);
+          response.write('0');
+          next();
+        })
+        .pipe(res);
+    });
+
+    request(app)
+      .get('/nums__xxx_no_exist')
+      .expect(404, '0Can\'t set headers after they are sent.', cb);
 
     app = http.createServer(function (req, res){
       Send(req, { root: fixtures })
