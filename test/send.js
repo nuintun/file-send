@@ -22,16 +22,11 @@ var dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
 var fixtures = path.join(__dirname, 'fixtures');
 var app = http.createServer(function (req, res){
   Send(req, { root: fixtures })
-    .on('dir', function (response, realpath, stats, next){
-      this.status(response, 403);
+    .on('dir', function (realpath, stats, next){
+      this.status(res, 403);
       next(this.statusMessage);
     })
-    .on('end', function (){
-      process.nextTick(function (){
-        res.emit('close');
-      });
-    })
-    .on('close', function (){ })
+    .on('finish', function (){ })
     .pipe(res);
 });
 
@@ -95,9 +90,9 @@ describe('Send(req, options)', function (){
 
     app = http.createServer(function (req, res){
       Send(req, { root: fixtures })
-        .on('error', function (response, error, next){
-          this.status(response, 404);
-          response.write('0');
+        .on('error', function (error, next){
+          this.status(res, 404);
+          res.write('0');
           next();
         })
         .pipe(res);
@@ -109,9 +104,9 @@ describe('Send(req, options)', function (){
 
     app = http.createServer(function (req, res){
       Send(req, { root: fixtures })
-        .on('dir', function (response, realpath, stats, next){
-          this.status(response, 403);
-          response.write('0');
+        .on('dir', function (realpath, stats, next){
+          this.status(res, 403);
+          res.write('0');
           next();
         })
         .pipe(res);
@@ -937,8 +932,8 @@ describe('Options', function (){
             ignore: ['/**/name.txt']
           }).on('headers', function (){
             cb();
-          }).on('dir', function (response){
-            this.error(response, 404);
+          }).on('dir', function (){
+            this.error(res, 404);
           }).pipe(res);
         });
 

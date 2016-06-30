@@ -20,7 +20,7 @@ function createServer(root, port){
       index: ['index.html']
     });
 
-    send.pipe(response).on('headers', function (response, headers){
+    send.pipe(response).on('headers', function (headers){
       var message = 'URL      : ' + colors.green.bold(send.url)
         + '\r\nPATH     : ' + colors.yellow.bold(send.path)
         + '\r\nROOT     : ' + colors.magenta.bold(send.root)

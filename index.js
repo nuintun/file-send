@@ -436,13 +436,19 @@ FileSend.prototype.emit = function (event){
  * @api private
  */
 FileSend.prototype.end = function (response, message){
+  // unpipe
   this._stream.unpipe(response);
 
+  // write message
   message && response.write(message);
 
-  // emit end event
-  this.emit('end');
+  // response finished
+  onFinished(response, function (){
+    // emit finish event
+    this.emit('finish');
+  }.bind(this));
 
+  // end response
   response.end();
 };
 
@@ -654,7 +660,7 @@ FileSend.prototype.error = function (response, statusCode){
   }.bind(this);
 
   // emit if listeners instead of responding
-  if (this.emit('error', response, error, next)) return;
+  if (this.emit('error', error, next)) return;
 
   // set headers
   this.setHeader('Cache-Control', 'private');
@@ -692,7 +698,7 @@ FileSend.prototype.dir = function (response, realpath, stats){
   // if have event directory listener, use user define
   // emit event directory
   if (
-    this.emit('dir', response, realpath, stats, function (message){
+    this.emit('dir', realpath, stats, function (message){
       if (response.headersSent) {
         return this.headersSent(response);
       }
@@ -745,7 +751,7 @@ FileSend.prototype.headersSent = function (response){
  * @api private
  */
 FileSend.prototype.writeHead = function (response){
-  this.emit('headers', response, this.headers);
+  this.emit('headers', this.headers);
 
   var headers = this.headers;
 
@@ -778,10 +784,14 @@ FileSend.prototype.createReadStream = function (response){
   // error handling code-smell
   stream.on('error', onerror);
 
-  // response finished, done with the fd
+  // response finished
   onFinished(response, function (){
+    // done with the is finished status
     isFinished = true;
-  });
+
+    // emit finish event
+    this.emit('finish');
+  }.bind(this));
 
   // contat range
   async.series(ranges, function (range, next){
@@ -824,9 +834,6 @@ FileSend.prototype.createReadStream = function (response){
 
     // end stream
     stream.end();
-
-    // emit end event
-    this.emit('end');
   }, this);
 
   // pipe to response
@@ -974,18 +981,14 @@ FileSend.prototype.pipe = function (response){
       this.writeHead(response);
     }.bind(this));
 
-    // bind end close
-    response.on('close', function (){
-      // emit close event
-      this.emit('close');
-    }.bind(this));
-
+    // read
     this.read(response);
   } else {
     this._stream.on('error', function (error){
       response.emit('error', error);
     }.bind(this));
 
+    // pipe
     this._stream = this._stream.pipe(response);
   }
 
