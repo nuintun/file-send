@@ -131,12 +131,7 @@ function FileSend(request, options){
     }
   });
 
-  // query
-  util.defineProperty(this, 'query', {
-    enumerable: true,
-    value: this._url.query
-  });
-
+  // real path
   util.defineProperty(this, 'realpath', {
     enumerable: true,
     get: function (){
@@ -148,6 +143,11 @@ function FileSend(request, options){
 
       return realpath;
     }
+  });
+  // query
+  util.defineProperty(this, 'query', {
+    enumerable: true,
+    value: this._url.query
   });
 
   // etag
