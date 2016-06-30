@@ -113,7 +113,7 @@ function FileSend(request, options){
     }
   });
 
-  // path
+  // parsed url
   util.defineProperty(this, '_url', {
     value: this.url === -1
       ? {}
