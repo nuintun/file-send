@@ -8,7 +8,7 @@ var http = require('http');
 var FileSend = require('./index');
 var colors = require('colors/safe');
 var cluster = require('cluster');
-var numCPUs = require('os').cpus().length;
+var NUMCPUS = require('os').cpus().length;
 
 // create server
 function createServer(root, port){
@@ -34,11 +34,11 @@ function createServer(root, port){
 
 if (cluster.isMaster) {
   // Fork workers.
-  for (var i = 0; i < numCPUs; i++) {
+  for (var i = 0; i < NUMCPUS; i++) {
     cluster.fork().on('listening', (function (i){
       return function (address){
         // Worker is listening
-        if (i === numCPUs - 1) {
+        if (i === NUMCPUS - 1) {
           console.log(
             colors.green.bold('Server run at port:'),
             colors.cyan.bold(address.port)
