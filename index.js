@@ -557,7 +557,7 @@ FileSend.prototype.parseRange = function (response, stats){
 
           // create boundary and end boundary
           boundary = '--<' + boundary + '>';
-          endBoundary = '\r\n' + boundary + '--';
+          endBoundary = '\r\n' + boundary + '--\r\n';
           boundary += '\r\nContent-Type: ' + contentType;
 
           // loop ranges
