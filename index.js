@@ -44,10 +44,12 @@ var originWriteHead = http.ServerResponse.prototype.writeHead;
 
 // add http response write headers events
 http.ServerResponse.prototype.writeHead = function (){
+  // emit headers event
   if (listenerCount(this, 'headers') > 0) {
     this.emit('headers');
   }
 
+  // call origin method
   originWriteHead.apply(this, arguments);
 };
 
