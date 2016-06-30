@@ -21,10 +21,10 @@ function createServer(root, port){
     });
 
     send.pipe(response).on('headers', function (response, headers){
-      var message = 'ROOT     : ' + colors.green.bold(send.root)
-        + '\r\nURL      : ' + colors.magenta.bold(send.url)
-        + '\r\nPATH     : ' + colors.yellow.bold(send.path)
-        + '\r\nREALPATH : ' + colors.yellow.bold(send.realpath)
+      var message = 'URL      : ' + colors.green.bold(send.url)
+        + '\r\nPATH     : ' + colors.magenta.bold(send.path)
+        + '\r\nROOT     : ' + colors.magenta.bold(send.root)
+        + '\r\nREALPATH : ' + colors.magenta.bold(send.realpath)
         + '\r\nSTATUS   : ' + colors.cyan.bold(send.statusCode)
         + '\r\nHEADERS  : ' + colors.cyan.bold(JSON.stringify(headers, null, 2))
         + '\r\n--------------------------------------------------------------';
