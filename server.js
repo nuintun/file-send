@@ -21,13 +21,15 @@ function createServer(root, port){
     });
 
     send.pipe(response).on('headers', function (response, headers){
-      console.log('ROOT     :', colors.green.bold(send.root));
-      console.log('URL      :', colors.magenta.bold(send.url));
-      console.log('PATH     :', colors.yellow.bold(send.path));
-      console.log('REALPATH :', colors.yellow.bold(send.realpath));
-      console.log('STATUS   :', colors.cyan.bold(send.statusCode));
-      console.log('HEADERS  :', colors.cyan.bold(JSON.stringify(headers, null, 2)));
-      console.log('--------------------------------------------------------------');
+      var message = 'ROOT     :' + colors.green.bold(send.root)
+        + '\r\nURL      :' + colors.magenta.bold(send.url)
+        + '\r\nPATH     :' + colors.yellow.bold(send.path)
+        + '\r\nREALPATH :' + colors.yellow.bold(send.realpath)
+        + '\r\nSTATUS   :' + colors.cyan.bold(send.statusCode)
+        + '\r\nHEADERS  :' + colors.cyan.bold(JSON.stringify(headers, null, 2))
+        + '\r\n--------------------------------------------------------------';
+
+      process.send(message);
     });
   }).listen(port || 8080, '127.0.0.1');
 }
@@ -35,7 +37,7 @@ function createServer(root, port){
 if (cluster.isMaster) {
   // Fork workers.
   for (var i = 0; i < NUMCPUS; i++) {
-    cluster.fork().on('listening', (function (i){
+    var worker = cluster.fork().on('listening', (function (i){
       return function (address){
         // Worker is listening
         if (i === NUMCPUS - 1) {
@@ -46,6 +48,10 @@ if (cluster.isMaster) {
         }
       };
     }(i)));
+
+    worker.on('message', function (message){
+      console.log(message);
+    });
   }
 } else {
   // Workers can share any TCP connection
