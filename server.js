@@ -43,7 +43,8 @@ if (cluster.isMaster) {
         if (i === NUMCPUS - 1) {
           console.log(
             colors.green.bold('Server run at port:'),
-            colors.cyan.bold(address.port)
+            colors.cyan.bold(address.port),
+            '\r\n--------------------------------------------------------------'
           );
         }
       };
