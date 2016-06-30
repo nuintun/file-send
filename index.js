@@ -127,7 +127,7 @@ function FileSend(request, options){
       if (!path) {
         path = this.url === -1
           ? this.url
-          : this._url.pathname;
+          : util.decodeURI(this._url.pathname);
       }
 
       return path;
