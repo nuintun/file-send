@@ -10,37 +10,37 @@
 'use strict';
 
 // external lib
-const ms = require('ms');
-const fs = require('fs');
-const url = require('url');
-const path = require('path');
-const http = require('http');
-const etag = require('etag');
-const fresh = require('fresh');
-const destroy = require('destroy');
-const mime = require('mime-types');
-const util = require('./lib/util');
-const async = require('./lib/async');
-const encodeUrl = require('encodeurl');
-const micromatch = require('micromatch');
-const through = require('./lib/through');
-const onFinished = require('on-finished');
-const escapeHtml = require('escape-html');
-const parseRange = require('range-parser');
-const EventEmitter = require('events').EventEmitter;
+var ms = require('ms');
+var fs = require('fs');
+var url = require('url');
+var path = require('path');
+var http = require('http');
+var etag = require('etag');
+var fresh = require('fresh');
+var destroy = require('destroy');
+var mime = require('mime-types');
+var util = require('./lib/util');
+var async = require('./lib/async');
+var encodeUrl = require('encodeurl');
+var micromatch = require('micromatch');
+var through = require('./lib/through');
+var onFinished = require('on-finished');
+var escapeHtml = require('escape-html');
+var parseRange = require('range-parser');
+var EventEmitter = require('events').EventEmitter;
 
 // variable declaration
-const SEP = path.sep;
-const CWD = process.cwd(); // current working directory
-const MAXMAXAGE = 60 * 60 * 24 * 365; // the max max-age set
-const NOTFOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
+var SEP = path.sep;
+var CWD = process.cwd(); // current working directory
+var MAXMAXAGE = 60 * 60 * 24 * 365; // the max max-age set
+var NOTFOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
 
 // common method
-const join = path.join;
-const resolve = path.resolve;
-const parseUrl = url.parse;
-const listenerCount = EventEmitter.listenerCount;
-const originWriteHead = http.ServerResponse.prototype.writeHead;
+var join = path.join;
+var resolve = path.resolve;
+var parseUrl = url.parse;
+var listenerCount = EventEmitter.listenerCount;
+var originWriteHead = http.ServerResponse.prototype.writeHead;
 
 // add http response write headers events
 http.ServerResponse.prototype.writeHead = function (){
