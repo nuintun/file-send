@@ -38,7 +38,7 @@ if (cluster.isMaster) {
     cluster.fork().on('listening', (function (i){
       return function (address){
         // Worker is listening
-        if (i === 3) {
+        if (i === numCPUs - 1) {
           console.log(
             colors.green.bold('Server run at port:'),
             colors.cyan.bold(address.port)
