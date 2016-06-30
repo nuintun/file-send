@@ -90,7 +90,7 @@ function FileSend(request, options){
     get: function (){
       if (!url) {
         url = util.decodeURI(request.url);
-        url = -1 ? url : util.normalize(url);
+        url = url === -1 ? url : util.normalize(url);
       }
 
       return url;
