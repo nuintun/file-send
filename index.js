@@ -866,6 +866,13 @@ FileSend.prototype.readIndex = function (response, stats){
 FileSend.prototype.read = function (response){
   var context = this;
 
+  // headers sent
+  if (response.headersSent) {
+    return process.nextTick(function (){
+      context.headersSent(response);
+    });
+  }
+
   // path -1 or null byte(s)
   if (this.realpath === -1 || ~this.realpath.indexOf('\0')) {
     return process.nextTick(function (){

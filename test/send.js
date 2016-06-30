@@ -77,14 +77,29 @@ describe('Send(req, options)', function (){
   });
 
   it('should handle headers already sent error', function (done){
+    var cb = after(2, done);
     var app = http.createServer(function (req, res){
       res.write('0');
-      Send(req).pipe(res);
+      Send(req, { root: fixtures }).pipe(res);
     });
 
     request(app)
       .get('/nums')
-      .expect(200, '0Can\'t set headers after they are sent.', done);
+      .expect(200, '0Can\'t set headers after they are sent.', cb);
+
+    app = http.createServer(function (req, res){
+      Send(req, { root: fixtures })
+        .on('dir', function (response, realpath, stats, next){
+          this.status(response, 403);
+          response.write('0');
+          next();
+        })
+        .pipe(res);
+    });
+
+    request(app)
+      .get('/pets/')
+      .expect(403, '0Can\'t set headers after they are sent.', cb);
   });
 
   it('should support HEAD', function (done){
