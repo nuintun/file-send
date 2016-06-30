@@ -151,6 +151,7 @@ function FileSend(request, options){
       return realpath;
     }
   });
+  
   // query
   util.defineProperty(this, 'query', {
     enumerable: true,

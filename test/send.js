@@ -201,82 +201,262 @@ describe('Send(req, options)', function (){
   });
 
   it('should 404 if file disappears after stat, before open', function (done){
+    var path = require('path');
+    var SEP = path.sep;
+    var join = path.join;
+    var resolve = path.resolve;
+    var parseUrl = require('url').parse;
     var app = http.createServer(function (req, res){
-      var send = Send(req, { root: fixtures });
+      function SubSend(request, options){
+        if (!(this instanceof SubSend)) {
+          return new SubSend(request, options);
+        }
+
+        if (!(request instanceof http.IncomingMessage)) {
+          throw new TypeError('The first argument must be a http request.');
+        }
+
+        options = options || {};
+
+        this.headers = {};
+        this.ranges = [];
+        this.request = request;
+        this.method = this.request.method;
+        this.charset = util.isType(options.charset, 'string')
+          ? options.charset
+          : null;
+        this.glob = options.glob || {};
+
+        if (!this.glob.hasOwnProperty('dot')) {
+          this.glob.dot = true;
+        }
+
+        // variable declaration
+        var url, path, realpath, root, etag, ignore,
+          ignoreAccess, maxAge, lastModified, index, stream;
+
+        // url
+        util.defineProperty(this, 'url', {
+          enumerable: true,
+          get: function (){
+            if (!url) {
+              url = util.decodeURI(request.url);
+              url = url === -1 ? url : util.normalize(url);
+            }
+
+            return url;
+          }
+        });
+
+        // root
+        util.defineProperty(this, 'root', {
+          enumerable: true,
+          get: function (){
+            if (!root) {
+              root = util.isType(options.root, 'string')
+                ? resolve(options.root)
+                : CWD;
+
+              root = util.posixPath(join(root, SEP));
+            }
+
+            return root;
+          }
+        });
+
+        // parsed url
+        util.defineProperty(this, '_url', {
+          value: this.url === -1
+            ? {}
+            : parseUrl(this.url, options.parseQueryString, options.slashesDenoteHost)
+        });
+
+        // path
+        util.defineProperty(this, 'path', {
+          enumerable: true,
+          get: function (){
+            if (!path) {
+              path = this.url === -1
+                ? this.url
+                : util.decodeURI(this._url.pathname);
+            }
+
+            return path;
+          }
+        });
+
+        // real path
+        util.defineProperty(this, 'realpath', {
+          enumerable: true,
+          set: function (value){
+            realpath = value;
+          },
+          get: function (){
+            if (!realpath) {
+              realpath = this.path === -1
+                ? this.path
+                : util.posixPath(join(this.root, this.path));
+            }
+
+            return realpath;
+          }
+        });
+
+        // query
+        util.defineProperty(this, 'query', {
+          enumerable: true,
+          value: this._url.query
+        });
+
+        // etag
+        util.defineProperty(this, 'etag', {
+          enumerable: true,
+          get: function (){
+            if (!etag) {
+              etag = options.etag !== undefined
+                ? Boolean(options.etag)
+                : true;
+            }
+
+            return etag;
+          }
+        });
+
+        // ignore
+        util.defineProperty(this, 'ignore', {
+          enumerable: true,
+          get: function (){
+            if (!ignore) {
+              ignore = Array.isArray(options.ignore)
+                ? options.ignore
+                : [options.ignore];
+
+              ignore = ignore.filter(function (pattern){
+                return pattern
+                  && (util.isType(pattern, 'string')
+                  || util.isType(pattern, 'regexp')
+                  || util.isType(pattern, 'function'));
+              });
+            }
+
+            return ignore;
+          }
+        });
+
+        // ignore-access
+        util.defineProperty(this, 'ignoreAccess', {
+          enumerable: true,
+          get: function (){
+            if (!ignoreAccess) {
+              switch (options.ignoreAccess) {
+                case 'deny':
+                case 'ignore':
+                  ignoreAccess = options.ignoreAccess;
+                  break;
+                default:
+                  ignoreAccess = 'deny';
+              }
+            }
+
+            return ignoreAccess;
+          }
+        });
+
+        // max-age
+        util.defineProperty(this, 'maxAge', {
+          enumerable: true,
+          get: function (){
+            if (!maxAge) {
+              maxAge = util.isType(options.maxAge, 'string')
+                ? ms(options.maxAge) / 1000
+                : Number(options.maxAge);
+
+              maxAge = !isNaN(maxAge)
+                ? Math.min(Math.max(0, maxAge), MAXMAXAGE)
+                : 0;
+
+              maxAge = Math.floor(maxAge);
+            }
+
+            return maxAge;
+          }
+        });
+
+        // last-modified
+        util.defineProperty(this, 'lastModified', {
+          enumerable: true,
+          get: function (){
+            if (!lastModified) {
+              lastModified = options.lastModified !== undefined
+                ? Boolean(options.lastModified)
+                : true;
+            }
+
+            return lastModified;
+          }
+        });
+
+        // last-modified
+        util.defineProperty(this, 'index', {
+          enumerable: true,
+          get: function (){
+            if (!index) {
+              index = Array.isArray(options.index)
+                ? options.index
+                : [options.index];
+
+              index = index.filter(function (index){
+                return index && util.isType(index, 'string');
+              });
+            }
+
+            return index;
+          }
+        });
+
+        // stream
+        util.defineProperty(this, 'stream', {
+          value: through(),
+          writable: true,
+          enumerable: false
+        });
+
+        // pipe returned stream
+        util.defineProperty(this, '_stream', {
+          enumerable: false,
+          set: function (value){
+            stream = value;
+          },
+          get: function (){
+            return stream || this.stream;
+          }
+        });
+
+        // headers names
+        util.defineProperty(this, 'headerNames', {
+          value: {},
+          writable: true,
+          enumerable: false
+        });
+
+        // path has trailing slash
+        util.defineProperty(this, 'hasTrailingSlash', {
+          value: this.path === -1 ? false : this.path.slice(-1) === '/'
+        });
+      }
+
+      SubSend.prototype = Object.create(Send.prototype, {
+        constructor: { value: SubSend }
+      });
+
+      var send = SubSend(req, { root: fixtures });
+      var fn = send.createReadStream;
 
       // simulate file ENOENT after on open, after stat
       send.createReadStream = function (response){
-        var isFinished = false;
-        var ranges = this.ranges;
-        var stream = this.stream;
+        this.realpath += '__xxx_no_exist';
 
-        ranges = ranges.length === 0 ? [{}] : ranges;
-
-        // stream error
-        var onerror = function (error){
-          // request already finished
-          if (isFinished) return;
-
-          // stat error
-          this.statError(response, error);
-        }.bind(this);
-
-        // error handling code-smell
-        stream.on('error', onerror);
-
-        // response finished, done with the fd
-        onFinished(response, function (){
-          isFinished = true;
-        });
-
-        // contat range
-        async.series(ranges, function (range, next){
-          // request already finished
-          if (isFinished) return;
-
-          // create file stream
-          var fileStream = fs.createReadStream(this.realpath + '__xxx_no_exist', range);
-
-          // push boundary
-          range.boundary && stream.write(range.boundary);
-
-          // error handling code-smell
-          fileStream.on('error', function (error){
-            // call onerror
-            onerror(error);
-            // destroy file stream
-            destroy(fileStream);
-          });
-
-          // stream end
-          fileStream.on('end', function (){
-            // unpipe
-            fileStream.unpipe(stream);
-
-            // destroy file stream
-            destroy(fileStream);
-
-            // next
-            next();
-          });
-
-          // pipe data to stream
-          fileStream.pipe(stream, { end: false });
-        }, function (){
-          var range = ranges[ranges.length - 1];
-
-          // push end boundary
-          range.endBoundary && stream.write(range.endBoundary);
-
-          // end stream
-          stream.end();
-
-          // emit end event
-          this.emit('end');
-        }, this);
-
-        // pipe to response
-        this._stream.pipe(response);
+        fn.apply(this, arguments);
       };
 
       send.pipe(res);
