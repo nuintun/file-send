@@ -26,8 +26,12 @@ var app = http.createServer(function (req, res){
       this.status(response, 403);
       next(this.statusMessage);
     })
-    .on('end', function (){ })
-    .on('close', function (){ console.log('close---------------------------'); })
+    .on('end', function (){
+      process.nextTick(function (){
+        res.emit('close');
+      });
+    })
+    .on('close', function (){ })
     .pipe(res);
 });
 
