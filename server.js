@@ -4,12 +4,13 @@
 
 'use strict';
 
-const http = require('http');
-const FileSend = require('./index');
-const colors = require('colors/safe');
-const cluster = require('cluster');
-const numCPUs = require('os').cpus().length;
+var http = require('http');
+var FileSend = require('./index');
+var colors = require('colors/safe');
+var cluster = require('cluster');
+var numCPUs = require('os').cpus().length;
 
+// create server
 function createServer(root, port){
   http.createServer(function (request, response){
     var send = new FileSend(request, {
