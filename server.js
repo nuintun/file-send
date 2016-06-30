@@ -13,6 +13,7 @@ const numCPUs = require('os').cpus().length;
 function createServer(root, port){
   http.createServer(function (request, response){
     var send = new FileSend(request, {
+      query: true,
       root: root || './',
       maxAge: '3day',
       ignore: ['/**/.*?(/*.*|/)'],
@@ -20,14 +21,14 @@ function createServer(root, port){
     });
 
     send.pipe(response).on('headers', function (response, headers){
-      console.log('ROOT:', colors.green.bold(send.root));
-      console.log('URL:', colors.magenta.bold(send.url));
-      console.log('QUERY:', colors.magenta.bold(JSON.stringify(send.query, null, 2)));
-      console.log('PATH:', colors.yellow.bold(send.path));
-      console.log('REALPATH:', colors.yellow.bold(send.realpath));
-      console.log('STATUS:', colors.cyan.bold(send.statusCode));
-      console.log('HEADERS:', colors.cyan.bold(JSON.stringify(headers, null, 2)));
-      console.log('---------------------------------------------------------------');
+      console.log('ROOT     :', colors.green.bold(send.root));
+      console.log('URL      :', colors.magenta.bold(send.url));
+      console.log('QUERY    :', colors.magenta.bold(JSON.stringify(send.query, null, 2)));
+      console.log('PATH     :', colors.yellow.bold(send.path));
+      console.log('REALPATH :', colors.yellow.bold(send.realpath));
+      console.log('STATUS   :', colors.cyan.bold(send.statusCode));
+      console.log('HEADERS  :', colors.cyan.bold(JSON.stringify(headers, null, 2)));
+      console.log('--------------------------------------------------------------');
     });
   }).listen(port || 8080, '127.0.0.1');
 }

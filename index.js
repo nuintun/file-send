@@ -80,6 +80,7 @@ function FileSend(request, options){
     this.glob.dot = true;
   }
 
+  // variable declaration
   var url, path, realpath, root, etag, ignore,
     ignoreAccess, maxAge, lastModified, index, stream;
 
@@ -89,7 +90,7 @@ function FileSend(request, options){
     get: function (){
       if (!url) {
         url = util.decodeURI(request.url);
-        url = -1 ? url : util.posixPath(url);
+        url = -1 ? url : util.normalize(url);
       }
 
       return url;
@@ -114,7 +115,9 @@ function FileSend(request, options){
 
   // path
   util.defineProperty(this, '_url', {
-    value: this.url === -1 ? {} : parseUrl(this.url, true)
+    value: this.url === -1
+      ? {}
+      : parseUrl(this.url, options.parseQueryString, options.slashesDenoteHost)
   });
 
   // path
@@ -124,7 +127,7 @@ function FileSend(request, options){
       if (!path) {
         path = this.url === -1
           ? this.url
-          : util.decodeURI(this._url.pathname);
+          : this._url.pathname;
       }
 
       return path;
