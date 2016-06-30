@@ -39,19 +39,20 @@ function createServer(root, port){
         console.log('HEADERS:', colors.magenta.bold(JSON.stringify(send.headers, null, 2)));
         console.log('--------------------------------------------------------------------');
       });
-  }).listen(port || 8080, '127.0.0.1', function (){
-    console.log(colors.green.bold('Server run at port:'), colors.cyan.bold(port || 8080), '');
-  });
+  }).listen(port || 8080, '127.0.0.1');
 }
 
 if (cluster.isMaster) {
   // Fork workers.
   for (var i = 0; i < numCPUs; i++) {
-    cluster.fork();
+    cluster.fork().on('listening', function (address){
+      // Worker is listening
+      console.log(colors.green.bold('Server run at port:'), colors.cyan.bold(address.port));
+    });
   }
 } else {
   // Workers can share any TCP connection
   // In this case it is an HTTP server
   createServer();
-  // createServer('./test/fixtures', 9091);
+  createServer('./test/fixtures', 9091);
 }
