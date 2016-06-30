@@ -7,8 +7,6 @@ var request = require('supertest');
 var Send = require('../index');
 var destroy = require('destroy');
 var util = require('../lib/util');
-var async = require('../lib/async');
-var onFinished = require('on-finished');
 var through = require('../lib/through');
 
 util.isType(NaN, 'nan');
@@ -29,7 +27,7 @@ var app = http.createServer(function (req, res){
       next(this.statusMessage);
     })
     .on('end', function (){ })
-    .on('close', function (){ })
+    .on('close', function (){ console.log('close---------------------------'); })
     .pipe(res);
 });
 
@@ -39,6 +37,7 @@ describe('Send(req, options)', function (){
       .get('/name.txt')
       .expect('Content-Length', '4')
       .expect(200, 'tobi', done);
+
   });
 
   it('should stream a zero-length file', function (done){
