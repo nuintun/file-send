@@ -761,7 +761,7 @@ FileSend.prototype.createReadStream = function (response){
   // stream error
   var onerror = function (error){
     // request already finished
-    if (!isFinished) return;
+    if (isFinished) return;
 
     // stat error
     this.statError(response, error);

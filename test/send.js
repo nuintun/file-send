@@ -5,7 +5,10 @@ var http = require('http');
 var path = require('path');
 var request = require('supertest');
 var Send = require('../index');
+var destroy = require('destroy');
 var util = require('../lib/util');
+var async = require('../lib/async');
+var onFinished = require('on-finished');
 var through = require('../lib/through');
 
 util.isType(NaN, 'nan');
@@ -199,14 +202,81 @@ describe('Send(req, options)', function (){
 
   it('should 404 if file disappears after stat, before open', function (done){
     var app = http.createServer(function (req, res){
-      var send = Send(req);
+      var send = Send(req, { root: fixtures });
 
       // simulate file ENOENT after on open, after stat
-      var fn = this.send;
+      send.createReadStream = function (response){
+        var isFinished = false;
+        var ranges = this.ranges;
+        var stream = this.stream;
 
-      send.createReadStream = function (){
-        send.realpath += '__xxx_no_exist';
-        fn.apply(this, arguments);
+        ranges = ranges.length === 0 ? [{}] : ranges;
+
+        // stream error
+        var onerror = function (error){
+          // request already finished
+          if (isFinished) return;
+
+          // stat error
+          this.statError(response, error);
+        }.bind(this);
+
+        // error handling code-smell
+        stream.on('error', onerror);
+
+        // response finished, done with the fd
+        onFinished(response, function (){
+          isFinished = true;
+        });
+
+        // contat range
+        async.series(ranges, function (range, next){
+          // request already finished
+          if (isFinished) return;
+
+          // create file stream
+          var fileStream = fs.createReadStream(this.realpath + '__xxx_no_exist', range);
+
+          // push boundary
+          range.boundary && stream.write(range.boundary);
+
+          // error handling code-smell
+          fileStream.on('error', function (error){
+            // call onerror
+            onerror(error);
+            // destroy file stream
+            destroy(fileStream);
+          });
+
+          // stream end
+          fileStream.on('end', function (){
+            // unpipe
+            fileStream.unpipe(stream);
+
+            // destroy file stream
+            destroy(fileStream);
+
+            // next
+            next();
+          });
+
+          // pipe data to stream
+          fileStream.pipe(stream, { end: false });
+        }, function (){
+          var range = ranges[ranges.length - 1];
+
+          // push end boundary
+          range.endBoundary && stream.write(range.endBoundary);
+
+          // end stream
+          stream.end();
+
+          // emit end event
+          this.emit('end');
+        }, this);
+
+        // pipe to response
+        this._stream.pipe(response);
       };
 
       send.pipe(res);
