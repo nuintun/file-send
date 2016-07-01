@@ -30,6 +30,20 @@ var server = http.createServer(function (req, res){
 
 server.listen();
 
+function createServer(root, opts){
+  opts = opts || {};
+  opts.root = root;
+
+  return http.createServer(function onRequest(req, res){
+    try {
+      Send(req, opts).pipe(res);
+    } catch (err) {
+      res.statusCode = 500;
+      res.end(String(err));
+    }
+  });
+}
+
 function url(server, url){
   var port;
   var protocol;
@@ -1579,17 +1593,3 @@ describe('Options', function (){
     });
   });
 });
-
-function createServer(root, opts){
-  opts = opts || {};
-  opts.root = root;
-
-  return http.createServer(function onRequest(req, res){
-    try {
-      Send(req, opts).pipe(res);
-    } catch (err) {
-      res.statusCode = 500;
-      res.end(String(err));
-    }
-  });
-}
