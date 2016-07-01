@@ -996,7 +996,7 @@ describe('Send(req, options)', function (){
           .set('Range', 'bytes=9-50')
           .end(function (err, res){
             expect(res.status).to.equal(416);
-            expect(res.text).to.equal('Range Not Satisfiable');
+            expect(res.text).to.include('Range Not Satisfiable');
 
             done();
           });
