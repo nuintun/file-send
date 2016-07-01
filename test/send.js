@@ -15,6 +15,13 @@ through().destroy();
 util.isType(NaN, 'nan');
 util.isType(new Error(), 'error');
 
+// hit test-cli line
+try {
+  Send(null);
+} catch (e) {
+  // error
+}
+
 // test server
 var dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
 var fixtures = path.join(__dirname, 'fixtures');
