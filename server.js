@@ -27,7 +27,7 @@ function createServer(root, port){
         + '\r\nREALPATH : ' + colors.magenta.bold(send.realpath)
         + '\r\nSTATUS   : ' + colors.cyan.bold(send.statusCode)
         + '\r\nHEADERS  : ' + colors.cyan.bold(JSON.stringify(headers, null, 2))
-        + '\r\n--------------------------------------------------------------';
+        + '\r\n-----------------------------------------------------------------------------------------';
 
       process.send(message);
     });
@@ -35,16 +35,16 @@ function createServer(root, port){
 }
 
 if (cluster.isMaster) {
-  // Fork workers.
+  // fork workers
   for (var i = 0; i < NUMCPUS; i++) {
     var worker = cluster.fork().on('listening', (function (i){
       return function (address){
-        // Worker is listening
+        // worker is listening
         if (i === NUMCPUS - 1) {
           console.log(
-            colors.green.bold('Server run at port:'),
-            colors.cyan.bold(address.port),
-            '\r\n--------------------------------------------------------------'
+            colors.green.bold('Server run at:'),
+            colors.cyan.bold(address.address + ':' + address.port),
+            '\r\n-----------------------------------------------------------------------------------------'
           );
         }
       };
@@ -55,7 +55,7 @@ if (cluster.isMaster) {
     });
   }
 } else {
-  // Workers can share any TCP connection
-  // In this case it is an HTTP server
+  // workers can share any tcp connection
+  // in this case it is an http server
   createServer();
 }

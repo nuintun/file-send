@@ -442,12 +442,6 @@ FileSend.prototype.end = function (response, message){
   // write message
   message && response.write(message);
 
-  // response finished
-  onFinished(response, function (){
-    // emit finish event
-    this.emit('finish');
-  }.bind(this));
-
   // end response
   response.end();
 };
@@ -751,10 +745,13 @@ FileSend.prototype.headersSent = function (response){
  * @api private
  */
 FileSend.prototype.writeHead = function (response){
+  // emit headers event
   this.emit('headers', this.headers);
 
+  // headers
   var headers = this.headers;
 
+  // set headers
   Object.keys(headers).forEach(function (name){
     response.setHeader(name, headers[name]);
   });
@@ -766,7 +763,6 @@ FileSend.prototype.writeHead = function (response){
  * @api private
  */
 FileSend.prototype.createReadStream = function (response){
-  var isFinished = false;
   var ranges = this.ranges;
   var stream = this.stream;
 
@@ -775,7 +771,7 @@ FileSend.prototype.createReadStream = function (response){
   // stream error
   var onerror = function (error){
     // request already finished
-    if (isFinished) return;
+    if (onFinished.isFinished(response)) return;
 
     // stat error
     this.statError(response, error);
@@ -784,19 +780,10 @@ FileSend.prototype.createReadStream = function (response){
   // error handling code-smell
   stream.on('error', onerror);
 
-  // response finished
-  onFinished(response, function (){
-    // done with the is finished status
-    isFinished = true;
-
-    // emit finish event
-    this.emit('finish');
-  }.bind(this));
-
   // contat range
   async.series(ranges, function (range, next){
     // request already finished
-    if (isFinished) return;
+    if (onFinished.isFinished(response)) return;
 
     // create file stream
     var fileStream = fs.createReadStream(this.realpath, range);
@@ -979,6 +966,12 @@ FileSend.prototype.pipe = function (response){
     // bind headers event
     response.on('headers', function (){
       this.writeHead(response);
+    }.bind(this));
+
+    // response finished
+    onFinished(response, function (){
+      // emit finish event
+      this.emit('finish');
     }.bind(this));
 
     // read
