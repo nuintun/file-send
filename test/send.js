@@ -11,16 +11,9 @@ var expect = require('chai').expect;
 var request = require('superagent');
 
 // hit test-cli line
+through().destroy();
 util.isType(NaN, 'nan');
 util.isType(new Error(), 'error');
-(through()).destroy();
-
-// hit test-cli line
-try {
-  Send('');
-} catch (e) {
-  // error
-}
 
 // test server
 var dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
