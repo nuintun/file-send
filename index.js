@@ -618,11 +618,12 @@ FileSend.prototype.parseRange = function (response, stats){
  * set response status
  * @param response
  * @param statusCode
+ * @param statusMessage
  * @api private
  */
-FileSend.prototype.status = function (response, statusCode){
+FileSend.prototype.status = function (response, statusCode, statusMessage){
   this.statusCode = statusCode;
-  this.statusMessage = http.STATUS_CODES[statusCode];
+  this.statusMessage = statusMessage || http.STATUS_CODES[statusCode];
 
   response.statusCode = this.statusCode;
   response.statusMessage = this.statusMessage;
@@ -632,14 +633,15 @@ FileSend.prototype.status = function (response, statusCode){
  * error
  * @param response
  * @param statusCode
+ * @param statusMessage
  * @api private
  */
-FileSend.prototype.error = function (response, statusCode){
-  this.status(response, statusCode);
+FileSend.prototype.error = function (response, statusCode, statusMessage){
+  this.status(response, statusCode, statusMessage);
 
   statusCode = this.statusCode;
+  statusMessage = this.statusMessage;
 
-  var statusMessage = this.statusMessage;
   var error = new Error(statusMessage);
 
   error.statusCode = statusCode;
@@ -678,7 +680,7 @@ FileSend.prototype.statError = function (response, error){
     return this.error(response, 404);
   }
 
-  this.error(response, 500);
+  this.error(response, 500, error.message);
 };
 
 /**
@@ -936,16 +938,27 @@ FileSend.prototype.read = function (response){
     // set headers and parse range
     context.setHeaders(response, stats);
 
+    // conditional get support
+    if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
+      context.status(response, 304);
+      // remove content-type
+      context.removeHeader('Content-Type');
+
+      // end with empty content
+      return context.end(response);
+    }
+
+    // head request
+    if (context.request.method === 'HEAD') {
+      // set content-length
+      context.setHeader('Content-Length', stats.size);
+
+      // end with empty content
+      return context.end(response);
+    }
+
     if (context.parseRange(response, stats)) {
-
-      // conditional get support
-      if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
-        context.status(response, 304);
-
-        return context.end(response);
-      }
-
-      // write head and read file
+      // read file
       context.createReadStream(response);
     }
   });
