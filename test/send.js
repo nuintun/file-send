@@ -13,7 +13,6 @@ var request = require('superagent');
 // hit test-cli line
 through().destroy();
 util.isType(NaN, 'nan');
-util.isType(new Error(), 'error');
 
 // hit test-cli line
 try {
