@@ -526,6 +526,7 @@ FileSend.prototype.parseRange = function (response, stats){
   var rangeFresh;
   var contentType;
   var size = stats.size;
+  var contentLength = size;
   var boundary, endBoundary;
   var ranges = this.request.headers['range'];
 
@@ -544,8 +545,9 @@ FileSend.prototype.parseRange = function (response, stats){
 
         // multiple ranges
         if (ranges.length > 1) {
-          // reset content length
-          size = 0;
+          // reset content-length
+          contentLength = 0;
+
           // range boundary
           boundary = util.boundaryGenerator();
 
@@ -571,11 +573,12 @@ FileSend.prototype.parseRange = function (response, stats){
             // set fields
             _boundary = (i == 0 ? '' : '\r\n') + boundary
               + '\r\nContent-Range: ' + 'bytes ' + start
-              + '-' + end + '/' + stats.size + '\r\n\r\n';
+              + '-' + end + '/' + size + '\r\n\r\n';
 
             // set property
             range.boundary = _boundary;
-            size += end - start + Buffer.byteLength(_boundary) + 1;
+            // compute content-length
+            contentLength += end - start + Buffer.byteLength(_boundary) + 1;
 
             // cache range
             this.ranges.push(range);
@@ -583,7 +586,8 @@ FileSend.prototype.parseRange = function (response, stats){
 
           // the last add end boundary
           this.ranges[this.ranges.length - 1].endBoundary = endBoundary;
-          size += Buffer.byteLength(endBoundary);
+          // compute content-length
+          contentLength += Buffer.byteLength(endBoundary);
         } else {
           this.ranges.push(ranges[0]);
 
@@ -593,8 +597,8 @@ FileSend.prototype.parseRange = function (response, stats){
           // set content-range
           this.setHeader('Content-Range', 'bytes ' + start + '-' + end + '/' + size);
 
-          // reset content length
-          size = end - start + 1;
+          // compute content-length
+          contentLength = end - start + 1;
         }
       } else if (ranges === -1) {
         // set content-range
@@ -609,7 +613,7 @@ FileSend.prototype.parseRange = function (response, stats){
   }
 
   // set content-length
-  this.setHeader('Content-Length', size);
+  this.setHeader('Content-Length', contentLength);
 
   return true;
 };
