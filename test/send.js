@@ -396,7 +396,7 @@ describe('Send(req, options)', function (){
           ignoreAccess, maxAge, lastModified, index, stream;
 
         // url
-        util.defineProperty(this, 'url', {
+        Object.defineProperty(this, 'url', {
           enumerable: true,
           get: function (){
             if (!url) {
@@ -409,7 +409,7 @@ describe('Send(req, options)', function (){
         });
 
         // root
-        util.defineProperty(this, 'root', {
+        Object.defineProperty(this, 'root', {
           enumerable: true,
           get: function (){
             if (!root) {
@@ -425,14 +425,14 @@ describe('Send(req, options)', function (){
         });
 
         // parsed url
-        util.defineProperty(this, '_url', {
+        Object.defineProperty(this, '_url', {
           value: this.url === -1
             ? {}
             : parseUrl(this.url, options.parseQueryString, options.slashesDenoteHost)
         });
 
         // path
-        util.defineProperty(this, 'path', {
+        Object.defineProperty(this, 'path', {
           enumerable: true,
           get: function (){
             if (!path) {
@@ -446,7 +446,7 @@ describe('Send(req, options)', function (){
         });
 
         // real path
-        util.defineProperty(this, 'realpath', {
+        Object.defineProperty(this, 'realpath', {
           enumerable: true,
           set: function (value){
             realpath = value;
@@ -463,13 +463,13 @@ describe('Send(req, options)', function (){
         });
 
         // query
-        util.defineProperty(this, 'query', {
+        Object.defineProperty(this, 'query', {
           enumerable: true,
           value: this._url.query
         });
 
         // etag
-        util.defineProperty(this, 'etag', {
+        Object.defineProperty(this, 'etag', {
           enumerable: true,
           get: function (){
             if (!etag) {
@@ -483,7 +483,7 @@ describe('Send(req, options)', function (){
         });
 
         // ignore
-        util.defineProperty(this, 'ignore', {
+        Object.defineProperty(this, 'ignore', {
           enumerable: true,
           get: function (){
             if (!ignore) {
@@ -504,7 +504,7 @@ describe('Send(req, options)', function (){
         });
 
         // ignore-access
-        util.defineProperty(this, 'ignoreAccess', {
+        Object.defineProperty(this, 'ignoreAccess', {
           enumerable: true,
           get: function (){
             if (!ignoreAccess) {
@@ -523,7 +523,7 @@ describe('Send(req, options)', function (){
         });
 
         // max-age
-        util.defineProperty(this, 'maxAge', {
+        Object.defineProperty(this, 'maxAge', {
           enumerable: true,
           get: function (){
             if (!maxAge) {
@@ -543,7 +543,7 @@ describe('Send(req, options)', function (){
         });
 
         // last-modified
-        util.defineProperty(this, 'lastModified', {
+        Object.defineProperty(this, 'lastModified', {
           enumerable: true,
           get: function (){
             if (!lastModified) {
@@ -557,7 +557,7 @@ describe('Send(req, options)', function (){
         });
 
         // last-modified
-        util.defineProperty(this, 'index', {
+        Object.defineProperty(this, 'index', {
           enumerable: true,
           get: function (){
             if (!index) {
@@ -575,14 +575,14 @@ describe('Send(req, options)', function (){
         });
 
         // stream
-        util.defineProperty(this, 'stream', {
+        Object.defineProperty(this, 'stream', {
           value: through(),
           writable: true,
           enumerable: false
         });
 
         // pipe returned stream
-        util.defineProperty(this, '_stream', {
+        Object.defineProperty(this, '_stream', {
           enumerable: false,
           set: function (value){
             stream = value;
@@ -593,14 +593,14 @@ describe('Send(req, options)', function (){
         });
 
         // headers names
-        util.defineProperty(this, 'headerNames', {
+        Object.defineProperty(this, 'headerNames', {
           value: {},
           writable: true,
           enumerable: false
         });
 
         // path has trailing slash
-        util.defineProperty(this, 'hasTrailingSlash', {
+        Object.defineProperty(this, 'hasTrailingSlash', {
           value: this.path === -1 ? false : this.path.slice(-1) === '/'
         });
       }

@@ -89,7 +89,7 @@ function FileSend(request, options){
     ignoreAccess, maxAge, lastModified, index, stream;
 
   // url
-  util.defineProperty(this, 'url', {
+  Object.defineProperty(this, 'url', {
     enumerable: true,
     get: function (){
       if (!url) {
@@ -102,7 +102,7 @@ function FileSend(request, options){
   });
 
   // root
-  util.defineProperty(this, 'root', {
+  Object.defineProperty(this, 'root', {
     enumerable: true,
     get: function (){
       if (!root) {
@@ -118,14 +118,14 @@ function FileSend(request, options){
   });
 
   // parsed url
-  util.defineProperty(this, '_url', {
+  Object.defineProperty(this, '_url', {
     value: this.url === -1
       ? {}
       : parseUrl(this.url, options.parseQueryString, options.slashesDenoteHost)
   });
 
   // path
-  util.defineProperty(this, 'path', {
+  Object.defineProperty(this, 'path', {
     enumerable: true,
     get: function (){
       if (!path) {
@@ -139,7 +139,7 @@ function FileSend(request, options){
   });
 
   // real path
-  util.defineProperty(this, 'realpath', {
+  Object.defineProperty(this, 'realpath', {
     enumerable: true,
     get: function (){
       if (!realpath) {
@@ -153,13 +153,13 @@ function FileSend(request, options){
   });
 
   // query
-  util.defineProperty(this, 'query', {
+  Object.defineProperty(this, 'query', {
     enumerable: true,
     value: this._url.query
   });
 
   // etag
-  util.defineProperty(this, 'etag', {
+  Object.defineProperty(this, 'etag', {
     enumerable: true,
     get: function (){
       if (!etag) {
@@ -173,7 +173,7 @@ function FileSend(request, options){
   });
 
   // ignore
-  util.defineProperty(this, 'ignore', {
+  Object.defineProperty(this, 'ignore', {
     enumerable: true,
     get: function (){
       if (!ignore) {
@@ -194,7 +194,7 @@ function FileSend(request, options){
   });
 
   // ignore-access
-  util.defineProperty(this, 'ignoreAccess', {
+  Object.defineProperty(this, 'ignoreAccess', {
     enumerable: true,
     get: function (){
       if (!ignoreAccess) {
@@ -213,7 +213,7 @@ function FileSend(request, options){
   });
 
   // max-age
-  util.defineProperty(this, 'maxAge', {
+  Object.defineProperty(this, 'maxAge', {
     enumerable: true,
     get: function (){
       if (!maxAge) {
@@ -233,7 +233,7 @@ function FileSend(request, options){
   });
 
   // last-modified
-  util.defineProperty(this, 'lastModified', {
+  Object.defineProperty(this, 'lastModified', {
     enumerable: true,
     get: function (){
       if (!lastModified) {
@@ -247,7 +247,7 @@ function FileSend(request, options){
   });
 
   // last-modified
-  util.defineProperty(this, 'index', {
+  Object.defineProperty(this, 'index', {
     enumerable: true,
     get: function (){
       if (!index) {
@@ -265,14 +265,14 @@ function FileSend(request, options){
   });
 
   // stream
-  util.defineProperty(this, 'stream', {
+  Object.defineProperty(this, 'stream', {
     value: through(),
     writable: true,
     enumerable: false
   });
 
   // pipe returned stream
-  util.defineProperty(this, '_stream', {
+  Object.defineProperty(this, '_stream', {
     enumerable: false,
     set: function (value){
       stream = value;
@@ -283,14 +283,14 @@ function FileSend(request, options){
   });
 
   // headers names
-  util.defineProperty(this, 'headerNames', {
+  Object.defineProperty(this, 'headerNames', {
     value: {},
     writable: true,
     enumerable: false
   });
 
   // path has trailing slash
-  util.defineProperty(this, 'hasTrailingSlash', {
+  Object.defineProperty(this, 'hasTrailingSlash', {
     value: this.path === -1 ? false : this.path.slice(-1) === '/'
   });
 }
