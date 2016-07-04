@@ -12,6 +12,8 @@ var request = require('superagent');
 
 // hit test-cli line
 through().destroy();
+
+// hit test-cli line
 util.isType(NaN, 'nan');
 
 // hit test-cli line
