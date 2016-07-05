@@ -21,11 +21,11 @@ $ npm install file-send
 
 ```js
 var http = require('http');
-var Send = require('file-send');
+var FileSend = require('file-send');
 var through2 = require('through2');
 
 http.createServer(function (request, response){
-  Send(request, {
+  FileSend(request, {
 	root: '/',
     etag: false,
     maxAge: '30d'
@@ -47,7 +47,7 @@ http.createServer(function (request, response){
 });
 ```
 
-### Send(request, [options])
+### FileSend(request, [options])
 
   Create a new `Send` for the given options to initialize.
 
@@ -99,7 +99,7 @@ http.createServer(function (request, response){
   Provide a max-age in milliseconds for http caching, defaults to 0.
   This can also be a string accepted by the [ms](https://www.npmjs.org/package/ms#readme) module.
 
-### Send(request, [options]).pipe(response)
+### FileSend(request, [options]).pipe(response)
 
  The `pipe` method is like stream.pipe, but only hava one param.
 
