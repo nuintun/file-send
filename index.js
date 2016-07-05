@@ -770,6 +770,9 @@ FileSend.prototype.createReadStream = function (response){
   var ranges = this.ranges;
   var stream = this.stream;
 
+  // pipe to response
+  this._stream.pipe(response);
+
   // format ranges
   ranges = ranges.length === 0 ? [{}] : ranges;
 
