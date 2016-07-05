@@ -107,7 +107,7 @@ http.createServer(function (request, response){
   The `Send` is an event emitter and will emit the following events:
 
   - `headers` the headers are about to be set on a file `(headers)`
-  -   - `dir` a directory was requested`(realpath, stats, next)`
+  - `dir` a directory was requested`(realpath, stats, next)`
   - `error` an error occurred `(error, next)`
   - `finish` streaming has completed
 
