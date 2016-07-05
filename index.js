@@ -556,8 +556,8 @@ FileSend.prototype.parseRange = function (response, stats){
           this.setHeader('Content-Type', 'multipart/byteranges; boundary=<' + boundary + '>');
 
           // create boundary and end boundary
-          boundary = '--<' + boundary + '>';
-          endBoundary = '\r\n' + boundary + '--\r\n';
+          boundary = '\r\n--<' + boundary + '>';
+          endBoundary = boundary + '--\r\n';
           boundary += '\r\nContent-Type: ' + contentType;
 
           // loop ranges
@@ -569,9 +569,9 @@ FileSend.prototype.parseRange = function (response, stats){
             end = range.end;
 
             // set fields
-            _boundary = (i == 0 ? '' : '\r\n') + boundary
-              + '\r\nContent-Range: ' + 'bytes ' + start
-              + '-' + end + '/' + size + '\r\n\r\n';
+            _boundary = boundary + '\r\nContent-Range: '
+              + 'bytes ' + start + '-' + end
+              + '/' + size + '\r\n\r\n';
 
             // set property
             range.boundary = _boundary;
