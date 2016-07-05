@@ -20,48 +20,73 @@ $ npm install file-send
 ## API
 
 ```js
-var http = require('http'),
-  FileSend = require('file-send'),
-  Send = FileSend('/', {
-    etag: false,
-    maxAge: '30d'
-  });
-
-// open debug log
-FileSend.debug = true;
+var http = require('http');
+var Send = require('file-send');
+var through2 = require('through2');
 
 http.createServer(function (request, response){
-  Send.parse(request) // Create a new send stream
-    .pipe(response); // Send stream to client
+  Send(request, {
+	root: '/',
+    etag: false,
+    maxAge: '30d'
+  }) // Create a new file send stream
+  .on('headers', function(headers){
+    // headers events
+  })
+  .on('dir', function(realpath, stats, next){
+    // dir events
+  })
+  .on('error', function(error, next){
+    // error events
+  })
+  .on('finish', function(headers){
+    // finish events
+  })
+  .pipe(through2()) // Send file to custom stream
+  .pipe(response); // Send file to response
 });
 ```
 
-### FileSend(root, [options])
+### Send(request, [options])
 
-  Create a new `Send` for the given `root` path and options to initialize.
+  Create a new `Send` for the given options to initialize.
 
 #### Options
 
-##### *dotFiles*
+##### *root* - ```String```
 
-  Set how "dotFiles" are treated when encountered. A dotFile is a file or directory that begins with a dot ("."). Note this check is done on the path itself without checking if the path actually exists on the disk. If `root` is specified, only the dotfiles above the root are checked (i.e. the root itself can be within a dotfile).
+  Set server root.
 
-  The default value is `'ignore'`.
+##### *ignore* - ```String|Array```
 
-  - `'allow'` No special treatment for dotfiles.
-  - `'deny'` Send a 403 for any request for a dotfile.
-  - `'ignore'` Pretend like the dotfile does not exist and 404.
+  Set ignore rules, support glob string.  see: [micromatch](https://github.com/jonschlinkert/micromatch#any)
 
-##### *etag*
+##### *glob* - ```Object```
+
+  Set micromatch options.  see: [micromatch](https://github.com/jonschlinkert/micromatch#any)
+
+##### *ignoreAccess* - ```String```
+
+  Set how "ignore" are treated when encountered.
+
+  The default value is `'deny'`.
+
+  - `'deny'` Send a 403 for any request for ignore matched.
+  - `'ignore'` Pretend like the ignore matched does not exist and 404.
+
+##### *parseQueryString* - ```String```
+
+  Set url.parse options. see node url module.
+
+##### *slashesDenoteHost* - ```String```
+
+  Set url.parse options. see node url module.
+
+##### *etag* - ```Boolean```
 
   Enable or disable etag generation, defaults to true.
 
-##### *extensions*
-
-  If a given file doesn't exist, try appending one of the given extensions, in the given order. By default, this is disabled (set to `false`). An example value that will serve extension-less HTML files: `['html', 'htm']`.
-  This is skipped if the requested file already has an extension.
-
-##### *index*
+##### *index* - ```String|Array|Boolean```
 
   By default send supports "index.html" files, to disable this set `false` or to supply a new index pass a string or an array in preferred order.
 
@@ -74,27 +99,17 @@ http.createServer(function (request, response){
   Provide a max-age in milliseconds for http caching, defaults to 0.
   This can also be a string accepted by the [ms](https://www.npmjs.org/package/ms#readme) module.
 
-### Send.parse(request)
+### Send(request, [options]).pipe(response)
 
-```js
-var stream = Send.parse(request); // The Send.parse return a new send stream
-```
-
-  Create a new `SendStream` for the given `request` and `response`.
+ The `pipe` method is like stream.pipe, but only hava one param.
 
 ### Events
-  The `SendStream` is an event emitter and will emit the following events:
+  The `Send` is an event emitter and will emit the following events:
 
-  - `error` an error occurred `(err)`
-  - `directory` a directory was requested
-  - `file` a file was requested `(path, stat)`
-  - `headers` the headers are about to be set on a file `(response, path, stat)`
-  - `stream` file streaming has started `(stream, next(stream))`
-  - `end` streaming has completed
-
-### stream.pipe(response)
-
-  The `pipe` method is used to pipe the response into the Node.js HTTP response object, typically `Send.parse(req).pipe(res)`.
+  - `headers` the headers are about to be set on a file `(headers)`
+  -   - `dir` a directory was requested`(realpath, stats, next)`
+  - `error` an error occurred `(error, next)`
+  - `finish` streaming has completed
 
 ## Error-handling
 
@@ -103,18 +118,6 @@ var stream = Send.parse(request); // The Send.parse return a new send stream
 ## Caching
 
   It does _not_ perform internal caching, you should use a reverse proxy cache such as Varnish for this, or those fancy things called CDNs. If your application is small enough that it would benefit from single-node memory caching, it's small enough that it does not need caching at all ;).
-
-## Debugging
-
-  To enable `debug()` instrumentation:
-
-```
-$ node app -v
-```
-or:
-```
-$ node app -verbose
-```
 
 ## Running tests
 
@@ -125,41 +128,64 @@ $ npm test
 
 ## Examples
 
-  Serving from a root directory with custom error-handling:
-
 ```js
-var http = require('http'),
-  FileSend = require('file-send'),
-  Send = FileSend('/www/example.com/public'); // Set root
+'use strict';
 
-// Your custom error-handling logic:
-function error(err) {
-  var res = this.response;
-  res.statusCode = err.status || 500;
-  res.end(err.message);
+var http = require('http');
+var FileSend = require('file-send');
+var colors = require('colors/safe');
+var cluster = require('cluster');
+var NUMCPUS = require('os').cpus().length;
+
+// create server
+function createServer(root, port){
+  http.createServer(function (request, response){
+    var send = new FileSend(request, {
+      root: root || './',
+      maxAge: '3day',
+      ignore: ['/**/.*?(/*.*|/)'],
+      index: ['index.html']
+    });
+
+    send.pipe(response).on('headers', function (headers){
+      var message = 'URL      : ' + colors.green.bold(send.url)
+        + '\r\nPATH     : ' + colors.yellow.bold(send.path)
+        + '\r\nROOT     : ' + colors.magenta.bold(send.root)
+        + '\r\nREALPATH : ' + colors.magenta.bold(send.realpath)
+        + '\r\nSTATUS   : ' + colors.cyan.bold(send.statusCode)
+        + '\r\nHEADERS  : ' + colors.cyan.bold(JSON.stringify(headers, null, 2))
+        + '\r\n-----------------------------------------------------------------------------------------';
+
+      process.send(message);
+    });
+  }).listen(port || 8080, '127.0.0.1');
 }
 
-// Your custom headers
-function headers(res, path, stat) {
-  // serve all files for download
-  res.setHeader('Content-Disposition', 'attachment');
-}
+if (cluster.isMaster) {
+  // fork workers
+  for (var i = 0; i < NUMCPUS; i++) {
+    var worker = cluster.fork().on('listening', (function (i){
+      return function (address){
+        // worker is listening
+        if (i === NUMCPUS - 1) {
+          console.log(
+            colors.green.bold('Server run at:'),
+            colors.cyan.bold(address.address + ':' + address.port),
+            '\r\n-----------------------------------------------------------------------------------------'
+          );
+        }
+      };
+    }(i)));
 
-// Your custom directory handling logic:
-function directory(path, stat) {
-  // TODO You can do something here
-  // Like displays the current directory file list
-  this.response.end('This is a directory !');
+    worker.on('message', function (message){
+      console.log(message);
+    });
+  }
+} else {
+  // workers can share any tcp connection
+  // in this case it is an http server
+  createServer();
 }
-
-var app = http.createServer(function(request, response){
-  // Transfer arbitrary files from within /www/example.com/public/*
-  Send.parse(request)
-    .on('error', error)
-    .on('directory', directory)
-    .on('headers', headers)
-    .pipe(response);
-}).listen(3000);
 ```
 
 ## License

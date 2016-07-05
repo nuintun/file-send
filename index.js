@@ -303,9 +303,6 @@ FileSend.prototype = Object.create(EventEmitter.prototype, {
   constructor: { value: FileSend }
 });
 
-// origin emit method
-var emit = FileSend.prototype.emit;
-
 /**
  * check if this is a conditional GET request
  * @return {Boolean}
@@ -412,6 +409,9 @@ FileSend.prototype.removeHeader = function (name){
     delete this.headerNames[key];
   }
 };
+
+// origin emit method
+var emit = FileSend.prototype.emit;
 
 /**
  * emit event
