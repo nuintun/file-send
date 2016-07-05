@@ -830,9 +830,6 @@ FileSend.prototype.createReadStream = function (response){
     // end stream
     stream.end();
   }, this);
-
-  // pipe to response
-  this._stream.pipe(response);
 };
 
 /**
