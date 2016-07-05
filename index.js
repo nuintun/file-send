@@ -485,11 +485,9 @@ FileSend.prototype.setHeaders = function (response, stats){
   } else {
     cacheControl = this.request.headers['cache-control'];
 
-    var canCache = this.maxAge > 0 && cacheControl !== 'no-cache';
-
-    cacheControl = !canCache && this.maxAge > 0 ? 'no-cache' : 'private';
-
-    this.setHeader('Cache-Control', canCache ? 'public, max-age=' + this.maxAge : cacheControl);
+    if (this.maxAge > 0 && cacheControl !== 'no-cache') {
+      this.setHeader('Cache-Control', 'public, max-age=' + this.maxAge);
+    }
   }
 
   // set last-modified

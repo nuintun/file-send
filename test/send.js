@@ -1552,7 +1552,7 @@ describe('Options', function (){
         .end(function (err, res){
           expect(res.status).to.equal(200);
           expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.property('cache-control', 'private');
+          expect(res.headers).to.not.have.property('cache-control');
 
           done();
         });
