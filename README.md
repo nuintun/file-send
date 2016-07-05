@@ -104,7 +104,7 @@ http.createServer(function (request, response){
  The `pipe` method is like stream.pipe, but only hava one param.
 
 ### Events
-  The `Send` is an event emitter and will emit the following events:
+  The `FileSend` is an event emitter and will emit the following events:
 
   - `headers` the headers are about to be set on a file `(headers)`
   - `dir` a directory was requested`(realpath, stats, next)`
