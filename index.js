@@ -472,10 +472,10 @@ FileSend.prototype.setHeaders = function (response, stats){
 
     if (type) {
       // get charset
-      charset = charset && mime.charset(type) ? charset : null;
+      charset = charset ? '; charset=' + charset : '';
 
       // set content-type
-      this.setHeader('Content-Type', type + (charset ? '; charset=' + charset : ''));
+      this.setHeader('Content-Type', type + charset);
     }
   }
 

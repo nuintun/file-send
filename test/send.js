@@ -1206,6 +1206,32 @@ describe('Options', function (){
     });
   });
 
+  describe('charset', function (){
+    it('should default no charset', function (done){
+      request
+        .get(url(server, '/tobi.html'))
+        .end(function (err, res){
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('<p>tobi</p>');
+          expect(res.headers['content-type']).to.not.include('charset');
+
+          done();
+        });
+    });
+
+    it('should can set charset', function (done){
+      request
+        .get(url(createServer(fixtures, { 'charset': 'utf-8' }), '/tobi.html'))
+        .end(function (err, res){
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('<p>tobi</p>');
+          expect(res.headers['content-type']).to.include('charset=utf-8');
+
+          done();
+        });
+    });
+  });
+
   describe('ignore', function (){
     it('should default no ignore', function (done){
       var cb = after(2, done);
