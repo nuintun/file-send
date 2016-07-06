@@ -812,11 +812,11 @@ FileSend.prototype.createReadStream = function (response){
       // unpipe
       fileStream.unpipe(stream);
 
-      // destroy file stream
-      destroy(fileStream);
-
       // next
       next();
+
+      // destroy file stream
+      destroy(fileStream);
     });
 
     // pipe data to stream
