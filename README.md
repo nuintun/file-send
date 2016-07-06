@@ -74,6 +74,10 @@ http.createServer(function (request, response){
   - `'deny'` Send a 403 for any request for ignore matched.
   - `'ignore'` Pretend like the ignore matched does not exist and 404.
 
+##### *charset* - ```String```
+
+  Set Content-Type charset.
+
 ##### *parseQueryString* - ```String```
 
   Set url.parse options. see node url module.
