@@ -555,7 +555,7 @@ FileSend.prototype.parseRange = function (response, stats){
           boundary += '\r\nContent-Type: ' + contentType;
 
           // loop ranges
-          ranges.forEach(function (range, i){
+          ranges.forEach(function (range){
             var _boundary;
 
             // range start and end
