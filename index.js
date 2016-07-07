@@ -960,6 +960,7 @@ FileSend.prototype.read = function (response){
       return context.end(response);
     }
 
+    // parse range
     if (context.parseRange(response, stats)) {
       // read file
       context.createReadStream(response);
