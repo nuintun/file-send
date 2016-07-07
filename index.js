@@ -86,7 +86,7 @@ function FileSend(request, options){
 
   // variable declaration
   var url, path, realpath, root, etag, ignore,
-    ignoreAccess, maxAge, lastModified, index, stream;
+    ignoreAccess, maxAge, lastModified, index;
 
   // url
   Object.defineProperty(this, 'url', {
@@ -267,25 +267,19 @@ function FileSend(request, options){
   // stream
   Object.defineProperty(this, 'stream', {
     value: through(),
-    writable: true,
     enumerable: false
   });
 
   // pipe returned stream
   Object.defineProperty(this, '_stream', {
+    writable: true,
     enumerable: false,
-    set: function (value){
-      stream = value;
-    },
-    get: function (){
-      return stream || this.stream;
-    }
+    value: this.stream
   });
 
   // headers names
   Object.defineProperty(this, 'headerNames', {
     value: {},
-    writable: true,
     enumerable: false
   });
 
