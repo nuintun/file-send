@@ -59,11 +59,11 @@ http.createServer(function (request, response){
 
 ##### *ignore* - ```String|Array```
 
-  Set ignore rules, support glob string.  see: [micromatch](https://github.com/jonschlinkert/micromatch#any)
+  Set ignore rules, support glob string.  see: [micromatch](https://github.com/jonschlinkert/micromatch)
 
 ##### *glob* - ```Object```
 
-  Set micromatch options.  see: [micromatch](https://github.com/jonschlinkert/micromatch#any)
+  Set micromatch options.  see: [micromatch](https://github.com/jonschlinkert/micromatch#options)
 
 ##### *ignoreAccess* - ```String```
 
