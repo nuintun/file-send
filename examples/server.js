@@ -5,7 +5,7 @@
 'use strict';
 
 var http = require('http');
-var FileSend = require('./index');
+var FileSend = require('../index');
 var colors = require('colors/safe');
 var cluster = require('cluster');
 var NUMCPUS = require('os').cpus().length;
@@ -14,7 +14,7 @@ var NUMCPUS = require('os').cpus().length;
 function createServer(root, port){
   http.createServer(function (request, response){
     var send = new FileSend(request, {
-      root: root || './',
+      root: root || '../',
       maxAge: '3day',
       ignore: ['/**/.*?(/*.*|/)'],
       index: ['index.html']
