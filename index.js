@@ -356,7 +356,7 @@ FileSend.prototype.isRangeFresh = function (){
  * @api private
  */
 FileSend.prototype.isIgnore = function (path){
-  return this.ignore.length && micromatch.any(path, this.ignore, this.glob);
+  return this.ignore.length && micromatch(path, this.ignore, this.glob).length;
 };
 
 /**
