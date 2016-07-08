@@ -33,7 +33,7 @@
     "mime-types": "^2.1.11",
     "destroy": "^1.0.4",
     "colors": "^1.1.2",
-    "micromatch": "^2.3.8",
+    "micromatch": "^2.3.10",
     "encodeurl": "^1.0.1",
     "escape-html": "^1.0.3",
     "on-finished": "^2.3.0",
