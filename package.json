@@ -21,8 +21,10 @@
   },
   "keywords": [
     "http",
+    "https",
     "server",
     "http send",
+    "https send",
     "file send",
     "file stream"
   ],
