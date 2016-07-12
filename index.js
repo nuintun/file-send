@@ -711,6 +711,9 @@ FileSend.prototype.dir = function (response, realpath, stats){
 FileSend.prototype.redirect = function (response, location){
   location = location + (this._url.search || '') + (this._url.hash || '');
 
+  // //dir ==> /dir
+  location = location.replace(/^\/{2,}/, '/');
+
   var html = escapeHtml(location);
 
   location = encodeUrl(location);
@@ -854,7 +857,7 @@ FileSend.prototype.readIndex = function (response, stats){
     if (context.hasTrailingSlash) {
       context.dir(response, context.realpath, stats);
     } else {
-      context.redirect(response, context.path + '/');
+      context.redirect(response, path);
     }
   });
 };

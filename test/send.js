@@ -812,6 +812,20 @@ describe('Send(req, options)', function (){
         });
     });
 
+    it('should not redirect to protocol-relative locations', function (done){
+      request
+        .get(url(server, '//pets'))
+        .redirects(0)
+        .end(function (err, res){
+          expect(res.status).to.equal(301);
+          expect(res.text).to.equal('Redirecting to <a href="/pets/">/pets/</a>');
+          expect(res.headers).to.have.property('location', '/pets/');
+          expect(res.headers).to.have.property('content-type', 'text/html; charset=UTF-8');
+
+          done();
+        });
+    });
+
     it('should respond with an HTML redirect', function (done){
       var cb = after(2, done);
 
