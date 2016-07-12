@@ -711,7 +711,7 @@ FileSend.prototype.dir = function (response, realpath, stats){
 FileSend.prototype.redirect = function (response, location){
   location = location + (this._url.search || '') + (this._url.hash || '');
 
-  // //dir ==> /dir
+  // //a/b/c ==> /a/b/c
   location = location.replace(/^\/{2,}/, '/');
 
   var html = escapeHtml(location);
