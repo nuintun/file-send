@@ -813,6 +813,8 @@ describe('Send(req, options)', function (){
     });
 
     it('should respond with an HTML redirect', function (done){
+      var cb = after(2, done);
+
       request
         .get(url(server, '/pets'))
         .redirects(0)
@@ -822,7 +824,26 @@ describe('Send(req, options)', function (){
           expect(res.headers).to.have.property('location', '/pets/');
           expect(res.headers).to.have.property('content-type', 'text/html; charset=UTF-8');
 
-          done();
+          cb();
+        });
+
+      var snow = http.createServer(function (req, res){
+        req.url = '/snow ☃';
+        Send(req, { root: fixtures }).pipe(res);
+      });
+
+      snow.listen();
+
+      request
+        .get(url(snow, '/snow'))
+        .redirects(0)
+        .end(function (err, res){
+          expect(res.status).to.equal(301);
+          expect(res.text).to.equal('Redirecting to <a href="/snow%20%E2%98%83/">/snow ☃/</a>');
+          expect(res.headers).to.have.property('location', '/snow%20%E2%98%83/');
+          expect(res.headers).to.have.property('content-type', 'text/html; charset=UTF-8');
+
+          cb();
         });
     });
   });
