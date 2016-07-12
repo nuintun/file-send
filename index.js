@@ -132,6 +132,11 @@ function FileSend(request, options){
         path = this.url === -1
           ? this.url
           : util.decodeURI(this._url.pathname);
+
+        // //a/b/c ==> /a/b/c
+        path = path === -1
+          ? path
+          : path.replace(/^\/{2,}/, '/');
       }
 
       return path;
@@ -710,9 +715,6 @@ FileSend.prototype.dir = function (response, realpath, stats){
  */
 FileSend.prototype.redirect = function (response, location){
   location = location + (this._url.search || '') + (this._url.hash || '');
-
-  // //a/b/c ==> /a/b/c
-  location = location.replace(/^\/{2,}/, '/');
 
   var html = escapeHtml(location);
 
