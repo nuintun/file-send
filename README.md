@@ -1,7 +1,7 @@
 file-send
 =========
 
->A http file send
+>A http/https file send
 
 >[![NPM Version][npm-image]][npm-url]
 >[![Download Status][download-image]][npm-url]
