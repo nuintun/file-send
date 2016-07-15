@@ -49,7 +49,7 @@ http.createServer(function (request, response){
 
 ### FileSend(request, [options])
 
-  Create a new `Send` for the given options to initialize.
+  Create a new `FileSend` for the given options to initialize.
 
 #### Options
 
