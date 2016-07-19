@@ -8,6 +8,7 @@ environment:
     - nodejs_version: "4.2"
     - nodejs_version: "5.3"
     - nodejs_version: "6.2"
+    - nodejs_version: "6.3"
 install:
   - ps: Install-Product node $env:nodejs_version
   - npm install mocha
