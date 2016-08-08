@@ -44,13 +44,15 @@ var originWriteHead = http.ServerResponse.prototype.writeHead;
 
 // add http response write headers events
 http.ServerResponse.prototype.writeHead = function (){
+  var context = this;
+
   // emit headers event
-  if (listenerCount(this, 'headers') > 0) {
-    this.emit('headers');
+  if (listenerCount(context, 'headers') > 0) {
+    context.emit('headers');
   }
 
   // call origin method
-  originWriteHead.apply(this, arguments);
+  originWriteHead.apply(context, arguments);
 };
 
 /**
@@ -61,7 +63,9 @@ http.ServerResponse.prototype.writeHead = function (){
  * @constructor
  */
 function FileSend(request, options){
-  if (!(this instanceof FileSend)) {
+  var context = this;
+
+  if (!(context instanceof FileSend)) {
     return new FileSend(request, options);
   }
 
@@ -71,17 +75,17 @@ function FileSend(request, options){
 
   options = options || {};
 
-  this.headers = {};
-  this.ranges = [];
-  this.request = request;
-  this.method = this.request.method;
-  this.charset = util.isType(options.charset, 'string')
+  context.headers = {};
+  context.ranges = [];
+  context.request = request;
+  context.method = context.request.method;
+  context.charset = util.isType(options.charset, 'string')
     ? options.charset
     : null;
-  this.glob = options.glob || {};
+  context.glob = options.glob || {};
 
-  if (!this.glob.hasOwnProperty('dot')) {
-    this.glob.dot = true;
+  if (!context.glob.hasOwnProperty('dot')) {
+    context.glob.dot = true;
   }
 
   // variable declaration
@@ -89,7 +93,7 @@ function FileSend(request, options){
     ignoreAccess, maxAge, lastModified, index;
 
   // url
-  Object.defineProperty(this, 'url', {
+  Object.defineProperty(context, 'url', {
     enumerable: true,
     get: function (){
       if (!url) {
@@ -102,7 +106,7 @@ function FileSend(request, options){
   });
 
   // root
-  Object.defineProperty(this, 'root', {
+  Object.defineProperty(context, 'root', {
     enumerable: true,
     get: function (){
       if (!root) {
@@ -118,20 +122,22 @@ function FileSend(request, options){
   });
 
   // parsed url
-  Object.defineProperty(this, '_url', {
-    value: this.url === -1
+  Object.defineProperty(context, '_url', {
+    value: context.url === -1
       ? {}
-      : parseUrl(this.url, options.parseQueryString, options.slashesDenoteHost)
+      : parseUrl(context.url, options.parseQueryString, options.slashesDenoteHost)
   });
 
   // path
-  Object.defineProperty(this, 'path', {
+  Object.defineProperty(context, 'path', {
     enumerable: true,
     get: function (){
       if (!path) {
-        path = this.url === -1
-          ? this.url
-          : util.decodeURI(this._url.pathname);
+        var context = this;
+
+        path = context.url === -1
+          ? context.url
+          : util.decodeURI(context._url.pathname);
 
         // //a/b/c ==> /a/b/c
         path = path === -1
@@ -144,13 +150,15 @@ function FileSend(request, options){
   });
 
   // real path
-  Object.defineProperty(this, 'realpath', {
+  Object.defineProperty(context, 'realpath', {
     enumerable: true,
     get: function (){
       if (!realpath) {
-        realpath = this.path === -1
-          ? this.path
-          : util.posixPath(join(this.root, this.path));
+        var context = this;
+
+        realpath = context.path === -1
+          ? context.path
+          : util.posixPath(join(context.root, context.path));
       }
 
       return realpath;
@@ -158,13 +166,13 @@ function FileSend(request, options){
   });
 
   // query
-  Object.defineProperty(this, 'query', {
+  Object.defineProperty(context, 'query', {
     enumerable: true,
-    value: this._url.query
+    value: context._url.query
   });
 
   // etag
-  Object.defineProperty(this, 'etag', {
+  Object.defineProperty(context, 'etag', {
     enumerable: true,
     get: function (){
       if (!etag) {
@@ -178,7 +186,7 @@ function FileSend(request, options){
   });
 
   // ignore
-  Object.defineProperty(this, 'ignore', {
+  Object.defineProperty(context, 'ignore', {
     enumerable: true,
     get: function (){
       if (!ignore) {
@@ -199,7 +207,7 @@ function FileSend(request, options){
   });
 
   // ignore-access
-  Object.defineProperty(this, 'ignoreAccess', {
+  Object.defineProperty(context, 'ignoreAccess', {
     enumerable: true,
     get: function (){
       if (!ignoreAccess) {
@@ -218,7 +226,7 @@ function FileSend(request, options){
   });
 
   // max-age
-  Object.defineProperty(this, 'maxAge', {
+  Object.defineProperty(context, 'maxAge', {
     enumerable: true,
     get: function (){
       if (!maxAge) {
@@ -238,7 +246,7 @@ function FileSend(request, options){
   });
 
   // last-modified
-  Object.defineProperty(this, 'lastModified', {
+  Object.defineProperty(context, 'lastModified', {
     enumerable: true,
     get: function (){
       if (!lastModified) {
@@ -252,7 +260,7 @@ function FileSend(request, options){
   });
 
   // last-modified
-  Object.defineProperty(this, 'index', {
+  Object.defineProperty(context, 'index', {
     enumerable: true,
     get: function (){
       if (!index) {
@@ -270,27 +278,27 @@ function FileSend(request, options){
   });
 
   // stream
-  Object.defineProperty(this, 'stream', {
+  Object.defineProperty(context, 'stream', {
     value: through(),
     enumerable: false
   });
 
   // pipe returned stream
-  Object.defineProperty(this, '_stream', {
+  Object.defineProperty(context, '_stream', {
     writable: true,
     enumerable: false,
-    value: this.stream
+    value: context.stream
   });
 
   // headers names
-  Object.defineProperty(this, 'headerNames', {
+  Object.defineProperty(context, 'headerNames', {
     value: {},
     enumerable: false
   });
 
   // path has trailing slash
-  Object.defineProperty(this, 'hasTrailingSlash', {
-    value: this.path === -1 ? false : this.path.slice(-1) === '/'
+  Object.defineProperty(context, 'hasTrailingSlash', {
+    value: context.path === -1 ? false : context.path.slice(-1) === '/'
   });
 }
 
@@ -308,8 +316,10 @@ FileSend.prototype = Object.create(EventEmitter.prototype, {
  * @api private
  */
 FileSend.prototype.isConditionalGET = function (){
-  return !!(this.request.headers['if-none-match']
-  || this.request.headers['if-modified-since']);
+  var context = this;
+
+  return !!(context.request.headers['if-none-match']
+  || context.request.headers['if-modified-since']);
 };
 
 /**
@@ -331,9 +341,11 @@ FileSend.prototype.isCachable = function (){
  * @api private
  */
 FileSend.prototype.isFresh = function (){
-  return fresh(this.request.headers, {
-    'etag': this.getHeader('ETag'),
-    'last-modified': this.getHeader('Last-Modified')
+  var context = this;
+
+  return fresh(context.request.headers, {
+    'etag': context.getHeader('ETag'),
+    'last-modified': context.getHeader('Last-Modified')
   });
 };
 
@@ -343,15 +355,16 @@ FileSend.prototype.isFresh = function (){
  * @api private
  */
 FileSend.prototype.isRangeFresh = function (){
-  var ifRange = this.request.headers['if-range'];
+  var context = this;
+  var ifRange = context.request.headers['if-range'];
 
   if (!ifRange) {
     return true;
   }
 
   return ifRange.includes('"')
-    ? ifRange.includes(this.getHeader('ETag'))
-    : Date.parse(this.getHeader('Last-Modified')) <= Date.parse(ifRange);
+    ? ifRange.includes(context.getHeader('ETag'))
+    : Date.parse(context.getHeader('Last-Modified')) <= Date.parse(ifRange);
 };
 
 /**
@@ -361,7 +374,9 @@ FileSend.prototype.isRangeFresh = function (){
  * @api private
  */
 FileSend.prototype.isIgnore = function (path){
-  return this.ignore.length && micromatch(path, this.ignore, this.glob).length;
+  var context = this;
+
+  return context.ignore.length && micromatch(path, context.ignore, context.glob).length;
 };
 
 /**
@@ -370,15 +385,17 @@ FileSend.prototype.isIgnore = function (path){
  * @param value
  */
 FileSend.prototype.setHeader = function (name, value){
+  var context = this;
+
   if (name && util.isType(name, 'string')) {
     var key = name.toLowerCase();
 
     if (this.headerNames.hasOwnProperty(key)) {
-      delete this.headers[this.headerNames[key]];
+      delete context.headers[context.headerNames[key]];
     }
 
-    this.headers[name] = value;
-    this.headerNames[key] = name;
+    context.headers[name] = value;
+    context.headerNames[key] = name;
   }
 };
 
@@ -387,11 +404,13 @@ FileSend.prototype.setHeader = function (name, value){
  * @param name
  */
 FileSend.prototype.getHeader = function (name){
+  var context = this;
+
   if (name && util.isType(name, 'string')) {
     var key = name.toLowerCase();
 
-    if (this.headerNames.hasOwnProperty(key)) {
-      return this.headers[this.headerNames[key]];
+    if (context.headerNames.hasOwnProperty(key)) {
+      return context.headers[context.headerNames[key]];
     }
   }
 };
@@ -401,11 +420,13 @@ FileSend.prototype.getHeader = function (name){
  * @param name
  */
 FileSend.prototype.removeHeader = function (name){
+  var context = this;
+
   if (name && util.isType(name, 'string')) {
     var key = name.toLowerCase();
 
-    delete this.headers[name];
-    delete this.headerNames[key];
+    delete context.headers[name];
+    delete context.headerNames[key];
   }
 };
 
@@ -418,9 +439,11 @@ var emit = FileSend.prototype.emit;
  * @returns {boolean}
  */
 FileSend.prototype.emit = function (event){
+  var context = this;
+
   // emit event
-  if (listenerCount(this, event) > 0) {
-    emit.apply(this, [].slice.call(arguments));
+  if (listenerCount(context, event) > 0) {
+    emit.apply(context, [].slice.call(arguments));
 
     return true;
   } else {
@@ -453,59 +476,60 @@ FileSend.prototype.end = function (response, message){
  */
 FileSend.prototype.setHeaders = function (response, stats){
   var type;
-  var charset = this.charset;
+  var context = this;
+  var charset = context.charset;
   var eTag = response.getHeader('ETag');
   var contentType = response.getHeader('Content-Type');
   var cacheControl = response.getHeader('Cache-Control');
   var lastModified = response.getHeader('Last-Modified');
 
   // set accept-ranges
-  this.setHeader('Accept-Ranges', 'bytes');
+  context.setHeader('Accept-Ranges', 'bytes');
 
   // not override custom set
   if (contentType) {
-    this.setHeader('Content-Type', contentType);
+    context.setHeader('Content-Type', contentType);
   } else {
     // get type
-    type = mime.lookup(this.path);
+    type = mime.lookup(context.path);
 
     if (type) {
       // get charset
       charset = charset ? '; charset=' + charset : '';
 
       // set content-type
-      this.setHeader('Content-Type', type + charset);
+      context.setHeader('Content-Type', type + charset);
     }
   }
 
   // set cache-control
   if (cacheControl) {
-    this.setHeader('Cache-Control', cacheControl);
+    context.setHeader('Cache-Control', cacheControl);
   } else {
-    cacheControl = this.request.headers['cache-control'];
+    cacheControl = context.request.headers['cache-control'];
 
-    if (this.maxAge > 0 && cacheControl !== 'no-cache') {
-      this.setHeader('Cache-Control', 'public, max-age=' + this.maxAge);
+    if (context.maxAge > 0 && cacheControl !== 'no-cache') {
+      context.setHeader('Cache-Control', 'public, max-age=' + context.maxAge);
     }
   }
 
   // set last-modified
-  if (this.lastModified) {
+  if (context.lastModified) {
     if (lastModified) {
       // get mtime utc string
-      this.setHeader('Last-Modified', lastModified);
+      context.setHeader('Last-Modified', lastModified);
     } else {
       // get mtime utc string
-      this.setHeader('Last-Modified', stats.mtime.toUTCString());
+      context.setHeader('Last-Modified', stats.mtime.toUTCString());
     }
   }
 
   // set etag
-  if (this.etag) {
+  if (context.etag) {
     if (eTag) {
-      this.setHeader('ETag', eTag);
+      context.setHeader('ETag', eTag);
     } else {
-      this.setHeader('ETag', etag(stats, {
+      context.setHeader('ETag', etag(stats, {
         weak: false // disable weak etag
       }));
     }
@@ -522,15 +546,16 @@ FileSend.prototype.parseRange = function (response, stats){
   var start, end;
   var rangeFresh;
   var contentType;
+  var context = this;
   var size = stats.size;
   var contentLength = size;
   var boundary, endBoundary;
-  var ranges = this.request.headers['range'];
+  var ranges = context.request.headers['range'];
 
   // Range support
   if (ranges) {
     // Range fresh
-    rangeFresh = this.isRangeFresh();
+    rangeFresh = context.isRangeFresh();
 
     if (rangeFresh) {
       // parse range
@@ -538,7 +563,7 @@ FileSend.prototype.parseRange = function (response, stats){
 
       // valid ranges, support multiple ranges
       if (util.isType(ranges, 'array') && ranges.type === 'bytes') {
-        this.status(response, 206);
+        context.status(response, 206);
 
         // multiple ranges
         if (ranges.length > 1) {
@@ -549,10 +574,10 @@ FileSend.prototype.parseRange = function (response, stats){
           boundary = util.boundaryGenerator();
 
           // if user set content-type use user define
-          contentType = this.getHeader('Content-Type') || 'application/octet-stream';
+          contentType = context.getHeader('Content-Type') || 'application/octet-stream';
 
           // set multipart/byteranges
-          this.setHeader('Content-Type', 'multipart/byteranges; boundary=<' + boundary + '>');
+          context.setHeader('Content-Type', 'multipart/byteranges; boundary=<' + boundary + '>');
 
           // create boundary and end boundary
           boundary = '\r\n--<' + boundary + '>';
@@ -579,30 +604,30 @@ FileSend.prototype.parseRange = function (response, stats){
 
             // cache range
             this.ranges.push(range);
-          }, this);
+          }, context);
 
           // the last add end boundary
-          this.ranges[this.ranges.length - 1].endBoundary = endBoundary;
+          context.ranges[context.ranges.length - 1].endBoundary = endBoundary;
           // compute content-length
           contentLength += Buffer.byteLength(endBoundary);
         } else {
-          this.ranges.push(ranges[0]);
+          context.ranges.push(ranges[0]);
 
           start = ranges[0].start;
           end = ranges[0].end;
 
           // set content-range
-          this.setHeader('Content-Range', 'bytes ' + start + '-' + end + '/' + size);
+          context.setHeader('Content-Range', 'bytes ' + start + '-' + end + '/' + size);
 
           // compute content-length
           contentLength = end - start + 1;
         }
       } else if (ranges === -1) {
         // set content-range
-        this.setHeader('Content-Range', 'bytes */' + size);
+        context.setHeader('Content-Range', 'bytes */' + size);
 
         // unsatisfiable 416
-        this.error(response, 416);
+        context.error(response, 416);
 
         return false;
       }
@@ -610,7 +635,7 @@ FileSend.prototype.parseRange = function (response, stats){
   }
 
   // set content-length
-  this.setHeader('Content-Length', contentLength);
+  context.setHeader('Content-Length', contentLength);
 
   return true;
 };
@@ -623,11 +648,13 @@ FileSend.prototype.parseRange = function (response, stats){
  * @api private
  */
 FileSend.prototype.status = function (response, statusCode, statusMessage){
-  this.statusCode = statusCode;
-  this.statusMessage = statusMessage || http.STATUS_CODES[statusCode];
+  var context = this;
 
-  response.statusCode = this.statusCode;
-  response.statusMessage = this.statusMessage;
+  context.statusCode = statusCode;
+  context.statusMessage = statusMessage || http.STATUS_CODES[statusCode];
+
+  response.statusCode = context.statusCode;
+  response.statusMessage = context.statusMessage;
 };
 
 /**
@@ -638,10 +665,12 @@ FileSend.prototype.status = function (response, statusCode, statusMessage){
  * @api private
  */
 FileSend.prototype.error = function (response, statusCode, statusMessage){
-  this.status(response, statusCode, statusMessage);
+  var context = this;
 
-  statusCode = this.statusCode;
-  statusMessage = this.statusMessage;
+  context.status(response, statusCode, statusMessage);
+
+  statusCode = context.statusCode;
+  statusMessage = context.statusMessage;
 
   var error = new Error(statusMessage);
 
@@ -649,21 +678,23 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
 
   // next method
   var next = function (message){
+    var context = this;
+
     if (response.headersSent) {
-      return this.headersSent(response);
+      return context.headersSent(response);
     }
 
-    this.end(response, message);
-  }.bind(this);
+    context.end(response, message);
+  }.bind(context);
 
   // emit if listeners instead of responding
-  if (this.emit('error', error, next)) return;
+  if (context.emit('error', error, next)) return;
 
   // set headers
-  this.setHeader('Cache-Control', 'private');
-  this.setHeader('Content-Type', 'text/html; charset=UTF-8');
-  this.setHeader('Content-Length', Buffer.byteLength(statusMessage));
-  this.setHeader('X-Content-Type-Options', 'nosniff');
+  context.setHeader('Cache-Control', 'private');
+  context.setHeader('Content-Type', 'text/html; charset=UTF-8');
+  context.setHeader('Content-Length', Buffer.byteLength(statusMessage));
+  context.setHeader('X-Content-Type-Options', 'nosniff');
 
   // next
   next(statusMessage);
@@ -676,12 +707,14 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
  * @api private
  */
 FileSend.prototype.statError = function (response, error){
+  var context = this;
+
   // 404 error
   if (NOTFOUND.includes(error.code)) {
-    return this.error(response, 404);
+    return context.error(response, 404);
   }
 
-  this.error(response, 500, error.message);
+  context.error(response, 500, error.message);
 };
 
 /**
@@ -692,19 +725,23 @@ FileSend.prototype.statError = function (response, error){
  * @api private
  */
 FileSend.prototype.dir = function (response, realpath, stats){
+  var context = this;
+
   // if have event directory listener, use user define
   // emit event directory
   if (
-    this.emit('dir', realpath, stats, function (message){
+    context.emit('dir', realpath, stats, function (message){
+      var context = this;
+
       if (response.headersSent) {
-        return this.headersSent(response);
+        return context.headersSent(response);
       }
 
-      this.end(response, message);
-    }.bind(this))
+      context.end(response, message);
+    }.bind(context))
   ) return;
 
-  this.error(response, 403);
+  context.error(response, 403);
 };
 
 /**
@@ -714,7 +751,9 @@ FileSend.prototype.dir = function (response, realpath, stats){
  * @api private
  */
 FileSend.prototype.redirect = function (response, location){
-  location = location + (this._url.search || '') + (this._url.hash || '');
+  var context = this;
+
+  location = location + (context._url.search || '') + (context._url.hash || '');
 
   var html = escapeHtml(location);
 
@@ -722,15 +761,15 @@ FileSend.prototype.redirect = function (response, location){
 
   var message = 'Redirecting to <a href="' + location + '">' + html + '</a>';
 
-  this.status(response, 301);
+  context.status(response, 301);
 
-  this.setHeader('Cache-Control', 'no-cache');
-  this.setHeader('Content-Type', 'text/html; charset=UTF-8');
-  this.setHeader('Content-Length', Buffer.byteLength(message));
-  this.setHeader('X-Content-Type-Options', 'nosniff');
-  this.setHeader('Location', location);
+  context.setHeader('Cache-Control', 'no-cache');
+  context.setHeader('Content-Type', 'text/html; charset=UTF-8');
+  context.setHeader('Content-Length', Buffer.byteLength(message));
+  context.setHeader('X-Content-Type-Options', 'nosniff');
+  context.setHeader('Location', location);
 
-  this.end(response, message);
+  context.end(response, message);
 };
 
 /**
@@ -748,11 +787,13 @@ FileSend.prototype.headersSent = function (response){
  * @api private
  */
 FileSend.prototype.writeHead = function (response){
+  var context = this;
+
   // emit headers event
-  this.emit('headers', this.headers);
+  context.emit('headers', context.headers);
 
   // headers
-  var headers = this.headers;
+  var headers = context.headers;
 
   // set headers
   Object.keys(headers).forEach(function (name){
@@ -766,11 +807,12 @@ FileSend.prototype.writeHead = function (response){
  * @api private
  */
 FileSend.prototype.createReadStream = function (response){
-  var ranges = this.ranges;
-  var stream = this.stream;
+  var context = this;
+  var ranges = context.ranges;
+  var stream = context.stream;
 
   // pipe to response
-  this._stream.pipe(response);
+  context._stream.pipe(response);
 
   // format ranges
   ranges = ranges.length === 0 ? [{}] : ranges;
@@ -782,7 +824,7 @@ FileSend.prototype.createReadStream = function (response){
 
     // stat error
     this.statError(response, error);
-  }.bind(this);
+  }.bind(context);
 
   // error handling code-smell
   stream.on('error', onerror);
@@ -828,7 +870,7 @@ FileSend.prototype.createReadStream = function (response){
 
     // end stream
     stream.end();
-  }, this);
+  }, context);
 };
 
 /**
@@ -839,11 +881,13 @@ FileSend.prototype.createReadStream = function (response){
  */
 FileSend.prototype.readIndex = function (response, stats){
   var context = this;
-  var path = this.hasTrailingSlash ? this.path : this.path + '/';
+  var path = context.hasTrailingSlash ? context.path : context.path + '/';
 
-  async.series(this.index.map(function (index){
+  async.series(context.index.map(function (index){
     return path + index;
   }), function (path, next){
+    var context = this;
+
     if (context.isIgnore(path)) {
       return next();
     }
@@ -852,16 +896,16 @@ FileSend.prototype.readIndex = function (response, stats){
       if (error || !stats.isFile()) {
         next();
       } else {
-        context.redirect(response, util.posixPath(path));
+        this.redirect(response, util.posixPath(path));
       }
-    });
+    }.bind(context));
   }, function (){
     if (context.hasTrailingSlash) {
       context.dir(response, context.realpath, stats);
     } else {
       context.redirect(response, path);
     }
-  });
+  }, context);
 };
 
 /**
@@ -875,44 +919,46 @@ FileSend.prototype.read = function (response){
   // headers sent
   if (response.headersSent) {
     return process.nextTick(function (){
-      context.headersSent(response);
-    });
+      this.headersSent(response);
+    }.bind(context));
   }
 
   // set status
-  this.status(response, response.statusCode || 200);
+  context.status(response, response.statusCode || 200);
 
   // path -1 or null byte(s)
-  if (this.realpath === -1 || this.realpath.includes('\0')) {
+  if (context.realpath === -1 || context.realpath.includes('\0')) {
     return process.nextTick(function (){
-      context.error(response, 400);
-    });
+      this.error(response, 400);
+    }.bind(context));
   }
 
   // malicious path
-  if (util.isOutBound(this.realpath, this.root)) {
+  if (util.isOutBound(context.realpath, context.root)) {
     return process.nextTick(function (){
-      context.error(response, 403);
-    });
+      this.error(response, 403);
+    }.bind(context));
   }
 
   // is ignore path or file
-  if (this.isIgnore(this.path)) {
-    switch (this.ignoreAccess) {
+  if (context.isIgnore(context.path)) {
+    switch (context.ignoreAccess) {
       case 'deny':
         return process.nextTick(function (){
-          context.error(response, 403);
-        });
+          this.error(response, 403);
+        }.bind(context));
       case 'ignore':
         return process.nextTick(function (){
-          context.error(response, 404);
-        });
+          this.error(response, 404);
+        }.bind(context));
     }
   }
 
   // is directory
-  if (this.hasTrailingSlash) {
-    return fs.stat(this.realpath, function (error, stats){
+  if (context.hasTrailingSlash) {
+    return fs.stat(context.realpath, function (error, stats){
+      var context = this;
+
       if (error) {
         return context.statError(response, error);
       }
@@ -922,11 +968,13 @@ FileSend.prototype.read = function (response){
       }
 
       context.readIndex(response, stats);
-    });
+    }.bind(context));
   }
 
   // other
-  fs.stat(this.realpath, function (error, stats){
+  fs.stat(context.realpath, function (error, stats){
+    var context = this;
+
     // stat error
     if (error) {
       return context.statError(response, error);
@@ -964,7 +1012,7 @@ FileSend.prototype.read = function (response){
       // read file
       context.createReadStream(response);
     }
-  });
+  }.bind(context));
 };
 
 /**
@@ -973,35 +1021,37 @@ FileSend.prototype.read = function (response){
  * @returns {FileSend}
  */
 FileSend.prototype.pipe = function (response){
+  var context = this;
+
   if (response instanceof http.ServerResponse) {
     // bind error event
-    this._stream.on('error', function (error){
+    context._stream.on('error', function (error){
       this.statError(response, error);
-    }.bind(this));
+    }.bind(context));
 
     // bind headers event
     response.on('headers', function (){
       this.writeHead(response);
-    }.bind(this));
+    }.bind(context));
 
     // response finished
     onFinished(response, function (){
       // emit finish event
       this.emit('finish');
-    }.bind(this));
+    }.bind(context));
 
     // read
-    this.read(response);
+    context.read(response);
   } else {
-    this._stream.on('error', function (error){
+    context._stream.on('error', function (error){
       response.emit('error', error);
-    }.bind(this));
+    }.bind(context));
 
     // pipe
-    this._stream = this._stream.pipe(response);
+    context._stream = context._stream.pipe(response);
   }
 
-  return this;
+  return context;
 };
 
 module.exports = FileSend;
