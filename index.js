@@ -900,6 +900,8 @@ FileSend.prototype.readIndex = function (response, stats){
       }
     }.bind(context));
   }, function (){
+    var context = this;
+
     if (context.hasTrailingSlash) {
       context.dir(response, context.realpath, stats);
     } else {
