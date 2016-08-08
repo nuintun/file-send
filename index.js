@@ -362,8 +362,8 @@ FileSend.prototype.isRangeFresh = function (){
     return true;
   }
 
-  return ifRange.includes('"')
-    ? ifRange.includes(context.getHeader('ETag'))
+  return ifRange.indexOf('"') !== -1
+    ? ifRange.indexOf(context.getHeader('ETag')) !== -1
     : Date.parse(context.getHeader('Last-Modified')) <= Date.parse(ifRange);
 };
 
@@ -710,7 +710,7 @@ FileSend.prototype.statError = function (response, error){
   var context = this;
 
   // 404 error
-  if (NOTFOUND.includes(error.code)) {
+  if (NOTFOUND.indexOf(error.code) !== -1) {
     return context.error(response, 404);
   }
 
@@ -929,7 +929,7 @@ FileSend.prototype.read = function (response){
   context.status(response, response.statusCode || 200);
 
   // path -1 or null byte(s)
-  if (context.realpath === -1 || context.realpath.includes('\0')) {
+  if (context.realpath === -1 || context.realpath.indexOf('\0') !== -1) {
     return process.nextTick(function (){
       this.error(response, 400);
     }.bind(context));
