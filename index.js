@@ -89,8 +89,8 @@ function FileSend(request, options){
   }
 
   // variable declaration
-  var url, path, realpath, root, etag, ignore,
-    ignoreAccess, maxAge, lastModified, index;
+  var url, path, realpath, root, etag, index,
+    ignore, ignoreAccess, maxAge, lastModified;
 
   // url
   Object.defineProperty(context, 'url', {
@@ -185,6 +185,24 @@ function FileSend(request, options){
     }
   });
 
+  // index
+  Object.defineProperty(context, 'index', {
+    enumerable: true,
+    get: function (){
+      if (!index) {
+        index = Array.isArray(options.index)
+          ? options.index
+          : [options.index];
+
+        index = index.filter(function (index){
+          return index && util.isType(index, 'string');
+        });
+      }
+
+      return index;
+    }
+  });
+
   // ignore
   Object.defineProperty(context, 'ignore', {
     enumerable: true,
@@ -256,24 +274,6 @@ function FileSend(request, options){
       }
 
       return lastModified;
-    }
-  });
-
-  // last-modified
-  Object.defineProperty(context, 'index', {
-    enumerable: true,
-    get: function (){
-      if (!index) {
-        index = Array.isArray(options.index)
-          ? options.index
-          : [options.index];
-
-        index = index.filter(function (index){
-          return index && util.isType(index, 'string');
-        });
-      }
-
-      return index;
     }
   });
 
