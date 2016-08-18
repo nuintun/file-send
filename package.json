@@ -40,10 +40,10 @@
     "escape-html": "^1.0.3",
     "on-finished": "^2.3.0",
     "range-parser": "^1.2.0",
-    "readable-stream": "^2.1.4"
+    "readable-stream": "^2.1.5"
   },
   "devDependencies": {
-    "after": "^0.8.1",
+    "after": "^0.8.2",
     "chai": "3.5.0",
     "superagent": "2.0.0"
   },
