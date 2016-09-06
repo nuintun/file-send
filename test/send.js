@@ -76,7 +76,7 @@ describe('Send(req, options)', function (){
       .end(function (err, res){
         expect(res.status).to.equal(200);
         expect(res.text).to.equal('tobi');
-        expect(res.headers).to.have.property('content-length', '4');
+        expect(res.headers).to.have.ownProperty('content-length', '4');
 
         done();
       });
@@ -88,7 +88,7 @@ describe('Send(req, options)', function (){
       .end(function (err, res){
         expect(res.status).to.equal(200);
         expect(res.text).to.equal('');
-        expect(res.headers).to.have.property('content-length', '0');
+        expect(res.headers).to.have.ownProperty('content-length', '0');
 
         done();
       });
@@ -215,7 +215,7 @@ describe('Send(req, options)', function (){
         [method](url(server, '/name.txt'))
         .end(function (err, res){
           expect(res.status).to.equal(200);
-          expect(res.headers).to.have.property('content-length', '4');
+          expect(res.headers).to.have.ownProperty('content-length', '4');
           expect(res.text).to.equal(method === 'head' ? undefined : 'tobi');
 
           cb();
@@ -261,7 +261,7 @@ describe('Send(req, options)', function (){
       .get(url(server, '/name.txt'))
       .end(function (err, res){
         expect(res.status).to.equal(200);
-        expect(res.headers).to.have.property('accept-ranges', 'bytes');
+        expect(res.headers).to.have.ownProperty('accept-ranges', 'bytes');
 
         done();
       });
@@ -311,7 +311,7 @@ describe('Send(req, options)', function (){
       .get(url(server, '/nums'))
       .end(function (err, res){
         expect(res.status).to.equal(200);
-        expect(res.headers).to.have.property('content-type', 'application/x-custom');
+        expect(res.headers).to.have.ownProperty('content-type', 'application/x-custom');
 
         done();
       });
@@ -324,7 +324,7 @@ describe('Send(req, options)', function (){
       .get(url(server, '/name.txt'))
       .end(function (err, res){
         expect(res.status).to.equal(200);
-        expect(res.headers).to.have.property('content-type', 'text/plain');
+        expect(res.headers).to.have.ownProperty('content-type', 'text/plain');
 
         cb();
       });
@@ -333,7 +333,7 @@ describe('Send(req, options)', function (){
       .get(url(server, '/zip.zip'))
       .end(function (err, res){
         expect(res.status).to.equal(200);
-        expect(res.headers).to.have.property('content-type', 'application/zip');
+        expect(res.headers).to.have.ownProperty('content-type', 'application/zip');
 
         cb();
       });
@@ -688,7 +688,7 @@ describe('Send(req, options)', function (){
       .end(function (err, res){
         expect(res.status).to.equal(200);
         expect(res.text).to.equal('tobi');
-        expect(res.headers).to.have.property('cache-control', 'no-store');
+        expect(res.headers).to.have.ownProperty('cache-control', 'no-store');
 
         done();
       });
@@ -718,7 +718,7 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(200);
           expect(res.text).to.equal('123456789');
-          expect(res.headers).to.have.property('server', 'Nengine');
+          expect(res.headers).to.have.ownProperty('server', 'Nengine');
 
           cb();
         });
@@ -773,7 +773,7 @@ describe('Send(req, options)', function (){
         .redirects(0)
         .end(function (err, res){
           expect(res.status).to.equal(301);
-          expect(res.headers).to.have.property('location', '/pets/');
+          expect(res.headers).to.have.ownProperty('location', '/pets/');
 
           cb();
         });
@@ -798,9 +798,9 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(200);
           expect(res.text).to.equal('123456789');
-          expect(res.headers).to.have.property('cache-control', 'no-cache');
-          expect(res.headers).to.have.property('content-type', 'text/x-custom');
-          expect(res.headers).to.have.property('etag', 'W/"everything"');
+          expect(res.headers).to.have.ownProperty('cache-control', 'no-cache');
+          expect(res.headers).to.have.ownProperty('content-type', 'text/x-custom');
+          expect(res.headers).to.have.ownProperty('etag', 'W/"everything"');
           expect(res.headers['x-created']).to.match(dateRegExp);
 
           done();
@@ -837,8 +837,8 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(301);
           expect(res.text).to.equal('Redirecting to <a href="/pets/">/pets/</a>');
-          expect(res.headers).to.have.property('location', '/pets/');
-          expect(res.headers).to.have.property('content-type', 'text/html; charset=UTF-8');
+          expect(res.headers).to.have.ownProperty('location', '/pets/');
+          expect(res.headers).to.have.ownProperty('content-type', 'text/html; charset=UTF-8');
 
           done();
         });
@@ -853,8 +853,8 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(301);
           expect(res.text).to.equal('Redirecting to <a href="/pets/">/pets/</a>');
-          expect(res.headers).to.have.property('location', '/pets/');
-          expect(res.headers).to.have.property('content-type', 'text/html; charset=UTF-8');
+          expect(res.headers).to.have.ownProperty('location', '/pets/');
+          expect(res.headers).to.have.ownProperty('content-type', 'text/html; charset=UTF-8');
 
           cb();
         });
@@ -872,8 +872,8 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(301);
           expect(res.text).to.equal('Redirecting to <a href="/snow%20%E2%98%83/">/snow ☃/</a>');
-          expect(res.headers).to.have.property('location', '/snow%20%E2%98%83/');
-          expect(res.headers).to.have.property('content-type', 'text/html; charset=UTF-8');
+          expect(res.headers).to.have.ownProperty('location', '/snow%20%E2%98%83/');
+          expect(res.headers).to.have.ownProperty('content-type', 'text/html; charset=UTF-8');
 
           cb();
         });
@@ -943,7 +943,7 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(206);
           expect(res.text).to.equal('12345');
-          expect(res.headers).to.have.property('content-range', 'bytes 0-4/9');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 0-4/9');
 
           done();
         });
@@ -956,7 +956,7 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(206);
           expect(res.text).to.equal('1');
-          expect(res.headers).to.have.property('content-range', 'bytes 0-0/9');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 0-0/9');
 
           done();
         });
@@ -969,7 +969,7 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(206);
           expect(res.text).to.equal('3456');
-          expect(res.headers).to.have.property('content-range', 'bytes 2-5/9');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 2-5/9');
 
           done();
         });
@@ -982,7 +982,7 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(206);
           expect(res.text).to.equal('789');
-          expect(res.headers).to.have.property('content-range', 'bytes 6-8/9');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 6-8/9');
 
           done();
         });
@@ -995,7 +995,7 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(206);
           expect(res.text).to.equal('456789');
-          expect(res.headers).to.have.property('content-range', 'bytes 3-8/9');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 3-8/9');
 
           done();
         });
@@ -1008,7 +1008,7 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(206);
           expect(res.text).to.equal('12345');
-          expect(res.headers).to.have.property('content-range', 'bytes 0-4/9');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 0-4/9');
 
           done();
         });
@@ -1021,8 +1021,8 @@ describe('Send(req, options)', function (){
         .end(function (err, res){
           expect(res.status).to.equal(206);
           expect(res.text).to.equal('34');
-          expect(res.headers).to.have.property('content-length', '2');
-          expect(res.headers).to.have.property('content-range', 'bytes 2-3/9');
+          expect(res.headers).to.have.ownProperty('content-length', '2');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 2-3/9');
 
           done();
         });
@@ -1036,7 +1036,7 @@ describe('Send(req, options)', function (){
           .end(function (err, res){
             expect(res.status).to.equal(206);
             expect(res.text).to.equal('3456789');
-            expect(res.headers).to.have.property('content-range', 'bytes 2-8/9');
+            expect(res.headers).to.have.ownProperty('content-range', 'bytes 2-8/9');
 
             done();
           });
@@ -1049,8 +1049,8 @@ describe('Send(req, options)', function (){
           .end(function (err, res){
             expect(res.status).to.equal(206);
             expect(res.text).to.equal('3456789');
-            expect(res.headers).to.have.property('content-length', '7');
-            expect(res.headers).to.have.property('content-range', 'bytes 2-8/9');
+            expect(res.headers).to.have.ownProperty('content-length', '7');
+            expect(res.headers).to.have.ownProperty('content-range', 'bytes 2-8/9');
 
             done();
           });
@@ -1631,7 +1631,19 @@ describe('Options', function (){
         .end(function (err, res){
           expect(res.status).to.equal(200);
           expect(res.text).to.equal('tobi');
-          expect(res.headers).to.not.have.property('cache-control');
+          expect(res.headers).to.not.have.ownProperty('cache-control');
+
+          done();
+        });
+    });
+
+    it('when disabled should not have Cache-Control', function (done){
+      request
+        .get(url(server, '/name.txt'))
+        .end(function (err, res){
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
+          expect(res.headers).to.not.have.ownProperty('cache-control');
 
           done();
         });
@@ -1645,7 +1657,7 @@ describe('Options', function (){
         .end(function (err, res){
           expect(res.status).to.equal(200);
           expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.property('cache-control', 'max-age=123');
+          expect(res.headers).to.have.ownProperty('cache-control', 'max-age=123');
 
           done();
         });
@@ -1659,7 +1671,7 @@ describe('Options', function (){
         .end(function (err, res){
           expect(res.status).to.equal(200);
           expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.property('cache-control', 'max-age=2592000');
+          expect(res.headers).to.have.ownProperty('cache-control', 'max-age=2592000');
 
           done();
         });
@@ -1673,7 +1685,7 @@ describe('Options', function (){
         .end(function (err, res){
           expect(res.status).to.equal(200);
           expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.property('cache-control', 'max-age=31536000');
+          expect(res.headers).to.have.ownProperty('cache-control', 'max-age=31536000');
 
           done();
         });
