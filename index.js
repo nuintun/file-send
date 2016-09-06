@@ -503,31 +503,10 @@ FileSend.prototype.setHeaders = function (response, stats){
   }
 
   // set cache-control
-  if (cacheControl !== undefined) {
+  if (cacheControl && util.isType(cacheControl, 'string')) {
     context.setHeader('Cache-Control', cacheControl);
-  } else {
-    cacheControl = context.request.headers['cache-control'];
-
-    var cacheControlObject = util.parseCacheControl(cacheControl);
-
-    if (cacheControlObject !== null) {
-      cacheControl = '';
-
-      for (var key in cacheControlObject) {
-        if (key !== 'max-age' && cacheControlObject.hasOwnProperty(key)) {
-          cacheControl += (cacheControl.length ? ', ' : '')
-            + (cacheControlObject[key] === true ? key : key + '=' + cacheControlObject[key]);
-        }
-      }
-
-      if (cacheControlObject.hasOwnProperty('max-age') && context.maxAge > 0) {
-        cacheControl += (cacheControl.length ? ', ' : '') + 'max-age=' + context.maxAge;
-      }
-
-      context.setHeader('Cache-Control', cacheControl);
-    } else if (context.maxAge > 0) {
-      context.setHeader('Cache-Control', 'public, max-age=' + context.maxAge);
-    }
+  } else if (context.maxAge > 0) {
+    context.setHeader('Cache-Control', 'public, max-age=' + context.maxAge);
   }
 
   // set last-modified

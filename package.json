@@ -44,8 +44,8 @@
   },
   "devDependencies": {
     "after": "^0.8.2",
-    "chai": "3.5.0",
-    "superagent": "2.0.0"
+    "chai": "^3.5.0",
+    "superagent": "^2.2.0"
   },
   "readmeFilename": "README.md",
   "scripts": {
