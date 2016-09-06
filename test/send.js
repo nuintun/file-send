@@ -1627,7 +1627,7 @@ describe('Options', function (){
         .end(function (err, res){
           expect(res.status).to.equal(200);
           expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.property('cache-control', 'public, max-age=123');
+          expect(res.headers).to.have.property('cache-control', 'max-age=123');
 
           done();
         });
@@ -1641,7 +1641,7 @@ describe('Options', function (){
         .end(function (err, res){
           expect(res.status).to.equal(200);
           expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.property('cache-control', 'public, max-age=2592000');
+          expect(res.headers).to.have.property('cache-control', 'max-age=2592000');
 
           done();
         });
@@ -1655,7 +1655,7 @@ describe('Options', function (){
         .end(function (err, res){
           expect(res.status).to.equal(200);
           expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.property('cache-control', 'public, max-age=31536000');
+          expect(res.headers).to.have.property('cache-control', 'max-age=31536000');
 
           done();
         });

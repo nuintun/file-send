@@ -506,7 +506,7 @@ FileSend.prototype.setHeaders = function (response, stats){
   if (cacheControl && util.isType(cacheControl, 'string')) {
     context.setHeader('Cache-Control', cacheControl);
   } else if (context.maxAge > 0) {
-    context.setHeader('Cache-Control', 'public, max-age=' + context.maxAge);
+    context.setHeader('Cache-Control', 'max-age=' + context.maxAge);
   }
 
   // set last-modified
