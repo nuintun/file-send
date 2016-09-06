@@ -10,6 +10,9 @@ environment:
     - nodejs_version: "6.2"
     - nodejs_version: "6.3"
     - nodejs_version: "6.5"
+platform:
+  - x86
+  - x64
 install:
   - ps: Install-Product node $env:nodejs_version
 build: off
