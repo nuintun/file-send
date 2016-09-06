@@ -151,6 +151,19 @@ describe('Send(req, options)', function (){
       });
   });
 
+  it('should 404 on url end / but not a dir', function (done){
+    var server = createServer(fixtures, { maxAge: Infinity });
+
+    request
+      .get(url(server, '/name.txt/'))
+      .end(function (err, res){
+        expect(res.notFound).to.be.true;
+        expect(res.text).to.equal('Not Found');
+
+        done();
+      });
+  });
+
   it('should handle headers already sent error', function (done){
     var cb = after(3, done);
     var server = http.createServer(function (req, res){
