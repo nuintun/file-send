@@ -522,9 +522,11 @@ FileSend.prototype.setHeaders = function (response, stats){
 
       if (cacheControlObject.hasOwnProperty('max-age') && context.maxAge > 0) {
         cacheControl += (cacheControl.length ? ', ' : '') + 'max-age=' + context.maxAge;
-
-        context.setHeader('Cache-Control', cacheControl);
       }
+
+      context.setHeader('Cache-Control', cacheControl);
+    } else if (context.maxAge > 0) {
+      context.setHeader('Cache-Control', 'public, max-age=' + context.maxAge);
     }
   }
 
