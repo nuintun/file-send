@@ -676,6 +676,24 @@ describe('Send(req, options)', function (){
       });
   });
 
+  it('should not overwrite custom Cache-Control', function (done){
+    var server = http.createServer(function (req, res){
+      res.setHeader('Cache-Control', 'no-store');
+
+      Send(req, { root: fixtures }).pipe(res);
+    });
+
+    request
+      .get(url(server, '/name.txt'))
+      .end(function (err, res){
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('tobi');
+        expect(res.headers).to.have.property('cache-control', 'no-store');
+
+        done();
+      });
+  });
+
   describe('headers event', function (){
     it('should fire when sending file', function (done){
       var cb = after(2, done);
