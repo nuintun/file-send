@@ -9,14 +9,19 @@ environment:
     - nodejs_version: "5.3"
     - nodejs_version: "6.2"
     - nodejs_version: "6.3"
+    - nodejs_version: "6.5"
 install:
   - ps: Install-Product node $env:nodejs_version
+build: off
+# run scripts before tests
+before_test:
+  - npm install
   - npm install mocha
   - npm install istanbul
-  - npm install
-build: off
+# run tests
 test_script:
   - node --version
   - npm --version
   - npm run test-ci
-version: "{build}"
+# run scripts after tests
+after_test: "npm install coveralls && cat ./coverage/lcov.info | coveralls"
