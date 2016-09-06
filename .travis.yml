@@ -16,8 +16,20 @@ node_js:
   - "6.4.0"
   - "6.5.0"
 sudo: false
-before_script:
+cache:
+  directories:
+    - node_modules
+before_install:
+  # Setup Node.js version-specific dependencies
+  - "npm rm --save-dev istanbul"
   - "npm install mocha"
   - "npm install istanbul"
-script: "npm run-script test-ci"
-after_script: "npm install coveralls && cat ./coverage/lcov.info | coveralls"
+  # Update Node.js modules
+  - "test ! -d node_modules || npm prune"
+  - "test ! -d node_modules || npm rebuild"
+script:
+  # Run test script, depending on istanbul install
+  - "test ! -z $(npm -ps ls istanbul) || npm test"
+  - "test   -z $(npm -ps ls istanbul) || npm run-script test-ci"
+after_script:
+  - "test -e ./coverage/lcov.info && npm install coveralls && cat ./coverage/lcov.info | coveralls"
