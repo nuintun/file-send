@@ -21,6 +21,8 @@ install:
   - "if exist node_modules npm prune"
   - "if exist node_modules npm rebuild"
   - "npm install"
+  - "npm install mocha"
+  - "npm install istanbul"
 build: off
 test_script:
   - "node --version"
