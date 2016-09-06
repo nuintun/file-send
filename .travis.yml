@@ -22,11 +22,11 @@ cache:
 before_install:
   # Setup Node.js version-specific dependencies
   - "npm rm --save-dev istanbul"
-  - "npm install mocha"
-  - "npm install istanbul"
   # Update Node.js modules
   - "test ! -d node_modules || npm prune"
   - "test ! -d node_modules || npm rebuild"
+  - "npm install mocha"
+  - "npm install istanbul"
 script:
   # Run test script, depending on istanbul install
   - "test ! -z $(npm -ps ls istanbul) || npm test"
