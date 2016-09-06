@@ -952,24 +952,7 @@ FileSend.prototype.read = function (response){
     }
   }
 
-  // is directory
-  if (context.hasTrailingSlash) {
-    return fs.stat(context.realpath, function (error, stats){
-      var context = this;
-
-      if (error) {
-        return context.statError(response, error);
-      }
-
-      if (!stats.isDirectory()) {
-        return context.error(response, 404);
-      }
-
-      context.readIndex(response, stats);
-    }.bind(context));
-  }
-
-  // other
+  // read
   fs.stat(context.realpath, function (error, stats){
     var context = this;
 
@@ -981,6 +964,9 @@ FileSend.prototype.read = function (response){
     // is directory
     if (stats.isDirectory()) {
       return context.readIndex(response, stats);
+    } else if (context.hasTrailingSlash) {
+      // not a directory but has trailing slash
+      return context.error(response, 404);
     }
 
     // set headers and parse range
