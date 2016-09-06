@@ -515,7 +515,8 @@ FileSend.prototype.setHeaders = function (response, stats){
 
       for (var key in cacheControlObject) {
         if (key !== 'max-age' && cacheControlObject.hasOwnProperty(key)) {
-          cacheControl += (cacheControl.length ? ', ' : '') + key;
+          cacheControl += (cacheControl.length ? ', ' : '')
+            + (cacheControlObject[key] === true ? key : key + '=' + cacheControlObject[key]);
         }
       }
 
