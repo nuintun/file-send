@@ -16,9 +16,6 @@ node_js:
   - "6.4.0"
   - "6.5.0"
 sudo: false
-cache:
-  directories:
-    - node_modules
 before_script:
   - "npm install mocha"
   - "npm install istanbul"
