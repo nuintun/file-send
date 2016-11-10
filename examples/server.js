@@ -11,8 +11,8 @@ var cluster = require('cluster');
 var NUMCPUS = require('os').cpus().length;
 
 // create server
-function createServer(root, port){
-  http.createServer(function (request, response){
+function createServer(root, port) {
+  http.createServer(function(request, response) {
     var send = new FileSend(request, {
       root: root || '../',
       maxAge: '3day',
@@ -20,14 +20,14 @@ function createServer(root, port){
       index: ['index.html']
     });
 
-    send.pipe(response).on('headers', function (headers){
-      var message = 'URL      : ' + colors.green.bold(send.url)
-        + '\r\nPATH     : ' + colors.yellow.bold(send.path)
-        + '\r\nROOT     : ' + colors.magenta.bold(send.root)
-        + '\r\nREALPATH : ' + colors.magenta.bold(send.realpath)
-        + '\r\nSTATUS   : ' + colors.cyan.bold(send.statusCode)
-        + '\r\nHEADERS  : ' + colors.cyan.bold(JSON.stringify(headers, null, 2))
-        + '\r\n-----------------------------------------------------------------------------------------';
+    send.pipe(response).on('headers', function(headers) {
+      var message = 'URL      : ' + colors.green.bold(send.url) +
+        '\r\nPATH     : ' + colors.yellow.bold(send.path) +
+        '\r\nROOT     : ' + colors.magenta.bold(send.root) +
+        '\r\nREALPATH : ' + colors.magenta.bold(send.realpath) +
+        '\r\nSTATUS   : ' + colors.cyan.bold(send.statusCode) +
+        '\r\nHEADERS  : ' + colors.cyan.bold(JSON.stringify(headers, null, 2)) +
+        '\r\n-----------------------------------------------------------------------------------------';
 
       process.send(message);
     });
@@ -37,8 +37,8 @@ function createServer(root, port){
 if (cluster.isMaster) {
   // fork workers
   for (var i = 0; i < NUMCPUS; i++) {
-    var worker = cluster.fork().on('listening', (function (i){
-      return function (address){
+    var worker = cluster.fork().on('listening', (function(i) {
+      return function(address) {
         // worker is listening
         if (i === NUMCPUS - 1) {
           console.log(
@@ -50,7 +50,7 @@ if (cluster.isMaster) {
       };
     }(i)));
 
-    worker.on('message', function (message){
+    worker.on('message', function(message) {
       console.log(message);
     });
   }

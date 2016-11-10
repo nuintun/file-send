@@ -43,7 +43,7 @@ var listenerCount = EventEmitter.listenerCount;
 var originWriteHead = http.ServerResponse.prototype.writeHead;
 
 // add http response write headers events
-http.ServerResponse.prototype.writeHead = function (){
+http.ServerResponse.prototype.writeHead = function() {
   var context = this;
 
   // emit headers event
@@ -62,7 +62,7 @@ http.ServerResponse.prototype.writeHead = function (){
  * @returns {FileSend}
  * @constructor
  */
-function FileSend(request, options){
+function FileSend(request, options) {
   var context = this;
 
   if (!(context instanceof FileSend)) {
@@ -79,9 +79,9 @@ function FileSend(request, options){
   context.ranges = [];
   context.request = request;
   context.method = context.request.method;
-  context.charset = util.isType(options.charset, 'string')
-    ? options.charset
-    : null;
+  context.charset = util.isType(options.charset, 'string') ?
+    options.charset :
+    null;
   context.glob = options.glob || {};
 
   if (!context.glob.hasOwnProperty('dot')) {
@@ -95,7 +95,7 @@ function FileSend(request, options){
   // url
   Object.defineProperty(context, 'url', {
     enumerable: true,
-    get: function (){
+    get: function() {
       if (!url) {
         url = util.decodeURI(request.url);
         url = url === -1 ? url : util.normalize(url);
@@ -108,11 +108,11 @@ function FileSend(request, options){
   // root
   Object.defineProperty(context, 'root', {
     enumerable: true,
-    get: function (){
+    get: function() {
       if (!root) {
-        root = util.isType(options.root, 'string')
-          ? resolve(options.root)
-          : CWD;
+        root = util.isType(options.root, 'string') ?
+          resolve(options.root) :
+          CWD;
 
         root = util.posixPath(join(root, SEP));
       }
@@ -123,26 +123,26 @@ function FileSend(request, options){
 
   // parsed url
   Object.defineProperty(context, '_url', {
-    value: context.url === -1
-      ? {}
-      : parseUrl(context.url, options.parseQueryString, options.slashesDenoteHost)
+    value: context.url === -1 ?
+      {} :
+      parseUrl(context.url, options.parseQueryString, options.slashesDenoteHost)
   });
 
   // path
   Object.defineProperty(context, 'path', {
     enumerable: true,
-    get: function (){
+    get: function() {
       if (!path) {
         var context = this;
 
-        path = context.url === -1
-          ? context.url
-          : util.decodeURI(context._url.pathname);
+        path = context.url === -1 ?
+          context.url :
+          util.decodeURI(context._url.pathname);
 
         // //a/b/c ==> /a/b/c
-        path = path === -1
-          ? path
-          : path.replace(/^\/{2,}/, '/');
+        path = path === -1 ?
+          path :
+          path.replace(/^\/{2,}/, '/');
       }
 
       return path;
@@ -152,13 +152,13 @@ function FileSend(request, options){
   // real path
   Object.defineProperty(context, 'realpath', {
     enumerable: true,
-    get: function (){
+    get: function() {
       if (!realpath) {
         var context = this;
 
-        realpath = context.path === -1
-          ? context.path
-          : util.posixPath(join(context.root, context.path));
+        realpath = context.path === -1 ?
+          context.path :
+          util.posixPath(join(context.root, context.path));
       }
 
       return realpath;
@@ -174,11 +174,11 @@ function FileSend(request, options){
   // etag
   Object.defineProperty(context, 'etag', {
     enumerable: true,
-    get: function (){
+    get: function() {
       if (!etag) {
-        etag = options.etag !== undefined
-          ? Boolean(options.etag)
-          : true;
+        etag = options.etag !== undefined ?
+          Boolean(options.etag) :
+          true;
       }
 
       return etag;
@@ -188,13 +188,13 @@ function FileSend(request, options){
   // index
   Object.defineProperty(context, 'index', {
     enumerable: true,
-    get: function (){
+    get: function() {
       if (!index) {
-        index = Array.isArray(options.index)
-          ? options.index
-          : [options.index];
+        index = Array.isArray(options.index) ?
+          options.index :
+          [options.index];
 
-        index = index.filter(function (index){
+        index = index.filter(function(index) {
           return index && util.isType(index, 'string');
         });
       }
@@ -206,17 +206,17 @@ function FileSend(request, options){
   // ignore
   Object.defineProperty(context, 'ignore', {
     enumerable: true,
-    get: function (){
+    get: function() {
       if (!ignore) {
-        ignore = Array.isArray(options.ignore)
-          ? options.ignore
-          : [options.ignore];
+        ignore = Array.isArray(options.ignore) ?
+          options.ignore :
+          [options.ignore];
 
-        ignore = ignore.filter(function (pattern){
-          return pattern
-            && (util.isType(pattern, 'string')
-            || util.isType(pattern, 'regexp')
-            || util.isType(pattern, 'function'));
+        ignore = ignore.filter(function(pattern) {
+          return pattern &&
+            (util.isType(pattern, 'string') ||
+              util.isType(pattern, 'regexp') ||
+              util.isType(pattern, 'function'));
         });
       }
 
@@ -227,7 +227,7 @@ function FileSend(request, options){
   // ignore-access
   Object.defineProperty(context, 'ignoreAccess', {
     enumerable: true,
-    get: function (){
+    get: function() {
       if (!ignoreAccess) {
         switch (options.ignoreAccess) {
           case 'deny':
@@ -246,15 +246,15 @@ function FileSend(request, options){
   // max-age
   Object.defineProperty(context, 'maxAge', {
     enumerable: true,
-    get: function (){
+    get: function() {
       if (!maxAge) {
-        maxAge = util.isType(options.maxAge, 'string')
-          ? ms(options.maxAge) / 1000
-          : Number(options.maxAge);
+        maxAge = util.isType(options.maxAge, 'string') ?
+          ms(options.maxAge) / 1000 :
+          Number(options.maxAge);
 
-        maxAge = !isNaN(maxAge)
-          ? Math.min(Math.max(0, maxAge), MAXMAXAGE)
-          : 0;
+        maxAge = !isNaN(maxAge) ?
+          Math.min(Math.max(0, maxAge), MAXMAXAGE) :
+          0;
 
         maxAge = Math.floor(maxAge);
       }
@@ -266,11 +266,11 @@ function FileSend(request, options){
   // last-modified
   Object.defineProperty(context, 'lastModified', {
     enumerable: true,
-    get: function (){
+    get: function() {
       if (!lastModified) {
-        lastModified = options.lastModified !== undefined
-          ? Boolean(options.lastModified)
-          : true;
+        lastModified = options.lastModified !== undefined ?
+          Boolean(options.lastModified) :
+          true;
       }
 
       return lastModified;
@@ -315,11 +315,11 @@ FileSend.prototype = Object.create(EventEmitter.prototype, {
  * @return {Boolean}
  * @api private
  */
-FileSend.prototype.isConditionalGET = function (){
+FileSend.prototype.isConditionalGET = function() {
   var context = this;
 
-  return !!(context.request.headers['if-none-match']
-  || context.request.headers['if-modified-since']);
+  return !!(context.request.headers['if-none-match'] ||
+    context.request.headers['if-modified-since']);
 };
 
 /**
@@ -328,11 +328,11 @@ FileSend.prototype.isConditionalGET = function (){
  * @return {Boolean}
  * @api private
  */
-FileSend.prototype.isCachable = function (){
+FileSend.prototype.isCachable = function() {
   var statusCode = this.statusCode;
 
-  return statusCode === 304
-    || (statusCode >= 200 && statusCode < 300);
+  return statusCode === 304 ||
+    (statusCode >= 200 && statusCode < 300);
 };
 
 /**
@@ -340,7 +340,7 @@ FileSend.prototype.isCachable = function (){
  * @return {Boolean}
  * @api private
  */
-FileSend.prototype.isFresh = function (){
+FileSend.prototype.isFresh = function() {
   var context = this;
 
   return fresh(context.request.headers, {
@@ -354,7 +354,7 @@ FileSend.prototype.isFresh = function (){
  * @return {Boolean}
  * @api private
  */
-FileSend.prototype.isRangeFresh = function (){
+FileSend.prototype.isRangeFresh = function() {
   var context = this;
   var ifRange = context.request.headers['if-range'];
 
@@ -362,9 +362,9 @@ FileSend.prototype.isRangeFresh = function (){
     return true;
   }
 
-  return ifRange.indexOf('"') !== -1
-    ? ifRange.indexOf(context.getHeader('ETag')) !== -1
-    : Date.parse(context.getHeader('Last-Modified')) <= Date.parse(ifRange);
+  return ifRange.indexOf('"') !== -1 ?
+    ifRange.indexOf(context.getHeader('ETag')) !== -1 :
+    Date.parse(context.getHeader('Last-Modified')) <= Date.parse(ifRange);
 };
 
 /**
@@ -373,7 +373,7 @@ FileSend.prototype.isRangeFresh = function (){
  * @returns {*|String}
  * @api private
  */
-FileSend.prototype.isIgnore = function (path){
+FileSend.prototype.isIgnore = function(path) {
   var context = this;
 
   return context.ignore.length && micromatch(path, context.ignore, context.glob).length;
@@ -384,7 +384,7 @@ FileSend.prototype.isIgnore = function (path){
  * @param name
  * @param value
  */
-FileSend.prototype.setHeader = function (name, value){
+FileSend.prototype.setHeader = function(name, value) {
   var context = this;
 
   if (name && util.isType(name, 'string')) {
@@ -403,7 +403,7 @@ FileSend.prototype.setHeader = function (name, value){
  * get header
  * @param name
  */
-FileSend.prototype.getHeader = function (name){
+FileSend.prototype.getHeader = function(name) {
   var context = this;
 
   if (name && util.isType(name, 'string')) {
@@ -419,7 +419,7 @@ FileSend.prototype.getHeader = function (name){
  * remove header
  * @param name
  */
-FileSend.prototype.removeHeader = function (name){
+FileSend.prototype.removeHeader = function(name) {
   var context = this;
 
   if (name && util.isType(name, 'string')) {
@@ -438,7 +438,7 @@ var emit = FileSend.prototype.emit;
  * @param event
  * @returns {boolean}
  */
-FileSend.prototype.emit = function (event){
+FileSend.prototype.emit = function(event) {
   var context = this;
 
   // emit event
@@ -457,7 +457,7 @@ FileSend.prototype.emit = function (event){
  * @param message
  * @api private
  */
-FileSend.prototype.end = function (response, message){
+FileSend.prototype.end = function(response, message) {
   // unpipe
   this._stream.unpipe(response);
 
@@ -474,7 +474,7 @@ FileSend.prototype.end = function (response, message){
  * @param stats
  * @api private
  */
-FileSend.prototype.setHeaders = function (response, stats){
+FileSend.prototype.setHeaders = function(response, stats) {
   var type;
   var context = this;
   var charset = context.charset;
@@ -538,7 +538,7 @@ FileSend.prototype.setHeaders = function (response, stats){
  * @param {Object} stats
  * @api private
  */
-FileSend.prototype.parseRange = function (response, stats){
+FileSend.prototype.parseRange = function(response, stats) {
   var start, end;
   var rangeFresh;
   var contentType;
@@ -581,7 +581,7 @@ FileSend.prototype.parseRange = function (response, stats){
           boundary += '\r\nContent-Type: ' + contentType;
 
           // loop ranges
-          ranges.forEach(function (range){
+          ranges.forEach(function(range) {
             var _boundary;
 
             // range start and end
@@ -589,9 +589,9 @@ FileSend.prototype.parseRange = function (response, stats){
             end = range.end;
 
             // set fields
-            _boundary = boundary + '\r\nContent-Range: '
-              + 'bytes ' + start + '-' + end
-              + '/' + size + '\r\n\r\n';
+            _boundary = boundary + '\r\nContent-Range: ' +
+              'bytes ' + start + '-' + end +
+              '/' + size + '\r\n\r\n';
 
             // set property
             range.boundary = _boundary;
@@ -643,7 +643,7 @@ FileSend.prototype.parseRange = function (response, stats){
  * @param statusMessage
  * @api private
  */
-FileSend.prototype.status = function (response, statusCode, statusMessage){
+FileSend.prototype.status = function(response, statusCode, statusMessage) {
   var context = this;
 
   context.statusCode = statusCode;
@@ -660,7 +660,7 @@ FileSend.prototype.status = function (response, statusCode, statusMessage){
  * @param statusMessage
  * @api private
  */
-FileSend.prototype.error = function (response, statusCode, statusMessage){
+FileSend.prototype.error = function(response, statusCode, statusMessage) {
   var context = this;
 
   context.status(response, statusCode, statusMessage);
@@ -673,7 +673,7 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
   error.statusCode = statusCode;
 
   // next method
-  var next = function (message){
+  var next = function(message) {
     var context = this;
 
     if (response.headersSent) {
@@ -702,7 +702,7 @@ FileSend.prototype.error = function (response, statusCode, statusMessage){
  * @param error
  * @api private
  */
-FileSend.prototype.statError = function (response, error){
+FileSend.prototype.statError = function(response, error) {
   var context = this;
 
   // 404 error
@@ -720,13 +720,13 @@ FileSend.prototype.statError = function (response, error){
  * @param stats
  * @api private
  */
-FileSend.prototype.dir = function (response, realpath, stats){
+FileSend.prototype.dir = function(response, realpath, stats) {
   var context = this;
 
   // if have event directory listener, use user define
   // emit event directory
   if (
-    context.emit('dir', realpath, stats, function (message){
+    context.emit('dir', realpath, stats, function(message) {
       var context = this;
 
       if (response.headersSent) {
@@ -746,7 +746,7 @@ FileSend.prototype.dir = function (response, realpath, stats){
  * @param location
  * @api private
  */
-FileSend.prototype.redirect = function (response, location){
+FileSend.prototype.redirect = function(response, location) {
   var context = this;
 
   location = location + (context._url.search || '') + (context._url.hash || '');
@@ -773,7 +773,7 @@ FileSend.prototype.redirect = function (response, location){
  * @param response
  * @api private
  */
-FileSend.prototype.headersSent = function (response){
+FileSend.prototype.headersSent = function(response) {
   this.end(response, 'Can\'t set headers after they are sent.');
 };
 
@@ -782,7 +782,7 @@ FileSend.prototype.headersSent = function (response){
  * @param response
  * @api private
  */
-FileSend.prototype.writeHead = function (response){
+FileSend.prototype.writeHead = function(response) {
   var context = this;
 
   // emit headers event
@@ -792,7 +792,7 @@ FileSend.prototype.writeHead = function (response){
   var headers = context.headers;
 
   // set headers
-  Object.keys(headers).forEach(function (name){
+  Object.keys(headers).forEach(function(name) {
     response.setHeader(name, headers[name]);
   });
 };
@@ -802,7 +802,7 @@ FileSend.prototype.writeHead = function (response){
  * @param response
  * @api private
  */
-FileSend.prototype.createReadStream = function (response){
+FileSend.prototype.createReadStream = function(response) {
   var context = this;
   var ranges = context.ranges;
   var stream = context.stream;
@@ -814,7 +814,7 @@ FileSend.prototype.createReadStream = function (response){
   ranges = ranges.length === 0 ? [{}] : ranges;
 
   // stream error
-  var onerror = function (error){
+  var onerror = function(error) {
     // request already finished
     if (onFinished.isFinished(response)) return;
 
@@ -826,7 +826,7 @@ FileSend.prototype.createReadStream = function (response){
   stream.on('error', onerror);
 
   // contat range
-  async.series(ranges, function (range, next){
+  async.series(ranges, function(range, next) {
     // request already finished
     if (onFinished.isFinished(response)) return;
 
@@ -837,7 +837,7 @@ FileSend.prototype.createReadStream = function (response){
     range.boundary && stream.write(range.boundary);
 
     // error handling code-smell
-    fileStream.on('error', function (error){
+    fileStream.on('error', function(error) {
       // call onerror
       onerror(error);
       // destroy file stream
@@ -845,7 +845,7 @@ FileSend.prototype.createReadStream = function (response){
     });
 
     // stream end
-    fileStream.on('end', function (){
+    fileStream.on('end', function() {
       // unpipe
       fileStream.unpipe(stream);
 
@@ -858,7 +858,7 @@ FileSend.prototype.createReadStream = function (response){
 
     // pipe data to stream
     fileStream.pipe(stream, { end: false });
-  }, function (){
+  }, function() {
     var range = ranges[ranges.length - 1];
 
     // push end boundary
@@ -875,27 +875,27 @@ FileSend.prototype.createReadStream = function (response){
  * @param stats
  * @api private
  */
-FileSend.prototype.readIndex = function (response, stats){
+FileSend.prototype.readIndex = function(response, stats) {
   var context = this;
   var path = context.hasTrailingSlash ? context.path : context.path + '/';
 
-  async.series(context.index.map(function (index){
+  async.series(context.index.map(function(index) {
     return path + index;
-  }), function (path, next){
+  }), function(path, next) {
     var context = this;
 
     if (context.isIgnore(path)) {
       return next();
     }
 
-    fs.stat(join(context.root, path), function (error, stats){
+    fs.stat(join(context.root, path), function(error, stats) {
       if (error || !stats.isFile()) {
         next();
       } else {
         this.redirect(response, util.posixPath(path));
       }
     }.bind(context));
-  }, function (){
+  }, function() {
     var context = this;
 
     if (context.hasTrailingSlash) {
@@ -911,12 +911,12 @@ FileSend.prototype.readIndex = function (response, stats){
  * @param response
  * @api private
  */
-FileSend.prototype.read = function (response){
+FileSend.prototype.read = function(response) {
   var context = this;
 
   // headers sent
   if (response.headersSent) {
-    return process.nextTick(function (){
+    return process.nextTick(function() {
       this.headersSent(response);
     }.bind(context));
   }
@@ -926,14 +926,14 @@ FileSend.prototype.read = function (response){
 
   // path -1 or null byte(s)
   if (context.realpath === -1 || context.realpath.indexOf('\0') !== -1) {
-    return process.nextTick(function (){
+    return process.nextTick(function() {
       this.error(response, 400);
     }.bind(context));
   }
 
   // malicious path
   if (util.isOutBound(context.realpath, context.root)) {
-    return process.nextTick(function (){
+    return process.nextTick(function() {
       this.error(response, 403);
     }.bind(context));
   }
@@ -942,18 +942,18 @@ FileSend.prototype.read = function (response){
   if (context.isIgnore(context.path)) {
     switch (context.ignoreAccess) {
       case 'deny':
-        return process.nextTick(function (){
+        return process.nextTick(function() {
           this.error(response, 403);
         }.bind(context));
       case 'ignore':
-        return process.nextTick(function (){
+        return process.nextTick(function() {
           this.error(response, 404);
         }.bind(context));
     }
   }
 
   // read
-  fs.stat(context.realpath, function (error, stats){
+  fs.stat(context.realpath, function(error, stats) {
     var context = this;
 
     // stat error
@@ -1004,22 +1004,22 @@ FileSend.prototype.read = function (response){
  * @param response
  * @returns {FileSend}
  */
-FileSend.prototype.pipe = function (response){
+FileSend.prototype.pipe = function(response) {
   var context = this;
 
   if (response instanceof http.ServerResponse) {
     // bind error event
-    context._stream.on('error', function (error){
+    context._stream.on('error', function(error) {
       this.statError(response, error);
     }.bind(context));
 
     // bind headers event
-    response.on('headers', function (){
+    response.on('headers', function() {
       this.writeHead(response);
     }.bind(context));
 
     // response finished
-    onFinished(response, function (){
+    onFinished(response, function() {
       // emit finish event
       this.emit('finish');
     }.bind(context));
@@ -1027,7 +1027,7 @@ FileSend.prototype.pipe = function (response){
     // read
     context.read(response);
   } else {
-    context._stream.on('error', function (error){
+    context._stream.on('error', function(error) {
       response.emit('error', error);
     }.bind(context));
 
