@@ -29,7 +29,7 @@
     "file stream"
   ],
   "dependencies": {
-    "ms": "^0.7.1",
+    "ms": "^0.7.2",
     "etag": "^1.7.0",
     "fresh": "^0.3.0",
     "mime-types": "^2.1.12",
@@ -45,7 +45,7 @@
   "devDependencies": {
     "after": "^0.8.2",
     "chai": "^3.5.0",
-    "superagent": "^2.2.0"
+    "superagent": "^2.3.0"
   },
   "readmeFilename": "README.md",
   "scripts": {
