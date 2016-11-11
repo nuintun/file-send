@@ -123,9 +123,7 @@ function FileSend(request, options) {
 
   // parsed url
   Object.defineProperty(context, '_url', {
-    value: context.url === -1 ?
-      {} :
-      parseUrl(context.url, options.parseQueryString, options.slashesDenoteHost)
+    value: context.url === -1 ? {} : parseUrl(context.url, options.parseQueryString, options.slashesDenoteHost)
   });
 
   // path
@@ -190,9 +188,7 @@ function FileSend(request, options) {
     enumerable: true,
     get: function() {
       if (!index) {
-        index = Array.isArray(options.index) ?
-          options.index :
-          [options.index];
+        index = Array.isArray(options.index) ? options.index : [options.index];
 
         index = index.filter(function(index) {
           return index && util.isType(index, 'string');
@@ -208,9 +204,7 @@ function FileSend(request, options) {
     enumerable: true,
     get: function() {
       if (!ignore) {
-        ignore = Array.isArray(options.ignore) ?
-          options.ignore :
-          [options.ignore];
+        ignore = Array.isArray(options.ignore) ? options.ignore : [options.ignore];
 
         ignore = ignore.filter(function(pattern) {
           return pattern &&
