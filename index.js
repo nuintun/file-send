@@ -114,7 +114,7 @@ function FileSend(request, options) {
           resolve(options.root) :
           CWD;
 
-        root = util.posixPath(join(root, SEP));
+        root = util.posixURI(join(root, SEP));
       }
 
       return root;
@@ -156,7 +156,7 @@ function FileSend(request, options) {
 
         realpath = context.path === -1 ?
           context.path :
-          util.posixPath(join(context.root, context.path));
+          util.posixURI(join(context.root, context.path));
       }
 
       return realpath;
@@ -886,7 +886,7 @@ FileSend.prototype.readIndex = function(response, stats) {
       if (error || !stats.isFile()) {
         next();
       } else {
-        this.redirect(response, util.posixPath(path));
+        this.redirect(response, util.posixURI(path));
       }
     }.bind(context));
   }, function() {
