@@ -418,7 +418,7 @@ describe('Send(req, options)', function() {
                 resolve(options.root) :
                 CWD;
 
-              root = util.posixPath(join(root, SEP));
+              root = util.posixURI(join(root, SEP));
             }
 
             return root;
@@ -427,9 +427,7 @@ describe('Send(req, options)', function() {
 
         // parsed url
         Object.defineProperty(this, '_url', {
-          value: this.url === -1 ?
-            {} :
-            parseUrl(this.url, options.parseQueryString, options.slashesDenoteHost)
+          value: this.url === -1 ? {} : parseUrl(this.url, options.parseQueryString, options.slashesDenoteHost)
         });
 
         // path
@@ -456,7 +454,7 @@ describe('Send(req, options)', function() {
             if (!realpath) {
               realpath = this.path === -1 ?
                 this.path :
-                util.posixPath(join(this.root, this.path));
+                util.posixURI(join(this.root, this.path));
             }
 
             return realpath;
@@ -489,8 +487,7 @@ describe('Send(req, options)', function() {
           get: function() {
             if (!ignore) {
               ignore = Array.isArray(options.ignore) ?
-                options.ignore :
-                [options.ignore];
+                options.ignore : [options.ignore];
 
               ignore = ignore.filter(function(pattern) {
                 return pattern &&
@@ -563,8 +560,7 @@ describe('Send(req, options)', function() {
           get: function() {
             if (!index) {
               index = Array.isArray(options.index) ?
-                options.index :
-                [options.index];
+                options.index : [options.index];
 
               index = index.filter(function(index) {
                 return index && util.isType(index, 'string');
