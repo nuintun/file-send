@@ -31,7 +31,7 @@
   "dependencies": {
     "ms": "^0.7.2",
     "etag": "^1.7.0",
-    "fresh": "^0.3.0",
+    "fresh": "^0.4.0",
     "mime-types": "^2.1.14",
     "destroy": "^1.0.4",
     "colors": "^1.1.2",
@@ -45,7 +45,7 @@
   "devDependencies": {
     "after": "^0.8.2",
     "chai": "^3.5.0",
-    "superagent": "^3.3.2"
+    "superagent": "^3.4.1"
   },
   "readmeFilename": "README.md",
   "scripts": {
