@@ -29,10 +29,13 @@ var escapeHtml = require('escape-html');
 var parseRange = require('range-parser');
 var EventEmitter = require('events').EventEmitter;
 
-// variable declaration
+// path sep
 var SEP = path.sep;
-var CWD = process.cwd(); // current working directory
-var MAXMAXAGE = 60 * 60 * 24 * 365; // the max max-age set
+// current working directory
+var CWD = process.cwd();
+// the max max-age set
+var MAXMAXAGE = 60 * 60 * 24 * 365;
+// file not found status
 var NOTFOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
 
 // common method
@@ -79,9 +82,9 @@ function FileSend(request, options) {
   context.ranges = [];
   context.request = request;
   context.method = context.request.method;
-  context.charset = util.isType(options.charset, 'string') ?
-    options.charset :
-    null;
+  context.charset = util.isType(options.charset, 'string')
+    ? options.charset
+    : null;
   context.glob = options.glob || {};
 
   if (!context.glob.hasOwnProperty('dot')) {
@@ -110,9 +113,9 @@ function FileSend(request, options) {
     enumerable: true,
     get: function() {
       if (!root) {
-        root = util.isType(options.root, 'string') ?
-          resolve(options.root) :
-          CWD;
+        root = util.isType(options.root, 'string')
+          ? resolve(options.root)
+          : CWD;
 
         root = util.posixURI(join(root, SEP));
       }
@@ -133,14 +136,14 @@ function FileSend(request, options) {
       if (!path) {
         var context = this;
 
-        path = context.url === -1 ?
-          context.url :
-          util.decodeURI(context._url.pathname);
+        path = context.url === -1
+          ? context.url
+          : util.decodeURI(context._url.pathname);
 
         // //a/b/c ==> /a/b/c
-        path = path === -1 ?
-          path :
-          path.replace(/^\/{2,}/, '/');
+        path = path === -1
+          ? path
+          : path.replace(/^\/{2,}/, '/');
       }
 
       return path;
@@ -154,9 +157,9 @@ function FileSend(request, options) {
       if (!realpath) {
         var context = this;
 
-        realpath = context.path === -1 ?
-          context.path :
-          util.posixURI(join(context.root, context.path));
+        realpath = context.path === -1
+          ? context.path
+          : util.posixURI(join(context.root, context.path));
       }
 
       return realpath;
@@ -174,9 +177,9 @@ function FileSend(request, options) {
     enumerable: true,
     get: function() {
       if (!etag) {
-        etag = options.etag !== undefined ?
-          Boolean(options.etag) :
-          true;
+        etag = options.etag !== undefined
+          ? Boolean(options.etag)
+          : true;
       }
 
       return etag;
@@ -207,10 +210,10 @@ function FileSend(request, options) {
         ignore = Array.isArray(options.ignore) ? options.ignore : [options.ignore];
 
         ignore = ignore.filter(function(pattern) {
-          return pattern &&
-            (util.isType(pattern, 'string') ||
-              util.isType(pattern, 'regexp') ||
-              util.isType(pattern, 'function'));
+          return pattern
+            && (util.isType(pattern, 'string')
+              || util.isType(pattern, 'regexp')
+              || util.isType(pattern, 'function'));
         });
       }
 
@@ -242,13 +245,13 @@ function FileSend(request, options) {
     enumerable: true,
     get: function() {
       if (!maxAge) {
-        maxAge = util.isType(options.maxAge, 'string') ?
-          ms(options.maxAge) / 1000 :
-          Number(options.maxAge);
+        maxAge = util.isType(options.maxAge, 'string')
+          ? ms(options.maxAge) / 1000
+          : Number(options.maxAge);
 
-        maxAge = !isNaN(maxAge) ?
-          Math.min(Math.max(0, maxAge), MAXMAXAGE) :
-          0;
+        maxAge = !isNaN(maxAge)
+          ? Math.min(Math.max(0, maxAge), MAXMAXAGE)
+          : 0;
 
         maxAge = Math.floor(maxAge);
       }
@@ -262,9 +265,9 @@ function FileSend(request, options) {
     enumerable: true,
     get: function() {
       if (!lastModified) {
-        lastModified = options.lastModified !== undefined ?
-          Boolean(options.lastModified) :
-          true;
+        lastModified = options.lastModified !== undefined
+          ? Boolean(options.lastModified)
+          : true;
       }
 
       return lastModified;
@@ -312,8 +315,8 @@ FileSend.prototype = Object.create(EventEmitter.prototype, {
 FileSend.prototype.isConditionalGET = function() {
   var context = this;
 
-  return !!(context.request.headers['if-none-match'] ||
-    context.request.headers['if-modified-since']);
+  return !!(context.request.headers['if-none-match']
+    || context.request.headers['if-modified-since']);
 };
 
 /**
@@ -325,8 +328,8 @@ FileSend.prototype.isConditionalGET = function() {
 FileSend.prototype.isCachable = function() {
   var statusCode = this.statusCode;
 
-  return statusCode === 304 ||
-    (statusCode >= 200 && statusCode < 300);
+  return statusCode === 304
+    || (statusCode >= 200 && statusCode < 300);
 };
 
 /**
@@ -356,9 +359,9 @@ FileSend.prototype.isRangeFresh = function() {
     return true;
   }
 
-  return ifRange.indexOf('"') !== -1 ?
-    ifRange.indexOf(context.getHeader('ETag')) !== -1 :
-    Date.parse(context.getHeader('Last-Modified')) <= Date.parse(ifRange);
+  return ifRange.indexOf('"') !== -1
+    ? ifRange.indexOf(context.getHeader('ETag')) !== -1
+    : Date.parse(context.getHeader('Last-Modified')) <= Date.parse(ifRange);
 };
 
 /**
@@ -583,9 +586,9 @@ FileSend.prototype.parseRange = function(response, stats) {
             end = range.end;
 
             // set fields
-            _boundary = boundary + '\r\nContent-Range: ' +
-              'bytes ' + start + '-' + end +
-              '/' + size + '\r\n\r\n';
+            _boundary = boundary + '\r\nContent-Range: '
+              + 'bytes ' + start + '-' + end
+              + '/' + size + '\r\n\r\n';
 
             // set property
             range.boundary = _boundary;
