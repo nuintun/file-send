@@ -1,7 +1,3 @@
-/**
- * Created by nuintun on 2016/6/24.
- */
-
 'use strict';
 
 var http = require('http');
@@ -10,7 +6,7 @@ var colors = require('colors/safe');
 var cluster = require('cluster');
 var NUMCPUS = require('os').cpus().length;
 
-// create server
+// Create server
 function createServer(root, port) {
   http.createServer(function(request, response) {
     var send = new FileSend(request, {
@@ -35,11 +31,11 @@ function createServer(root, port) {
 }
 
 if (cluster.isMaster) {
-  // fork workers
+  // Fork workers
   for (var i = 0; i < NUMCPUS; i++) {
     var worker = cluster.fork().on('listening', (function(i) {
       return function(address) {
-        // worker is listening
+        // Worker is listening
         if (i === NUMCPUS - 1) {
           console.log(
             colors.green.bold('Server run at:'),
@@ -55,7 +51,7 @@ if (cluster.isMaster) {
     });
   }
 } else {
-  // workers can share any tcp connection
+  // Workers can share any tcp connection
   // in this case it is an http server
   createServer();
 }
