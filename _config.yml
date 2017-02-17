@@ -2,7 +2,7 @@ title: File-send
 description: A http file send
 google_analytics: 
 show_downloads: true
-theme: jekyll-theme-cayman
+theme: jekyll-theme-architect
 
 gems:
   - jekyll-mentions
