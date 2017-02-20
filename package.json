@@ -45,12 +45,12 @@
   "devDependencies": {
     "after": "^0.8.2",
     "chai": "^3.5.0",
-    "superagent": "^3.4.2"
+    "superagent": "^3.4.4"
   },
   "readmeFilename": "README.md",
   "scripts": {
-    "test": "mocha --check-leaks --reporter spec --bail",
-    "test-ci": "istanbul cover node_modules/mocha/bin/_mocha --report lcovonly -- --check-leaks --reporter spec",
-    "test-cov": "istanbul cover node_modules/mocha/bin/_mocha -- --check-leaks --reporter dot"
+    "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail",
+    "test-ci": "istanbul cover node_modules/mocha/bin/_mocha --report lcovonly -- --timeout 6000 --check-leaks --reporter spec",
+    "test-cov": "istanbul cover node_modules/mocha/bin/_mocha -- --timeout 6000 --check-leaks --reporter dot"
   }
 }
