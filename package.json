@@ -30,7 +30,7 @@
   ],
   "dependencies": {
     "ms": "^0.7.2",
-    "etag": "^1.7.0",
+    "etag": "^1.8.0",
     "fresh": "^0.4.0",
     "mime-types": "^2.1.14",
     "destroy": "^1.0.4",
