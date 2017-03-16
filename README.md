@@ -26,7 +26,7 @@ var through2 = require('through2');
 
 http.createServer(function(request, response) {
   FileSend(request, {
-	root: '/',
+    root: '/',
     etag: false,
     maxAge: '30d'
   }) // Create a new file send stream
