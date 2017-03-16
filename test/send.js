@@ -14,7 +14,7 @@ var request = require('superagent');
 through().destroy();
 
 // hit test-cli line
-util.isType(NaN, 'nan');
+util.typeIs(NaN, 'nan');
 
 // hit test-cli line
 try {
@@ -383,9 +383,9 @@ describe('Send(req, options)', function() {
         this.ranges = [];
         this.request = request;
         this.method = this.request.method;
-        this.charset = util.isType(options.charset, 'string') ?
-          options.charset :
-          null;
+        this.charset = util.typeIs(options.charset, 'string')
+          ? options.charset
+          : null;
         this.glob = options.glob || {};
 
         if (!this.glob.hasOwnProperty('dot')) {
@@ -414,9 +414,9 @@ describe('Send(req, options)', function() {
           enumerable: true,
           get: function() {
             if (!root) {
-              root = util.isType(options.root, 'string') ?
-                resolve(options.root) :
-                CWD;
+              root = util.typeIs(options.root, 'string')
+                ? resolve(options.root)
+                : CWD;
 
               root = util.posixURI(join(root, SEP));
             }
@@ -435,9 +435,9 @@ describe('Send(req, options)', function() {
           enumerable: true,
           get: function() {
             if (!path) {
-              path = this.url === -1 ?
-                this.url :
-                util.decodeURI(this._url.pathname);
+              path = this.url === -1
+                ? this.url
+                : util.decodeURI(this._url.pathname);
             }
 
             return path;
@@ -452,9 +452,9 @@ describe('Send(req, options)', function() {
           },
           get: function() {
             if (!realpath) {
-              realpath = this.path === -1 ?
-                this.path :
-                util.posixURI(join(this.root, this.path));
+              realpath = this.path === -1
+                ? this.path
+                : util.posixURI(join(this.root, this.path));
             }
 
             return realpath;
@@ -472,9 +472,9 @@ describe('Send(req, options)', function() {
           enumerable: true,
           get: function() {
             if (!etag) {
-              etag = options.etag !== undefined ?
-                Boolean(options.etag) :
-                true;
+              etag = options.etag !== undefined
+                ? Boolean(options.etag)
+                : true;
             }
 
             return etag;
@@ -486,14 +486,14 @@ describe('Send(req, options)', function() {
           enumerable: true,
           get: function() {
             if (!ignore) {
-              ignore = Array.isArray(options.ignore) ?
-                options.ignore : [options.ignore];
+              ignore = Array.isArray(options.ignore)
+                ? options.ignore : [options.ignore];
 
               ignore = ignore.filter(function(pattern) {
-                return pattern &&
-                  (util.isType(pattern, 'string') ||
-                    util.isType(pattern, 'regexp') ||
-                    util.isType(pattern, 'function'));
+                return pattern
+                  && (util.typeIs(pattern, 'string')
+                    || util.typeIs(pattern, 'regexp')
+                    || util.typeIs(pattern, 'function'));
               });
             }
 
@@ -525,13 +525,13 @@ describe('Send(req, options)', function() {
           enumerable: true,
           get: function() {
             if (!maxAge) {
-              maxAge = util.isType(options.maxAge, 'string') ?
-                ms(options.maxAge) / 1000 :
-                Number(options.maxAge);
+              maxAge = util.typeIs(options.maxAge, 'string')
+                ? ms(options.maxAge) / 1000
+                : Number(options.maxAge);
 
-              maxAge = !isNaN(maxAge) ?
-                Math.min(Math.max(0, maxAge), MAXMAXAGE) :
-                0;
+              maxAge = !isNaN(maxAge)
+                ? Math.min(Math.max(0, maxAge), MAXMAXAGE)
+                : 0;
 
               maxAge = Math.floor(maxAge);
             }
@@ -545,9 +545,9 @@ describe('Send(req, options)', function() {
           enumerable: true,
           get: function() {
             if (!lastModified) {
-              lastModified = options.lastModified !== undefined ?
-                Boolean(options.lastModified) :
-                true;
+              lastModified = options.lastModified !== undefined
+                ? Boolean(options.lastModified)
+                : true;
             }
 
             return lastModified;
@@ -559,11 +559,11 @@ describe('Send(req, options)', function() {
           enumerable: true,
           get: function() {
             if (!index) {
-              index = Array.isArray(options.index) ?
-                options.index : [options.index];
+              index = Array.isArray(options.index)
+                ? options.index : [options.index];
 
               index = index.filter(function(index) {
-                return index && util.isType(index, 'string');
+                return index && util.typeIs(index, 'string');
               });
             }
 

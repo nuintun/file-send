@@ -46,7 +46,7 @@ var listenerCount = EventEmitter.prototype.listenerCount;
 var originWriteHead = http.ServerResponse.prototype.writeHead;
 
 // Hack listener count
-listenerCount = util.isType(listenerCount, 'function') ? function(emitter, eventName) {
+listenerCount = util.typeIs(listenerCount, 'function') ? function(emitter, eventName) {
   return emitter.listenerCount(eventName);
 } : EventEmitter.listenerCount;
 
@@ -88,7 +88,7 @@ function FileSend(request, options) {
   context.ranges = [];
   context.request = request;
   context.method = context.request.method;
-  context.charset = util.isType(options.charset, 'string') ? options.charset : null;
+  context.charset = util.typeIs(options.charset, 'string') ? options.charset : null;
   context.glob = options.glob || {};
 
   if (!context.glob.hasOwnProperty('dot')) {
@@ -117,7 +117,7 @@ function FileSend(request, options) {
     enumerable: true,
     get: function() {
       if (!root) {
-        root = util.isType(options.root, 'string')
+        root = util.typeIs(options.root, 'string')
           ? resolve(options.root)
           : CWD;
 
@@ -198,7 +198,7 @@ function FileSend(request, options) {
         index = Array.isArray(options.index) ? options.index : [options.index];
 
         index = index.filter(function(index) {
-          return index && util.isType(index, 'string');
+          return index && util.typeIs(index, 'string');
         });
       }
 
@@ -215,9 +215,9 @@ function FileSend(request, options) {
 
         ignore = ignore.filter(function(pattern) {
           return pattern
-            && (util.isType(pattern, 'string')
-              || util.isType(pattern, 'regexp')
-              || util.isType(pattern, 'function'));
+            && (util.typeIs(pattern, 'string')
+              || util.typeIs(pattern, 'regexp')
+              || util.typeIs(pattern, 'function'));
         });
       }
 
@@ -249,7 +249,7 @@ function FileSend(request, options) {
     enumerable: true,
     get: function() {
       if (!maxAge) {
-        maxAge = util.isType(options.maxAge, 'string')
+        maxAge = util.typeIs(options.maxAge, 'string')
           ? ms(options.maxAge) / 1000
           : Number(options.maxAge);
 
@@ -320,9 +320,12 @@ FileSend.prototype = Object.create(EventEmitter.prototype, {
  */
 FileSend.prototype.isConditionalGET = function() {
   var context = this;
+  var headers = context.request.headers;
 
-  return !!(context.request.headers['if-none-match']
-    || context.request.headers['if-modified-since']);
+  return headers['if-match']
+    || headers['if-unmodified-since']
+    || headers['if-none-match']
+    || headers['if-modified-since'];
 };
 
 /**
@@ -395,7 +398,7 @@ FileSend.prototype.isIgnore = function(path) {
 FileSend.prototype.setHeader = function(name, value) {
   var context = this;
 
-  if (name && util.isType(name, 'string')) {
+  if (name && util.typeIs(name, 'string')) {
     var key = name.toLowerCase();
 
     if (this.headerNames.hasOwnProperty(key)) {
@@ -415,7 +418,7 @@ FileSend.prototype.setHeader = function(name, value) {
 FileSend.prototype.getHeader = function(name) {
   var context = this;
 
-  if (name && util.isType(name, 'string')) {
+  if (name && util.typeIs(name, 'string')) {
     var key = name.toLowerCase();
 
     if (context.headerNames.hasOwnProperty(key)) {
@@ -432,7 +435,7 @@ FileSend.prototype.getHeader = function(name) {
 FileSend.prototype.removeHeader = function(name) {
   var context = this;
 
-  if (name && util.isType(name, 'string')) {
+  if (name && util.typeIs(name, 'string')) {
     var key = name.toLowerCase();
 
     delete context.headers[name];
@@ -516,7 +519,7 @@ FileSend.prototype.setHeaders = function(response, stats) {
   }
 
   // Set cache-control
-  if (cacheControl && util.isType(cacheControl, 'string')) {
+  if (cacheControl && util.typeIs(cacheControl, 'string')) {
     context.setHeader('Cache-Control', cacheControl);
   } else if (context.maxAge > 0) {
     context.setHeader('Cache-Control', 'max-age=' + context.maxAge);
@@ -572,7 +575,7 @@ FileSend.prototype.parseRange = function(response, stats) {
       ranges = parseRange(size, ranges, { combine: true });
 
       // Valid ranges, support multiple ranges
-      if (util.isType(ranges, 'array') && ranges.type === 'bytes') {
+      if (util.typeIs(ranges, 'array') && ranges.type === 'bytes') {
         context.status(response, 206);
 
         // Multiple ranges
