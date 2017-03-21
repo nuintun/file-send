@@ -196,15 +196,15 @@ if (cluster.isMaster) {
 
 [MIT](LICENSE)
 
-[travis-image]: http://img.shields.io/travis/nuintun/file-send.svg?style=flat-square&label=linux
+[travis-image]: https://img.shields.io/travis/nuintun/file-send.svg?style=flat-square&label=linux
 [travis-url]: https://travis-ci.org/nuintun/file-send
 [appveyor-image]: https://img.shields.io/appveyor/ci/nuintun/file-send.svg?style=flat-square&label=windows
 [appveyor-url]: https://ci.appveyor.com/project/nuintun/file-send
-[coveralls-image]: http://img.shields.io/coveralls/nuintun/file-send/master.svg?style=flat-square
+[coveralls-image]: https://img.shields.io/coveralls/nuintun/file-send/master.svg?style=flat-square
 [coveralls-url]: https://coveralls.io/r/nuintun/file-send?branch=master
-[node-image]: http://img.shields.io/node/v/file-send.svg?style=flat-square
-[david-image]: http://img.shields.io/david/nuintun/file-send.svg?style=flat-square
+[node-image]: https://img.shields.io/node/v/file-send.svg?style=flat-square
+[david-image]: https://img.shields.io/david/nuintun/file-send.svg?style=flat-square
 [david-url]: https://david-dm.org/nuintun/file-send
-[npm-image]: http://img.shields.io/npm/v/file-send.svg?style=flat-square
+[npm-image]: https://img.shields.io/npm/v/file-send.svg?style=flat-square
 [npm-url]: https://www.npmjs.org/package/file-send
-[download-image]: http://img.shields.io/npm/dm/file-send.svg?style=flat-square
+[download-image]: https://img.shields.io/npm/dm/file-send.svg?style=flat-square
