@@ -35,7 +35,7 @@
     "mime-types": "^2.1.15",
     "destroy": "^1.0.4",
     "colors": "^1.1.2",
-    "micromatch": "^2.3.11",
+    "micromatch": "^3.0.2",
     "encodeurl": "^1.0.1",
     "escape-html": "^1.0.3",
     "on-finished": "^2.3.0",
@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "after": "^0.8.2",
-    "chai": "^3.5.0",
+    "chai": "^4.0.1",
     "superagent": "^3.5.2"
   },
   "readmeFilename": "README.md",

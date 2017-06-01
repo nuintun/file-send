@@ -1,10 +1,10 @@
 /*!
  * file-send
  * Date: 2016/6/21
- * https://github.com/Nuintun/file-send
+ * https://github.com/nuintun/file-send
  *
  * This is licensed under the MIT License (MIT).
- * For details, see: https://github.com/Nuintun/file-send/blob/master/LICENSE
+ * For details, see: https://github.com/nuintun/file-send/blob/master/LICENSE
  */
 
 'use strict';
@@ -22,8 +22,8 @@ var mime = require('mime-types');
 var util = require('./lib/util');
 var async = require('./lib/async');
 var encodeUrl = require('encodeurl');
-var micromatch = require('micromatch');
 var through = require('./lib/through');
+var micromatch = require('micromatch');
 var onFinished = require('on-finished');
 var escapeHtml = require('escape-html');
 var parseRange = require('range-parser');
@@ -214,10 +214,7 @@ function FileSend(request, options) {
         ignore = Array.isArray(options.ignore) ? options.ignore : [options.ignore];
 
         ignore = ignore.filter(function(pattern) {
-          return pattern
-            && (util.typeIs(pattern, 'string')
-              || util.typeIs(pattern, 'regexp')
-              || util.typeIs(pattern, 'function'));
+          return pattern && util.typeIs(pattern, 'string');
         });
       }
 
@@ -313,10 +310,12 @@ FileSend.prototype = Object.create(EventEmitter.prototype, {
 });
 
 /**
- * Check if this is a conditional GET request
+ * isConditionalGET
+ *
+ * @description Check if this is a conditional GET request
  *
  * @return {Boolean}
- * @api private
+ * @private
  */
 FileSend.prototype.isConditionalGET = function() {
   var context = this;
@@ -329,24 +328,60 @@ FileSend.prototype.isConditionalGET = function() {
 };
 
 /**
- * Check if the request is cacheable, aka
- * responded with 2xx or 304 (see RFC 2616 section 14.2{5,6})
+ * isPreconditionFailure
+ *
+ * @description Check if the request preconditions failed.
+ *
+ * @return {boolean}
+ * @private
+ */
+FileSend.prototype.isPreconditionFailure = function() {
+  var context = this;
+  var request = context.request;
+  // if-match
+  var match = request.headers['if-match'];
+
+  if (match) {
+    var etag = context.getHeader('ETag');
+
+    return !etag || (match !== '*' && match.split(/ *, */).every(function(match) {
+      return match !== etag && match !== 'W/' + etag && 'W/' + match !== etag;
+    }));
+  }
+
+  // if-unmodified-since
+  var unmodifiedSince = util.parseHttpDate(request.headers['if-unmodified-since']);
+
+  if (!isNaN(unmodifiedSince)) {
+    var lastModified = util.parseHttpDate(context.getHeader('Last-Modified'));
+
+    return isNaN(lastModified) || lastModified > unmodifiedSince;
+  }
+
+  return false;
+}
+
+/**
+ * isCachable
+ *
+ * @description Check if the request is cacheable,
+ *   aka responded with 2xx or 304 (see RFC 2616 section 14.2{5,6})
  *
  * @return {Boolean}
- * @api private
+ * @private
  */
 FileSend.prototype.isCachable = function() {
   var statusCode = this.statusCode;
 
-  return statusCode === 304
-    || (statusCode >= 200 && statusCode < 300);
+  return statusCode === 304 || (statusCode >= 200 && statusCode < 300);
 };
 
 /**
- * Check if the cache is fresh
+ * isFresh
+ * @description Check if the cache is fresh
  *
  * @return {Boolean}
- * @api private
+ * @private
  */
 FileSend.prototype.isFresh = function() {
   var context = this;
@@ -358,10 +393,11 @@ FileSend.prototype.isFresh = function() {
 };
 
 /**
- * Check if the range is fresh
+ * isRangeFresh
+ * @description Check if the range is fresh
  *
  * @return {Boolean}
- * @api private
+ * @private
  */
 FileSend.prototype.isRangeFresh = function() {
   var context = this;
@@ -371,9 +407,17 @@ FileSend.prototype.isRangeFresh = function() {
     return true;
   }
 
-  return ifRange.indexOf('"') !== -1
-    ? ifRange.indexOf(context.getHeader('ETag')) !== -1
-    : Date.parse(context.getHeader('Last-Modified')) <= Date.parse(ifRange);
+  // if-range as etag
+  if (ifRange.indexOf('"') !== -1) {
+    var etag = context.getHeader('ETag');
+
+    return Boolean(etag && ifRange.indexOf(etag) !== -1);
+  }
+
+  // if-range as modified date
+  var lastModified = context.getHeader('Last-Modified');
+
+  return util.parseHttpDate(lastModified) <= util.parseHttpDate(ifRange);
 };
 
 /**
@@ -381,7 +425,7 @@ FileSend.prototype.isRangeFresh = function() {
  *
  * @param path
  * @returns {*|String}
- * @api private
+ * @private
  */
 FileSend.prototype.isIgnore = function(path) {
   var context = this;
@@ -470,7 +514,7 @@ FileSend.prototype.emit = function(event) {
  *
  * @param response
  * @param message
- * @api private
+ * @private
  */
 FileSend.prototype.end = function(response, message) {
   // Unpipe
@@ -484,13 +528,13 @@ FileSend.prototype.end = function(response, message) {
 };
 
 /**
- * Set headers
+ * Set init headers
  *
  * @param response
  * @param stats
- * @api private
+ * @private
  */
-FileSend.prototype.setHeaders = function(response, stats) {
+FileSend.prototype.initHeaders = function(response, stats) {
   var type;
   var context = this;
   var charset = context.charset;
@@ -541,9 +585,7 @@ FileSend.prototype.setHeaders = function(response, stats) {
     if (eTag) {
       context.setHeader('ETag', eTag);
     } else {
-      context.setHeader('ETag', etag(stats, {
-        weak: false // Disable weak etag
-      }));
+      context.setHeader('ETag', etag(stats));
     }
   }
 };
@@ -553,7 +595,7 @@ FileSend.prototype.setHeaders = function(response, stats) {
  *
  * @param {Object} response
  * @param {Object} stats
- * @api private
+ * @private
  */
 FileSend.prototype.parseRange = function(response, stats) {
   var start, end;
@@ -659,7 +701,7 @@ FileSend.prototype.parseRange = function(response, stats) {
  * @param response
  * @param statusCode
  * @param statusMessage
- * @api private
+ * @private
  */
 FileSend.prototype.status = function(response, statusCode, statusMessage) {
   var context = this;
@@ -677,7 +719,7 @@ FileSend.prototype.status = function(response, statusCode, statusMessage) {
  * @param response
  * @param statusCode
  * @param statusMessage
- * @api private
+ * @private
  */
 FileSend.prototype.error = function(response, statusCode, statusMessage) {
   var context = this;
@@ -709,6 +751,7 @@ FileSend.prototype.error = function(response, statusCode, statusMessage) {
   context.setHeader('Cache-Control', 'private');
   context.setHeader('Content-Type', 'text/html; charset=UTF-8');
   context.setHeader('Content-Length', Buffer.byteLength(statusMessage));
+  context.setHeader('Content-Security-Policy', "default-src 'self'");
   context.setHeader('X-Content-Type-Options', 'nosniff');
 
   // Next
@@ -720,7 +763,7 @@ FileSend.prototype.error = function(response, statusCode, statusMessage) {
  *
  * @param response
  * @param error
- * @api private
+ * @private
  */
 FileSend.prototype.statError = function(response, error) {
   var context = this;
@@ -739,7 +782,7 @@ FileSend.prototype.statError = function(response, error) {
  * @param response
  * @param realpath
  * @param stats
- * @api private
+ * @private
  */
 FileSend.prototype.dir = function(response, realpath, stats) {
   var context = this;
@@ -766,7 +809,7 @@ FileSend.prototype.dir = function(response, realpath, stats) {
  *
  * @param response
  * @param location
- * @api private
+ * @private
  */
 FileSend.prototype.redirect = function(response, location) {
   var context = this;
@@ -784,6 +827,7 @@ FileSend.prototype.redirect = function(response, location) {
   context.setHeader('Cache-Control', 'no-cache');
   context.setHeader('Content-Type', 'text/html; charset=UTF-8');
   context.setHeader('Content-Length', Buffer.byteLength(message));
+  context.setHeader('Content-Security-Policy', "default-src 'self'");
   context.setHeader('X-Content-Type-Options', 'nosniff');
   context.setHeader('Location', location);
 
@@ -794,7 +838,7 @@ FileSend.prototype.redirect = function(response, location) {
  * Headers already sent
  *
  * @param response
- * @api private
+ * @private
  */
 FileSend.prototype.headersSent = function(response) {
   this.end(response, 'Can\'t set headers after they are sent.');
@@ -803,7 +847,7 @@ FileSend.prototype.headersSent = function(response) {
 /**
  * Write response headers
  * @param response
- * @api private
+ * @private
  */
 FileSend.prototype.writeHead = function(response) {
   var context = this;
@@ -824,7 +868,7 @@ FileSend.prototype.writeHead = function(response) {
  * Create file stream
  *
  * @param response
- * @api private
+ * @private
  */
 FileSend.prototype.createReadStream = function(response) {
   var context = this;
@@ -898,7 +942,7 @@ FileSend.prototype.createReadStream = function(response) {
  *
  * @param response
  * @param stats
- * @api private
+ * @private
  */
 FileSend.prototype.readIndex = function(response, stats) {
   var context = this;
@@ -935,7 +979,7 @@ FileSend.prototype.readIndex = function(response, stats) {
  * read
  *
  * @param response
- * @api private
+ * @private
  */
 FileSend.prototype.read = function(response) {
   var context = this;
@@ -996,11 +1040,16 @@ FileSend.prototype.read = function(response) {
     }
 
     // Set headers and parse range
-    context.setHeaders(response, stats);
+    context.initHeaders(response, stats);
 
     // Conditional get support
-    if (context.isConditionalGET() && context.isCachable() && context.isFresh()) {
-      context.status(response, 304);
+    if (context.isConditionalGET()) {
+      if (context.isPreconditionFailure()) {
+        context.status(response, 412);
+      } else if (context.isCachable() && context.isFresh()) {
+        context.status(response, 304);
+      }
+
       // Remove content-type
       context.removeHeader('Content-Type');
 

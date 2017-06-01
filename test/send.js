@@ -912,23 +912,171 @@ describe('Send(req, options)', function() {
         });
     });
 
-    it('should respond with 200 otherwise', function(done) {
-      request
-        .get(url(server, '/name.txt'))
-        .end(function(err, res) {
-          expect(res.status).to.equal(200);
+    describe('where "If-Match" is set', function() {
+      it('should respond with 200 when "*"', function(done) {
+        request
+          .get(url(server, '/name.txt'))
+          .set('If-Match', '*')
+          .end(function(err, res) {
+            expect(res.status).to.equal(200);
 
-          request
-            .get(url(server, '/name.txt'))
-            .set('If-None-Match', '"123"')
-            .end(function(err, res) {
-              expect(res.status).to.equal(200);
-              expect(res.text).to.equal('tobi');
+            done();
+          });
+      })
 
-              done();
-            });
-        });
+      it('should respond with 412 when ETag unmatched', function(done) {
+        request
+          .get(url(server, '/name.txt'))
+          .set('If-Match', '"foo", "bar"')
+          .end(function(err, res) {
+            expect(res.status).to.equal(412);
+
+            done();
+          });
+      });
+
+      it('should respond with 200 when ETag matched', function(done) {
+        request
+          .get(url(server, '/name.txt'))
+          .end(function(err, res) {
+            expect(res.status).to.equal(200);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-Match', '"foo", "bar", ' + res.headers['etag'])
+              .end(function(err, res) {
+                expect(res.status).to.equal(200);
+
+                done();
+              });
+          })
+      })
     });
+
+    describe('where "If-Modified-Since" is set', function() {
+      it('should respond with 304 when unmodified', function(done) {
+        request
+          .get(url(server, '/name.txt'))
+          .end(function(err, res) {
+            expect(res.status).to.equal(200);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-Modified-Since', res.headers['last-modified'])
+              .end(function(err, res) {
+                expect(res.status).to.equal(304);
+
+                done();
+              });
+          });
+      });
+
+      it('should respond with 200 when modified', function(done) {
+        request
+          .get(url(server, '/name.txt'))
+          .end(function(err, res) {
+            expect(res.status).to.equal(200);
+
+            var lmod = new Date(res.headers['last-modified']);
+            var date = new Date(lmod - 60000);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-Modified-Since', date.toUTCString())
+              .end(function(err, res) {
+                expect(res.status).to.equal(200);
+
+                done();
+              });
+          })
+      })
+    });
+
+    describe('where "If-None-Match" is set', function() {
+      it('should respond with 304 when ETag matched', function(done) {
+        request
+          .get(url(server, '/name.txt'))
+          .end(function(err, res) {
+            expect(res.status).to.equal(200);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-None-Match', res.headers.etag)
+              .end(function(err, res) {
+                expect(res.status).to.equal(304);
+
+                done();
+              });
+          });
+      });
+
+      it('should respond with 200 when ETag unmatched', function(done) {
+        request
+          .get(url(server, '/name.txt'))
+          .end(function(err, res) {
+            expect(res.status).to.equal(200);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-None-Match', '"123"')
+              .end(function(err, res) {
+                expect(res.status).to.equal(200);
+
+                done();
+              });
+          });
+      });
+    });
+
+    describe('where "If-Unmodified-Since" is set', function() {
+      it('should respond with 200 when unmodified', function(done) {
+        request
+          .get(url(server, '/name.txt'))
+          .end(function(err, res) {
+            expect(res.status).to.equal(200);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-Unmodified-Since', res.headers['last-modified'])
+              .end(function(err, res) {
+                expect(res.status).to.equal(200);
+
+                done();
+              });
+          });
+      });
+
+      it('should respond with 412 when modified', function(done) {
+        request
+          .get(url(server, '/name.txt'))
+          .end(function(err, res) {
+            expect(res.status).to.equal(200);
+
+            var lmod = new Date(res.headers['last-modified']);
+            var date = new Date(lmod - 60000).toUTCString();
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-Unmodified-Since', date)
+              .end(function(err, res) {
+                expect(res.status).to.equal(412);
+
+                done();
+              });
+          });
+      });
+
+      it('should respond with 200 when invalid date', function(done) {
+        request
+          .get(url(server, '/name.txt'))
+          .set('If-Unmodified-Since', 'foo')
+          .end(function(err, res) {
+            expect(res.status).to.equal(200);
+
+            done();
+          });
+      })
+    })
   });
 
   describe('with range request', function() {
