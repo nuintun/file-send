@@ -900,7 +900,7 @@ FileSend.prototype.createReadStream = function(response) {
     // Create file stream
     var file = fs.createReadStream(this.realpath, range);
 
-    // Push boundary
+    // Push open boundary
     range.open && stream.write(range.open);
 
     // Error handling code-smell
@@ -911,14 +911,12 @@ FileSend.prototype.createReadStream = function(response) {
       destroy(file);
     });
 
-    // File stream readable
-    file.on('data', function(data) {
-      stream.write(data);
-    });
-
     // File stream end
     file.on('end', function() {
-      // Push end boundary
+      // Stop pipe stream
+      file.unpipe(stream);
+
+      // Push close boundary
       range.close && stream.write(range.close);
 
       // Next
@@ -926,6 +924,9 @@ FileSend.prototype.createReadStream = function(response) {
       // Destroy file stream
       destroy(file);
     });
+
+    // Pipe stream
+    file.pipe(stream, { end: false });
   }, function() {
     // End stream
     stream.end();
