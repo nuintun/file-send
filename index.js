@@ -604,8 +604,10 @@ FileSend.prototype.parseRange = function(response, stats) {
   var context = this;
   var size = stats.size;
   var contentLength = size;
-  var boundary, endBoundary;
   var ranges = context.request.headers['range'];
+
+  // reset ranges
+  context.ranges = [];
 
   // Range support
   if (ranges) {
@@ -622,49 +624,49 @@ FileSend.prototype.parseRange = function(response, stats) {
 
         // Multiple ranges
         if (ranges.length > 1) {
+          var close;
+          // Range boundary
+          var boundary = '<' + util.boundaryGenerator() + '>';
+
           // Reset content-length
           contentLength = 0;
-
-          // Range boundary
-          boundary = util.boundaryGenerator();
-
           // If user set content-type use user define
           contentType = context.getHeader('Content-Type') || 'application/octet-stream';
 
           // Set multipart/byteranges
-          context.setHeader('Content-Type', 'multipart/byteranges; boundary=<' + boundary + '>');
+          context.setHeader('Content-Type', 'multipart/byteranges; boundary=' + boundary);
 
           // Create boundary and end boundary
-          boundary = '\r\n--<' + boundary + '>';
-          endBoundary = boundary + '--\r\n';
+          boundary = '\r\n--' + boundary;
+          close = boundary + '--\r\n';
           boundary += '\r\nContent-Type: ' + contentType;
 
           // Loop ranges
           ranges.forEach(function(range) {
-            var _boundary;
+            var open;
 
             // Range start and end
             start = range.start;
             end = range.end;
 
             // Set fields
-            _boundary = boundary + '\r\nContent-Range: '
+            open = boundary + '\r\nContent-Range: '
               + 'bytes ' + start + '-' + end
               + '/' + size + '\r\n\r\n';
 
             // Set property
-            range.boundary = _boundary;
+            range.open = open;
             // Compute content-length
-            contentLength += end - start + Buffer.byteLength(_boundary) + 1;
+            contentLength += end - start + Buffer.byteLength(open) + 1;
 
             // Cache range
             this.ranges.push(range);
           }, context);
 
           // The last add end boundary
-          context.ranges[context.ranges.length - 1].endBoundary = endBoundary;
+          context.ranges[context.ranges.length - 1].close = close;
           // Compute content-length
-          contentLength += Buffer.byteLength(endBoundary);
+          contentLength += Buffer.byteLength(close);
         } else {
           context.ranges.push(ranges[0]);
 
@@ -875,12 +877,6 @@ FileSend.prototype.createReadStream = function(response) {
   var ranges = context.ranges;
   var stream = context.stream;
 
-  // Pipe to response
-  context._stream.pipe(response);
-
-  // Format ranges
-  ranges = ranges.length === 0 ? [{}] : ranges;
-
   // Stream error
   var onerror = function(error) {
     // Request already finished
@@ -893,48 +889,50 @@ FileSend.prototype.createReadStream = function(response) {
   // Error handling code-smell
   stream.on('error', onerror);
 
+  // Format ranges
+  ranges = ranges.length ? ranges : [{}];
+
   // Contat range
   async.series(ranges, function(range, next) {
     // Request already finished
     if (onFinished.isFinished(response)) return;
 
     // Create file stream
-    var fileStream = fs.createReadStream(this.realpath, range);
+    var file = fs.createReadStream(this.realpath, range);
 
     // Push boundary
-    range.boundary && stream.write(range.boundary);
+    range.open && stream.write(range.open);
 
     // Error handling code-smell
-    fileStream.on('error', function(error) {
+    file.on('error', function(error) {
       // Call onerror
       onerror(error);
       // Destroy file stream
-      destroy(fileStream);
+      destroy(file);
     });
 
-    // Stream end
-    fileStream.on('end', function() {
-      // Unpipe
-      fileStream.unpipe(stream);
+    // File stream readable
+    file.on('data', function(data) {
+      stream.write(data);
+    });
+
+    // File stream end
+    file.on('end', function() {
+      // Push end boundary
+      range.close && stream.write(range.close);
 
       // Next
       next();
-
       // Destroy file stream
-      destroy(fileStream);
+      destroy(file);
     });
-
-    // Pipe data to stream
-    fileStream.pipe(stream, { end: false });
   }, function() {
-    var range = ranges[ranges.length - 1];
-
-    // Push end boundary
-    range.endBoundary && stream.write(range.endBoundary);
-
     // End stream
     stream.end();
   }, context);
+
+  // Pipe to response
+  context._stream.pipe(response);
 };
 
 /**
