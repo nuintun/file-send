@@ -60,7 +60,7 @@ http.ServerResponse.prototype.writeHead = function() {
   }
 
   // Call origin method
-  originWriteHead.apply(context, arguments);
+  util.apply(originWriteHead, context, arguments);
 };
 
 /**
@@ -487,6 +487,8 @@ FileSend.prototype.removeHeader = function(name) {
   }
 };
 
+// Array slice
+var slice = Array.prototype.slice;
 // Origin emit method
 var emit = FileSend.prototype.emit;
 
@@ -501,7 +503,7 @@ FileSend.prototype.emit = function(event) {
 
   // Emit event
   if (listenerCount(context, event) > 0) {
-    emit.apply(context, [].slice.call(arguments));
+    util.apply(emit, context, slice.call(arguments));
 
     return true;
   } else {
@@ -598,22 +600,20 @@ FileSend.prototype.initHeaders = function(response, stats) {
  * @private
  */
 FileSend.prototype.parseRange = function(response, stats) {
-  var start, end;
-  var rangeFresh;
-  var contentType;
   var context = this;
   var size = stats.size;
   var contentLength = size;
   var ranges = context.request.headers['range'];
 
-  // reset ranges
+  // Reset ranges
   context.ranges = [];
 
   // Range support
   if (ranges) {
     // Range fresh
-    rangeFresh = context.isRangeFresh();
+    var rangeFresh = context.isRangeFresh();
 
+    // Range fresh
     if (rangeFresh) {
       // Parse range
       ranges = parseRange(size, ranges, { combine: true });
@@ -624,35 +624,35 @@ FileSend.prototype.parseRange = function(response, stats) {
 
         // Multiple ranges
         if (ranges.length > 1) {
-          var close;
           // Range boundary
           var boundary = '<' + util.boundaryGenerator() + '>';
-
-          // Reset content-length
-          contentLength = 0;
           // If user set content-type use user define
-          contentType = context.getHeader('Content-Type') || 'application/octet-stream';
+          var contentType = context.getHeader('Content-Type') || 'application/octet-stream';
 
           // Set multipart/byteranges
           context.setHeader('Content-Type', 'multipart/byteranges; boundary=' + boundary);
 
           // Create boundary and end boundary
           boundary = '\r\n--' + boundary;
-          close = boundary + '--\r\n';
+
+          // Closed boundary
+          var close = boundary + '--\r\n';
+
+          // Common boundary
           boundary += '\r\nContent-Type: ' + contentType;
+
+          // Reset content-length
+          contentLength = 0;
 
           // Loop ranges
           ranges.forEach(function(range) {
             var open;
-
             // Range start and end
-            start = range.start;
-            end = range.end;
+            var start = range.start;
+            var end = range.end;
 
             // Set fields
-            open = boundary + '\r\nContent-Range: '
-              + 'bytes ' + start + '-' + end
-              + '/' + size + '\r\n\r\n';
+            open = boundary + '\r\nContent-Range: ' + 'bytes ' + start + '-' + end + '/' + size + '\r\n\r\n';
 
             // Set property
             range.open = open;
@@ -663,18 +663,20 @@ FileSend.prototype.parseRange = function(response, stats) {
             this.ranges.push(range);
           }, context);
 
-          // The last add end boundary
+          // The last add closed boundary
           context.ranges[context.ranges.length - 1].close = close;
           // Compute content-length
           contentLength += Buffer.byteLength(close);
         } else {
-          context.ranges.push(ranges[0]);
-
-          start = ranges[0].start;
-          end = ranges[0].end;
+          var range = ranges[0];
+          var start = range.start;
+          var end = range.end;
 
           // Set content-range
           context.setHeader('Content-Range', 'bytes ' + start + '-' + end + '/' + size);
+
+          // Cache reange
+          context.ranges.push(range);
 
           // Compute content-length
           contentLength = end - start + 1;
