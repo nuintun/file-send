@@ -1235,8 +1235,6 @@ describe('Send(req, options)', function() {
           .get(url(server, '/nums'))
           .set('Range', 'bytes=1-1,3-')
           .end(function(err, res) {
-            if (err) return done(err);
-
             expect(res.status).to.equal(206);
             expect(res.headers['content-type']).to.match(/^multipart\/byteranges; boundary=<[^<>]+>$/);
 
