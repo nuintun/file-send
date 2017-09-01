@@ -1,6 +1,6 @@
 {
   "name": "file-send",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "A http file send",
   "author": {
     "name": "nuintun",
@@ -45,7 +45,7 @@
   "devDependencies": {
     "after": "^0.8.2",
     "chai": "^4.1.1",
-    "superagent": "^3.5.2"
+    "superagent": "^3.6.0"
   },
   "readmeFilename": "README.md",
   "scripts": {
