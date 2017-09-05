@@ -921,10 +921,11 @@ FileSend.prototype.createReadStream = function(response) {
       // Push close boundary
       range.close && stream.write(range.close);
 
-      // Next
-      next();
       // Destroy file stream
       destroy(file);
+
+      // Next
+      next();
     });
 
     // Pipe stream
