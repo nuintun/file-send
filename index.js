@@ -663,6 +663,10 @@ FileSend.prototype.parseRange = function(response, stats) {
             this.ranges.push(range);
           }, context);
 
+          // The first open boundary remove \r\n
+          var open = context.ranges[0].open;
+
+          context.ranges[0].open = open.replace(/^\r\n/, '');
           // The last add closed boundary
           context.ranges[context.ranges.length - 1].close = close;
           // Compute content-length
