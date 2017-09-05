@@ -923,10 +923,10 @@ FileSend.prototype.createReadStream = function(response) {
 
       // Destroy file stream
       destroy(file);
-
-      // Next
-      next();
     });
+
+    // Next
+    file.on('close', next);
 
     // Pipe stream
     file.pipe(stream, { end: false });
