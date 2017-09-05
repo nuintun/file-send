@@ -913,8 +913,8 @@ FileSend.prototype.createReadStream = function(response) {
       destroy(file);
     });
 
-    // File stream close
-    file.on('close', function() {
+    // File stream end
+    file.on('end', function() {
       // Stop pipe stream
       file.unpipe(stream);
 
