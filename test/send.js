@@ -1485,7 +1485,7 @@ describe('Options', function() {
 
   describe('ignoreAccess', function() {
     describe('should default to "deny"', function() {
-      var server = createServer(fixtures, { ignore: ['/**/.*?(/*.*|/)'] });
+      var server = createServer(fixtures, { ignore: ['**/.*?(/*)'] });
 
       server.listen();
 
