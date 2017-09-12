@@ -1231,17 +1231,54 @@ describe('Send(req, options)', function() {
 
     describe('when multiple ranges', function() {
       it('should respond with 206 and the range contents', function(done) {
-        request
-          .get(url(server, '/nums'))
-          .set('Range', 'bytes=1-1,3-')
-          .end(function(err, res) {
-            if (err) return done(err);
+        var address = server.address();
 
-            expect(res.status).to.equal(206);
-            expect(res.headers['content-type']).to.match(/^multipart\/byteranges; boundary=<[^<>]+>$/);
+        if (!address) {
+          server.listen();
+
+          address = server.address();
+        }
+
+        var options = {
+          hostname: '127.0.0.1',
+          port: address.port,
+          path: '/nums',
+          method: 'GET',
+          keepAlive: true,
+          headers: {
+            'Range': 'bytes=1-1,3-',
+            'Cache-Control': 'no-cache'
+          }
+        };
+
+        var req = http.request(options, function(res) {
+          var data;
+
+          res.on('data', function(chunk) {
+            if (!data) {
+              data = chunk;
+            } else {
+              data = Buffer.concat([data, chunk]);
+            }
+          });
+
+          res.on('end', function() {
+            var contentType = res.headers['content-type'];
+            var boundary = /^multipart\/byteranges; boundary=(<[^<>]+>)$/.exec(contentType)[1];
+
+            expect(res.statusCode).to.equal(206);
+            expect(contentType).to.match(/^multipart\/byteranges; boundary=<[^<>]+>$/);
+            expect(data.toString()).to.include(boundary);
 
             done();
           });
+        });
+
+        req.on('error', function(err) {
+          done(err);
+        });
+
+        req.end();
       });
     });
 
