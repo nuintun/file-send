@@ -1459,7 +1459,7 @@ describe('Options', function() {
 
     it('should can ignore match', function(done) {
       var cb = after(2, done);
-      var server = createServer(fixtures, { ignore: ['/**/.*?(/*.*|/)'] });
+      var server = createServer(fixtures, { ignore: ['**/.*?(/*)'] });
 
       server.listen();
 
@@ -1581,7 +1581,7 @@ describe('Options', function() {
         var root = path.join(fixtures, '.mine');
 
         request
-          .get(url(createServer(root, { ignore: ['/**/.*?(/*.*|/)'] }), '/name.txt'))
+          .get(url(createServer(root, { ignore: ['**/.*?(/*)'] }), '/name.txt'))
           .end(function(err, res) {
             expect(res.status).to.equal(200);
             expect(res.text).to.equal('tobi');
@@ -1592,7 +1592,7 @@ describe('Options', function() {
     });
 
     describe('when "ignore"', function() {
-      var options = { ignore: ['/**/.*?(/*.*|/)'], ignoreAccess: 'ignore' };
+      var options = { ignore: ['**/.*?(/*)'], ignoreAccess: 'ignore' };
       var server = createServer(fixtures, options);
 
       server.listen();
@@ -1665,7 +1665,7 @@ describe('Options', function() {
 
       it('should send files in root ignore directory', function(done) {
         var root = path.join(fixtures, '.mine');
-        var options = { ignore: ['/**/.*?(/*.*|/)'], ignoreAccess: 'ignore' };
+        var options = { ignore: ['**/.*?(/*)'], ignoreAccess: 'ignore' };
         var server = createServer(root, options);
 
         request
