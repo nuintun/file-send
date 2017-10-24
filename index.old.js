@@ -1,51 +1,52 @@
 /*!
  * file-send
- *
- * Date: 2017/10/24
+ * Date: 2016/6/21
+ * https://github.com/nuintun/file-send
  *
  * This is licensed under the MIT License (MIT).
+ * For details, see: https://github.com/nuintun/file-send/blob/master/LICENSE
  */
 
 'use strict';
 
 // Import lib
-const ms = require('ms');
-const fs = require('fs');
-const url = require('url');
-const path = require('path');
-const http = require('http');
-const etag = require('etag');
-const fresh = require('fresh');
-const destroy = require('destroy');
-const mime = require('mime-types');
-const utils = require('./lib/utils');
-const async = require('./lib/async');
-const encodeUrl = require('encodeurl');
-const through = require('./lib/through');
-const micromatch = require('micromatch');
-const onFinished = require('on-finished');
-const escapeHtml = require('escape-html');
-const parseRange = require('range-parser');
-const EventEmitter = require('events').EventEmitter;
+var ms = require('ms');
+var fs = require('fs');
+var url = require('url');
+var path = require('path');
+var http = require('http');
+var etag = require('etag');
+var fresh = require('fresh');
+var destroy = require('destroy');
+var mime = require('mime-types');
+var util = require('./lib/util');
+var async = require('./lib/async');
+var encodeUrl = require('encodeurl');
+var through = require('./lib/through');
+var micromatch = require('micromatch');
+var onFinished = require('on-finished');
+var escapeHtml = require('escape-html');
+var parseRange = require('range-parser');
+var EventEmitter = require('events').EventEmitter;
 
 // The path sep
-const SEP = path.sep;
+var SEP = path.sep;
 // Current working directory
-const CWD = process.cwd();
+var CWD = process.cwd();
 // The max max-age set
-const MAXMAXAGE = 60 * 60 * 24 * 365;
+var MAXMAXAGE = 60 * 60 * 24 * 365;
 // File not found status
-const NOTFOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
+var NOTFOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
 
 // Common method
-const join = path.join;
-const resolve = path.resolve;
-const parseUrl = url.parse;
-const listenerCount = EventEmitter.prototype.listenerCount;
-const originWriteHead = http.ServerResponse.prototype.writeHead;
+var join = path.join;
+var resolve = path.resolve;
+var parseUrl = url.parse;
+var listenerCount = EventEmitter.prototype.listenerCount;
+var originWriteHead = http.ServerResponse.prototype.writeHead;
 
 // Hack listener count
-listenerCount = utils.typeIs(listenerCount, 'function') ? function(emitter, eventName) {
+listenerCount = util.typeIs(listenerCount, 'function') ? function(emitter, eventName) {
   return emitter.listenerCount(eventName);
 } : EventEmitter.listenerCount;
 
@@ -59,17 +60,8 @@ http.ServerResponse.prototype.writeHead = function() {
   }
 
   // Call origin method
-  utils.apply(originWriteHead, context, arguments);
+  util.apply(originWriteHead, context, arguments);
 };
-
-/**
- * @class FileSend
- */
-class FileSend {
-  constructor(request, options) {
-
-  }
-}
 
 /**
  * FileSend
@@ -96,7 +88,7 @@ function FileSend(request, options) {
   context.ranges = [];
   context.request = request;
   context.method = context.request.method;
-  context.charset = utils.typeIs(options.charset, 'string') ? options.charset : null;
+  context.charset = util.typeIs(options.charset, 'string') ? options.charset : null;
   context.glob = options.glob || {};
 
   if (!context.glob.hasOwnProperty('dot')) {
@@ -112,8 +104,8 @@ function FileSend(request, options) {
     enumerable: true,
     get: function() {
       if (!url) {
-        url = utils.decodeURI(request.url);
-        url = url === -1 ? url : utils.normalize(url);
+        url = util.decodeURI(request.url);
+        url = url === -1 ? url : util.normalize(url);
       }
 
       return url;
@@ -125,11 +117,11 @@ function FileSend(request, options) {
     enumerable: true,
     get: function() {
       if (!root) {
-        root = utils.typeIs(options.root, 'string')
+        root = util.typeIs(options.root, 'string')
           ? resolve(options.root)
           : CWD;
 
-        root = utils.posixURI(join(root, SEP));
+        root = util.posixURI(join(root, SEP));
       }
 
       return root;
@@ -150,7 +142,7 @@ function FileSend(request, options) {
 
         path = context.url === -1
           ? context.url
-          : utils.decodeURI(context._url.pathname);
+          : util.decodeURI(context._url.pathname);
 
         // //a/b/c ==> /a/b/c
         path = path === -1
@@ -171,7 +163,7 @@ function FileSend(request, options) {
 
         realpath = context.path === -1
           ? context.path
-          : utils.posixURI(join(context.root, context.path));
+          : util.posixURI(join(context.root, context.path));
       }
 
       return realpath;
@@ -206,7 +198,7 @@ function FileSend(request, options) {
         index = Array.isArray(options.index) ? options.index : [options.index];
 
         index = index.filter(function(index) {
-          return index && utils.typeIs(index, 'string');
+          return index && util.typeIs(index, 'string');
         });
       }
 
@@ -222,7 +214,7 @@ function FileSend(request, options) {
         ignore = Array.isArray(options.ignore) ? options.ignore : [options.ignore];
 
         ignore = ignore.filter(function(pattern) {
-          return pattern && utils.typeIs(pattern, 'string');
+          return pattern && util.typeIs(pattern, 'string');
         });
       }
 
@@ -254,7 +246,7 @@ function FileSend(request, options) {
     enumerable: true,
     get: function() {
       if (!maxAge) {
-        maxAge = utils.typeIs(options.maxAge, 'string')
+        maxAge = util.typeIs(options.maxAge, 'string')
           ? ms(options.maxAge) / 1000
           : Number(options.maxAge);
 
@@ -358,10 +350,10 @@ FileSend.prototype.isPreconditionFailure = function() {
   }
 
   // if-unmodified-since
-  var unmodifiedSince = utils.parseHttpDate(request.headers['if-unmodified-since']);
+  var unmodifiedSince = util.parseHttpDate(request.headers['if-unmodified-since']);
 
   if (!isNaN(unmodifiedSince)) {
-    var lastModified = utils.parseHttpDate(context.getHeader('Last-Modified'));
+    var lastModified = util.parseHttpDate(context.getHeader('Last-Modified'));
 
     return isNaN(lastModified) || lastModified > unmodifiedSince;
   }
@@ -425,7 +417,7 @@ FileSend.prototype.isRangeFresh = function() {
   // if-range as modified date
   var lastModified = context.getHeader('Last-Modified');
 
-  return utils.parseHttpDate(lastModified) <= utils.parseHttpDate(ifRange);
+  return util.parseHttpDate(lastModified) <= util.parseHttpDate(ifRange);
 };
 
 /**
@@ -450,7 +442,7 @@ FileSend.prototype.isIgnore = function(path) {
 FileSend.prototype.setHeader = function(name, value) {
   var context = this;
 
-  if (name && utils.typeIs(name, 'string')) {
+  if (name && util.typeIs(name, 'string')) {
     var key = name.toLowerCase();
 
     if (this.headerNames.hasOwnProperty(key)) {
@@ -470,7 +462,7 @@ FileSend.prototype.setHeader = function(name, value) {
 FileSend.prototype.getHeader = function(name) {
   var context = this;
 
-  if (name && utils.typeIs(name, 'string')) {
+  if (name && util.typeIs(name, 'string')) {
     var key = name.toLowerCase();
 
     if (context.headerNames.hasOwnProperty(key)) {
@@ -487,7 +479,7 @@ FileSend.prototype.getHeader = function(name) {
 FileSend.prototype.removeHeader = function(name) {
   var context = this;
 
-  if (name && utils.typeIs(name, 'string')) {
+  if (name && util.typeIs(name, 'string')) {
     var key = name.toLowerCase();
 
     delete context.headers[name];
@@ -511,7 +503,7 @@ FileSend.prototype.emit = function(event) {
 
   // Emit event
   if (listenerCount(context, event) > 0) {
-    utils.apply(emit, context, slice.call(arguments));
+    util.apply(emit, context, slice.call(arguments));
 
     return true;
   } else {
@@ -573,7 +565,7 @@ FileSend.prototype.initHeaders = function(response, stats) {
   }
 
   // Set cache-control
-  if (cacheControl && utils.typeIs(cacheControl, 'string')) {
+  if (cacheControl && util.typeIs(cacheControl, 'string')) {
     context.setHeader('Cache-Control', cacheControl);
   } else if (context.maxAge > 0) {
     context.setHeader('Cache-Control', 'max-age=' + context.maxAge);
@@ -627,13 +619,13 @@ FileSend.prototype.parseRange = function(response, stats) {
       ranges = parseRange(size, ranges, { combine: true });
 
       // Valid ranges, support multiple ranges
-      if (utils.typeIs(ranges, 'array') && ranges.type === 'bytes') {
+      if (util.typeIs(ranges, 'array') && ranges.type === 'bytes') {
         context.status(response, 206);
 
         // Multiple ranges
         if (ranges.length > 1) {
           // Range boundary
-          var boundary = '<' + utils.boundaryGenerator() + '>';
+          var boundary = '<' + util.boundaryGenerator() + '>';
           // If user set content-type use user define
           var contentType = context.getHeader('Content-Type') || 'application/octet-stream';
 
@@ -975,7 +967,7 @@ FileSend.prototype.readIndex = function(response, stats) {
       if (error || !stats.isFile()) {
         next();
       } else {
-        this.redirect(response, utils.posixURI(path));
+        this.redirect(response, util.posixURI(path));
       }
     }.bind(context));
   }, function() {
@@ -1016,7 +1008,7 @@ FileSend.prototype.read = function(response) {
   }
 
   // Malicious path
-  if (utils.isOutBound(context.realpath, context.root)) {
+  if (util.isOutBound(context.realpath, context.root)) {
     return process.nextTick(function() {
       this.error(response, 403);
     }.bind(context));
