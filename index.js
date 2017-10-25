@@ -62,12 +62,231 @@ http.ServerResponse.prototype.writeHead = function() {
   utils.apply(originWriteHead, context, arguments);
 };
 
+const urlSymbol = Symbol('url');
+const pathSymbol = Symbol('path');
+const realpathSymbol = Symbol('realpath');
+const rootSymbol = Symbol('root');
+const etagSymbol = Symbol('etag');
+const indexSymbol = Symbol('index');
+const ignoreSymbol = Symbol('ignore');
+const ignoreAccessSymbol = Symbol('ignoreAccess');
+const maxAgeSymbol = Symbol('maxAge');
+const lastModifiedSymbol = Symbol('lastModified');
+const parsedUrlSymbol = Symbol('parsedUrl');
+const streamSymbol = Symbol('stream');
+const hasTrailingSlashSymbol = Symbol('hasTrailingSlash');
+
 /**
  * @class FileSend
  */
 class FileSend {
   constructor(request, options) {
+    if (!(this instanceof FileSend)) {
+      return new FileSend(request, options);
+    }
 
+    if (!(request instanceof http.IncomingMessage)) {
+      throw new TypeError('The first argument must be a http request.');
+    }
+
+    options = options || {};
+
+    this.headers = {};
+    this.ranges = [];
+    this.request = request;
+    this.method = this.request.method;
+    this.charset = utils.typeIs(options.charset, 'string') ? options.charset : null;
+    this.glob = options.glob || {};
+
+    if (!this.glob.hasOwnProperty('dot')) {
+      this.glob.dot = true;
+    }
+
+    this[parsedUrlSymbol] = this.url === -1
+      ? {}
+      : parseUrl(this.url, options.parseQueryString, options.slashesDenoteHost);
+  }
+
+  get url() {
+    let url = this[urlSymbol];
+
+    if (!url) {
+      url = utils.decodeURI(this.request.url);
+      url = url === -1 ? url : utils.normalize(url);
+
+      this[urlSymbol] = url;
+    }
+
+    return url;
+  }
+
+  get root() {
+    let root = this[rootSymbol];
+    const options = this.options;
+
+    if (!root) {
+      root = utils.typeIs(options.root, 'string')
+        ? resolve(options.root)
+        : CWD;
+
+      root = utils.posixURI(join(root, SEP));
+
+      this[rootSymbol] = root;
+    }
+
+    return root;
+  }
+
+  get path() {
+    let path = this[pathSymbol];
+
+    if (!path) {
+      const url = this.url;
+
+      path = url === -1
+        ? url
+        : util.decodeURI(this[parsedUrlSymbol].pathname);
+
+      // //a/b/c ==> /a/b/c
+      path = path === -1
+        ? path
+        : path.replace(/^\/{2,}/, '/');
+
+      this[pathSymbol] = path;
+    }
+
+    return path;
+  }
+
+  get realpath() {
+    let realpath = this[realpathSymbol];
+
+    if (!realpath) {
+      const path = this;
+
+      realpath = path === -1
+        ? path
+        : util.posixURI(join(this.root, path));
+
+      this[realpathSymbol] = realpath;
+    }
+
+    return realpath;
+  }
+
+  get query() {
+    return this[parsedUrlSymbol].query;
+  }
+
+  get etag() {
+    let etag = this[etagSymbol];
+
+    if (!etag) {
+      const options = this.options;
+
+      etag = options.etag !== undefined
+        ? Boolean(options.etag)
+        : true;
+
+      this[etagSymbol] = etag;
+    }
+
+    return etag;
+  }
+
+  get index() {
+    let index = this[indexSymbol];
+
+    if (!index) {
+      const options = this.options;
+
+      index = Array.isArray(options.index) ? options.index : [options.index];
+
+      index = index.filter(function(index) {
+        return index && util.typeIs(index, 'string');
+      });
+
+      this[indexSymbol] = index;
+    }
+
+    return index;
+  }
+
+  get ignore() {
+    let ignore = this[ignoreSymbol];
+
+    if (!ignore) {
+      const options = this.options;
+
+      ignore = Array.isArray(options.ignore) ? options.ignore : [options.ignore];
+
+      ignore = ignore.filter(function(pattern) {
+        return pattern && util.typeIs(pattern, 'string');
+      });
+
+      this[ignoreSymbol] = ignore;
+    }
+
+    return ignore;
+  }
+
+  get ignoreAccess() {
+    let ignoreAccess = this[ignoreAccessSymbol];
+
+    if (!ignoreAccess) {
+      const options = this.options;
+
+      switch (options.ignoreAccess) {
+        case 'deny':
+        case 'ignore':
+          ignoreAccess = options.ignoreAccess;
+          break;
+        default:
+          ignoreAccess = 'deny';
+      }
+
+      this[ignoreAccessSymbol] = ignoreAccess;
+    }
+
+    return ignoreAccess;
+  }
+
+  get maxAge() {
+    let maxAge = this[maxAgeSymbol];
+
+    if (!maxAge) {
+      const options = this.options;
+
+      maxAge = util.typeIs(options.maxAge, 'string')
+        ? ms(options.maxAge) / 1000
+        : Number(options.maxAge);
+
+      maxAge = !isNaN(maxAge)
+        ? Math.min(Math.max(0, maxAge), MAXMAXAGE)
+        : 0;
+
+      maxAge = Math.floor(maxAge);
+
+      this[maxAgeSymbol] = maxAge;
+    }
+
+    return maxAge;
+  }
+
+  get lastModified() {
+    let lastModified = this[lastModifiedSymbol];
+
+    if (!lastModified) {
+      const options = this.options;
+
+      lastModified = options.lastModified !== undefined
+        ? Boolean(options.lastModified)
+        : true;
+
+      this[lastModifiedSymbol] = lastModified;
+    }
+
+    return lastModified;
   }
 }
 
