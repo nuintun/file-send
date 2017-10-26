@@ -1,18 +1,22 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "newLine": "LF",
     "pretty": true,
     "target": "es6",
+    "newLine": "LF",
+    "outDir": "./dist",
     "module": "commonjs",
     "sourceMap": false,
     "declaration": true,
+    "noImplicitAny": false,
     "noUnusedLocals": true,
     "listEmittedFiles": true,
     "noUnusedParameters": true,
     "allowSyntheticDefaultImports": true
   },
   "exclude": [
+    "dist",
+    "typings",
     "node_modules"
   ]
 }
