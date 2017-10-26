@@ -7,11 +7,10 @@ require('path');
 var http = require('http');
 require('etag');
 require('fresh');
-var Events = require('events');
+var Stream = require('stream');
 require('destroy');
 require('mime-types');
 require('encodeurl');
-require('stream');
 require('micromatch');
 require('on-finished');
 require('escape-html');
@@ -23,6 +22,7 @@ require('range-parser');
  * @version 2017/10/24
  */
 
+const toString = Object.prototype.toString;
 const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 
 /**
@@ -32,7 +32,28 @@ const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.s
  * @param {string} type
  * @returns {boolean}
  */
+function typeIs(value, type) {
+  // Format type
+  type = (type + '').toLowerCase();
 
+  // Is array
+  if (type === 'array') {
+    return Array.isArray(value);
+  }
+
+  // Get real type
+  const realType = toString.call(value).toLowerCase();
+
+  // Switch
+  switch (type) {
+    case 'nan':
+      // Is nan
+      return realType === '[object number]' && value !== value;
+    default:
+      // Is other
+      return realType === '[object ' + type + ']';
+  }
+}
 
 /**
  * @function isOutBound
@@ -121,6 +142,78 @@ const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.s
 /**
  * @class DestroyableTransform
  */
+class DestroyableTransform extends Stream.Transform {
+
+  /**
+   * @constructor
+   * @param {Object} options
+   */
+  constructor(options) {
+    super(options);
+
+    this._destroyed = false;
+  }
+
+  /**
+   * @method destroy
+   * @param {any} error
+   */
+  destroy(error) {
+    if (this._destroyed) return;
+
+    this._destroyed = true;
+
+    const self = this;
+
+    process.nextTick(function() {
+      if (error) self.emit('error', error);
+
+      self.emit('close');
+    });
+  }
+}
+
+/**
+ * @function noop
+ * @description A noop _transform function
+ * @param {any} chunk
+ * @param {string} encoding
+ * @param {Function} next
+ */
+function noop(chunk, encoding, next) {
+  next(null, chunk);
+}
+
+/**
+ * @function throuth
+ * @description Create a new export function, contains common logic for dealing with arguments
+ * @param {Object} [options]
+ * @param {Function} transform
+ * @param {Function} [flush]
+ * @returns {DestroyableTransform}
+ */
+function through(options, transform, flush) {
+  if (typeIs(options, 'function')) {
+    flush = transform;
+    transform = options;
+    options = {};
+  }
+
+  options = options || {};
+  options.objectMode = options.objectMode || false;
+  options.highWaterMark = options.highWaterMark || 16;
+
+  if (!typeIs(transform, 'function')) transform = noop;
+  if (!typeIs(flush, 'function')) flush = null;
+
+  const stream = new DestroyableTransform(options);
+
+  stream._transform = transform;
+
+  if (flush) stream._flush = flush;
+
+  return stream;
+}
 
 /**
  * @module file-send
@@ -148,10 +241,15 @@ http.ServerResponse.prototype.writeHead = function() {
  * @class FileSend
  */
 
-class FileSend extends Events {
-  constructor(request, response, options) {
-
-  }
+class FileSend extends Stream {
+  /**
+   * @constructor
+   * @param {Request} request
+   * @param {Object} options
+   */
+  constructor(request, response, options) {}
 }
+
+console.log(through(function() {}));
 
 module.exports = FileSend;

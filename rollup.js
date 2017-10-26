@@ -4,9 +4,8 @@ const rollup = require('rollup');
 rollup.rollup({
   input: 'index.js',
   external: [
-    'fs', 'path', 'events', 'http', 'url',
-    'stream', 'ms', 'etag', 'fresh', 'destroy',
-    'mime-types', 'encodeurl', 'micromatch',
+    'fs', 'path', 'http', 'url', 'stream', 'ms', 'etag', 'fresh',
+    'destroy', 'mime-types', 'encodeurl', 'micromatch',
     'on-finished', 'escape-html', 'range-parser'
   ]
 }).then(function(bundle) {

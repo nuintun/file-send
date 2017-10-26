@@ -11,20 +11,18 @@ import * as path from 'path';
 import * as http from 'http';
 import * as etag from 'etag';
 import * as fresh from 'fresh';
-import * as Events from 'events';
+import * as Stream from 'stream';
 import * as destroy from 'destroy';
 import * as mime from 'mime-types';
 import * as utils from './lib/utils';
 import * as async from './lib/async';
 import * as encodeUrl from 'encodeurl';
-import * as through from './lib/through';
+import { through } from './lib/through';
 import * as micromatch from 'micromatch';
 import * as onFinished from 'on-finished';
 import * as escapeHtml from 'escape-html';
 import * as parseRange from 'range-parser';
 
-// The path sep
-const SEP = path.sep;
 // Current working directory
 const CWD = process.cwd();
 // The max max-age set
@@ -50,8 +48,13 @@ http.ServerResponse.prototype.writeHead = function() {
  * @class FileSend
  */
 
-export default class FileSend extends Events {
-  constructor(request, response, options) {
-
+export default class FileSend extends Stream {
+  /**
+   * @constructor
+   * @param {Request} request
+   * @param {Object} options
+   */
+  constructor(request, path, options) {
+    super();
   }
 }
