@@ -14,7 +14,7 @@ import * as fresh from 'fresh';
 import * as Events from 'events';
 import * as destroy from 'destroy';
 import * as mime from 'mime-types';
-import * as util from './lib/util';
+import * as utils from './lib/utils';
 import * as async from './lib/async';
 import * as encodeUrl from 'encodeurl';
 import * as through from './lib/through';
@@ -45,3 +45,13 @@ http.ServerResponse.prototype.writeHead = function() {
   // Call origin method
   util.apply(originWriteHead, this, arguments);
 };
+
+/**
+ * @class FileSend
+ */
+
+export default class FileSend extends Events {
+  constructor(request, response, options) {
+
+  }
+}
