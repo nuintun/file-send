@@ -37,13 +37,11 @@ const originWriteHead = http.ServerResponse.prototype.writeHead;
 
 // Add http response write headers events
 http.ServerResponse.prototype.writeHead = function() {
-  var context = this;
-
   // Emit headers event
-  if (context.listenerCount('headers') > 0) {
-    context.emit('headers');
+  if (this.listenerCount('headers') > 0) {
+    this.emit('headers');
   }
 
   // Call origin method
-  util.apply(originWriteHead, context, arguments);
+  util.apply(originWriteHead, this, arguments);
 };
