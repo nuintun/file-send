@@ -22,7 +22,6 @@ require('range-parser');
  * @version 2017/10/24
  */
 
-const toString = Object.prototype.toString;
 const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 
 /**
@@ -32,28 +31,7 @@ const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.s
  * @param {string} type
  * @returns {boolean}
  */
-function typeIs(value, type) {
-  // Format type
-  type = (type + '').toLowerCase();
 
-  // Is array
-  if (type === 'array') {
-    return Array.isArray(value);
-  }
-
-  // Get real type
-  const realType = toString.call(value).toLowerCase();
-
-  // Switch
-  switch (type) {
-    case 'nan':
-      // Is nan
-      return realType === '[object number]' && value !== value;
-    default:
-      // Is other
-      return realType === '[object ' + type + ']';
-  }
-}
 
 /**
  * @function isOutBound
@@ -142,47 +120,7 @@ function typeIs(value, type) {
 /**
  * @class DestroyableTransform
  */
-class DestroyableTransform extends Stream.Transform {
 
-  /**
-   * @constructor
-   * @param {Object} options
-   */
-  constructor(options) {
-    super(options);
-
-    this._destroyed = false;
-  }
-
-  /**
-   * @method destroy
-   * @param {any} error
-   */
-  destroy(error) {
-    if (this._destroyed) return;
-
-    this._destroyed = true;
-
-    const self = this;
-
-    process.nextTick(function() {
-      if (error) self.emit('error', error);
-
-      self.emit('close');
-    });
-  }
-}
-
-/**
- * @function noop
- * @description A noop _transform function
- * @param {any} chunk
- * @param {string} encoding
- * @param {Function} next
- */
-function noop(chunk, encoding, next) {
-  next(null, chunk);
-}
 
 /**
  * @function throuth
@@ -192,28 +130,6 @@ function noop(chunk, encoding, next) {
  * @param {Function} [flush]
  * @returns {DestroyableTransform}
  */
-function through(options, transform, flush) {
-  if (typeIs(options, 'function')) {
-    flush = transform;
-    transform = options;
-    options = {};
-  }
-
-  options = options || {};
-  options.objectMode = options.objectMode || false;
-  options.highWaterMark = options.highWaterMark || 16;
-
-  if (!typeIs(transform, 'function')) transform = noop;
-  if (!typeIs(flush, 'function')) flush = null;
-
-  const stream = new DestroyableTransform(options);
-
-  stream._transform = transform;
-
-  if (flush) stream._flush = flush;
-
-  return stream;
-}
 
 /**
  * @module file-send
@@ -223,7 +139,6 @@ function through(options, transform, flush) {
 
 // Current working directory
 const CWD = process.cwd();
-// Common method
 const originWriteHead = http.ServerResponse.prototype.writeHead;
 
 // Add http response write headers events
@@ -247,9 +162,20 @@ class FileSend extends Stream {
    * @param {Request} request
    * @param {Object} options
    */
-  constructor(request, response, options) {}
-}
+  constructor(request, path$$1, options) {
+    super();
+  }
 
-console.log(through(function() {}));
+  hasListeners(event) {
+    return this.listenerCount(event) > 0;
+  }
+
+  headersSent(response) {
+    if (response.headersSent) {
+      this.unpipe(response);
+      response.end('Can\'t set headers after they are sent.');
+    }
+  }
+}
 
 module.exports = FileSend;

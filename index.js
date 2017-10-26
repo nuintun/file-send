@@ -31,6 +31,8 @@ const MAXMAXAGE = 60 * 60 * 24 * 365;
 const NOTFOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
 
 // Common method
+const join = path.join;
+const resolve = path.resolve;
 const originWriteHead = http.ServerResponse.prototype.writeHead;
 
 // Add http response write headers events
@@ -56,5 +58,16 @@ export default class FileSend extends Stream {
    */
   constructor(request, path, options) {
     super();
+  }
+
+  hasListeners(event) {
+    return this.listenerCount(event) > 0;
+  }
+
+  headersSent(response) {
+    if (response.headersSent) {
+      this.unpipe(response);
+      response.end('Can\'t set headers after they are sent.');
+    }
   }
 }
