@@ -2,7 +2,7 @@
 
 var http = require('http');
 var FileSend = require('../index');
-var colors = require('colors/safe');
+var chalk = require('chalk');
 var cluster = require('cluster');
 var NUMCPUS = require('os').cpus().length;
 
@@ -17,12 +17,12 @@ function createServer(root, port) {
     });
 
     send.pipe(response).on('headers', function(headers) {
-      var message = 'URL      : ' + colors.green.bold(send.url)
-        + '\r\nPATH     : ' + colors.yellow.bold(send.path)
-        + '\r\nROOT     : ' + colors.magenta.bold(send.root)
-        + '\r\nREALPATH : ' + colors.magenta.bold(send.realpath)
-        + '\r\nSTATUS   : ' + colors.cyan.bold(send.statusCode)
-        + '\r\nHEADERS  : ' + colors.cyan.bold(JSON.stringify(headers, null, 2))
+      var message = 'URL      : ' + chalk.green.bold(send.url)
+        + '\r\nPATH     : ' + chalk.yellow.bold(send.path)
+        + '\r\nROOT     : ' + chalk.magenta.bold(send.root)
+        + '\r\nREALPATH : ' + chalk.magenta.bold(send.realpath)
+        + '\r\nSTATUS   : ' + chalk.cyan.bold(send.statusCode)
+        + '\r\nHEADERS  : ' + chalk.cyan.bold(JSON.stringify(headers, null, 2))
         + '\r\n-----------------------------------------------------------------------------------------';
 
       process.send(message);
@@ -38,8 +38,8 @@ if (cluster.isMaster) {
         // Worker is listening
         if (i === NUMCPUS - 1) {
           console.log(
-            colors.green.bold('Server run at:'),
-            colors.cyan.bold(address.address + ':' + address.port),
+            chalk.green.bold('Server run at:'),
+            chalk.cyan.bold(address.address + ':' + address.port),
             '\r\n-----------------------------------------------------------------------------------------'
           );
         }

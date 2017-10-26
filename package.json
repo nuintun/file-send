@@ -1,6 +1,6 @@
 {
   "name": "file-send",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "A http file send",
   "author": {
     "name": "nuintun",
@@ -34,7 +34,6 @@
     "fresh": "^0.5.2",
     "mime-types": "^2.1.17",
     "destroy": "^1.0.4",
-    "colors": "^1.1.2",
     "micromatch": "^3.1.0",
     "encodeurl": "^1.0.1",
     "escape-html": "^1.0.3",
