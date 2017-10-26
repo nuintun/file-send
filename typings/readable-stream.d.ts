@@ -1,7 +1,7 @@
 /// <reference types="node" />
 
 declare module "readable-stream" {
-  import events from "events";
+  import * as events from "events";
 
   class internal extends events.EventEmitter {
     pipe<T extends NodeJS.WritableStream>(destination: T, options?: { end?: boolean; }): T;

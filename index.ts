@@ -4,8 +4,8 @@
  * @version 2017/10/25
  */
 
-import * as async from './lib/async';
+import { series } from './lib/async';
 
-async.series([], function(){
+series([], function () {
 
 });
