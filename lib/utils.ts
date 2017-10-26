@@ -1,26 +1,20 @@
-/*!
- * utils
- *
- * Date: 2017/10/24
- *
- * This is licensed under the MIT License (MIT).
+/**
+ * @module utils
+ * @license MIT
+ * @version 2017/10/24
  */
 
-'use strict';
-
-const path = require('path');
-
-const toString = Object.prototype.toString;
-const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+const toString: () => string = Object.prototype.toString;
+const CHARS: string[] = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 
 /**
  * @function typeIs
  * @description The data type judgment
  * @param {any} value
- * @param {String} type
- * @returns {Boolean}
+ * @param {string} type
+ * @returns {boolean}
  */
-function typeIs(value, type) {
+export function typeIs(value: any, type: string): boolean {
   // Format type
   type = (type + '').toLowerCase();
 
@@ -30,7 +24,7 @@ function typeIs(value, type) {
   }
 
   // Get real type
-  const realType = toString.call(value).toLowerCase();
+  const realType: string = toString.call(value).toLowerCase();
 
   // Switch
   switch (type) {
@@ -46,11 +40,11 @@ function typeIs(value, type) {
 /**
  * @function isOutBound
  * @description Test path is out of bound of base
- * @param {String} path
- * @param {String} root
- * @returns {Boolean}
+ * @param {string} path
+ * @param {string} root
+ * @returns {boolean}
  */
-function isOutBound(path, root) {
+export function isOutBound(path: string, root: string): boolean {
   if (process.platform === 'win32') {
     path = path.toLowerCase();
     root = root.toLowerCase();
@@ -66,10 +60,10 @@ function isOutBound(path, root) {
 /**
  * @function normalize
  * @description Normalize path
- * @param {String} path
- * @returns {String}
+ * @param {string} path
+ * @returns {string}
  */
-function normalize(path) {
+export function normalize(path: string): string {
   // \a\b\.\c\.\d ==> /a/b/./c/./d
   path = path.replace(/\\/g, '/');
 
@@ -85,13 +79,13 @@ function normalize(path) {
   path = path.replace(/([^:/])\/+\//g, '$1/');
 
   // Transfer path
-  let src = path;
+  let src: string = path;
   // DOUBLE_DOT_RE matches a/b/c//../d path correctly only if replace // with / first
-  const DOUBLE_DOT_RE = /([^/]+)\/\.\.(?:\/|$)/g;
+  const DOUBLE_DOT_RE: RegExp = /([^/]+)\/\.\.(?:\/|$)/g;
 
   // a/b/c/../../d ==> a/b/../d ==> a/d
   do {
-    src = src.replace(DOUBLE_DOT_RE, function(matched, dirname) {
+    src = src.replace(DOUBLE_DOT_RE, function (matched: string, dirname: string): string {
       return dirname === '..' ? matched : '';
     });
 
@@ -110,20 +104,20 @@ function normalize(path) {
 /**
  * @function posixURI
  * @description Format URI to posix style
- * @param {String} path
- * @returns {String}
+ * @param {string} path
+ * @returns {string}
  */
-function posixURI(path) {
+export function posixURI(path: string): string {
   return path.replace(/\\/g, '/');
 }
 
 /**
  * @function decodeURI
  * @description Decode URI component.
- * @param {String} uri
- * @returns {String|-1}
+ * @param {string} uri
+ * @returns {string|-1}
  */
-function decodeURI(uri) {
+export function decodeURI(uri: string): string | -1 {
   try {
     return decodeURIComponent(uri);
   } catch (err) {
@@ -136,11 +130,11 @@ function decodeURI(uri) {
  * @description Create boundary
  * @returns {string}
  */
-function boundaryGenerator() {
-  let boundary = '';
+export function boundaryGenerator(): string {
+  let boundary: string = '';
 
   // Create boundary
-  for (let i = 0; i < 38; i++) {
+  for (let i: number = 0; i < 38; i++) {
     boundary += CHARS[Math.floor(Math.random() * 62)];
   }
 
@@ -154,8 +148,8 @@ function boundaryGenerator() {
  * @param {string} date
  * @private
  */
-function parseHttpDate(date) {
-  const timestamp = date && Date.parse(date);
+export function parseHttpDate(date: string): number {
+  const timestamp: string | number = date && Date.parse(date);
 
   return typeIs(timestamp, 'number') ? timestamp : NaN;
 }
@@ -169,7 +163,7 @@ function parseHttpDate(date) {
  * @see https://github.com/micro-js/apply
  * @see http://blog.csdn.net/zhengyinhui100/article/details/7837127
  */
-function apply(fn, context, args) {
+export function apply(fn: Function, context: any, args: any[]): void {
   switch (args.length) {
     // Faster
     case 0:
@@ -185,15 +179,3 @@ function apply(fn, context, args) {
       return fn.apply(context, args);
   }
 }
-
-// Exports util
-module.exports = {
-  typeIs,
-  isOutBound,
-  normalize,
-  posixURI,
-  decodeURI,
-  boundaryGenerator,
-  parseHttpDate,
-  apply
-};
