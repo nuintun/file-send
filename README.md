@@ -195,9 +195,9 @@ if (cluster.isMaster) {
 
 [MIT](LICENSE)
 
-[travis-image]: https://img.shields.io/travis/nuintun/file-send.svg?style=flat-square&label=linux
+[travis-image]: https://img.shields.io/travis/nuintun/file-send/master.svg?style=flat-square&label=linux
 [travis-url]: https://travis-ci.org/nuintun/file-send
-[appveyor-image]: https://img.shields.io/appveyor/ci/nuintun/file-send.svg?style=flat-square&label=windows
+[appveyor-image]: https://img.shields.io/appveyor/ci/nuintun/file-send/master.svg?style=flat-square&label=windows
 [appveyor-url]: https://ci.appveyor.com/project/nuintun/file-send
 [coveralls-image]: https://img.shields.io/coveralls/nuintun/file-send/master.svg?style=flat-square
 [coveralls-url]: https://coveralls.io/r/nuintun/file-send?branch=master
