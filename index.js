@@ -10,11 +10,11 @@ import * as Stream from 'stream';
 import * as Events from 'events';
 import * as mime from 'mime-types';
 import * as utils from './lib/utils';
-import * as encodeUrl from 'encodeurl';
 
 import etag from 'etag';
 import fresh from 'fresh';
 import destroy from 'destroy';
+import encodeUrl from 'encodeurl';
 import micromatch from 'micromatch';
 import escapeHtml from 'escape-html';
 import onFinished from 'on-finished';
@@ -27,10 +27,6 @@ import {
 import {
   series
 } from './lib/async';
-
-import {
-  resolve
-} from 'path';
 
 import {
   normalizeRoot,
@@ -129,17 +125,6 @@ export default class FileSend extends Events {
     delete this[headers][name.toLowerCase()];
   }
 
-  writeHead() {
-    const response = this.response;
-    const headers = this.getHeaders();
-
-    Object
-      .keys(headers)
-      .forEach(function(name) {
-        response.setHeader(name, headers[name]);
-      });
-  }
-
   hasListeners(event) {
     return this.listenerCount(event) > 0;
   }
@@ -149,13 +134,8 @@ export default class FileSend extends Events {
   }
 
   status(statusCode, statusMessage) {
-    const response = this.response;
-
     this.statusCode = statusCode;
     this.statusMessage = statusMessage || http.STATUS_CODES[statusCode];
-
-    response.statusCode = this.statusCode;
-    response.statusMessage = this.statusMessage;
   }
 
   error(statusCode, statusMessage) {
@@ -177,11 +157,11 @@ export default class FileSend extends Events {
           return this.headersSent();
         }
 
-        this.writeHead();
+        this.writeHeaders();
         this.end(chunk);
       });
     } else {
-      if (!response.headersSent) {
+      if (response.headersSent) {
         return this.headersSent();
       }
 
@@ -191,7 +171,7 @@ export default class FileSend extends Events {
       this.setHeader('Content-Length', Buffer.byteLength(statusMessage));
       this.setHeader('Content-Security-Policy', "default-src 'self'");
       this.setHeader('X-Content-Type-Options', 'nosniff');
-      this.writeHead();
+      this.writeHeaders();
       this.end(statusMessage);
     }
   }
@@ -380,16 +360,16 @@ export default class FileSend extends Events {
     return true;
   }
 
-  dir(realpath, stats) {
+  dir() {
     // If have event directory listener, use user define
     // emit event directory
     if (this.hasListeners('dir')) {
-      this.emit('dir', realpath, stats, (chunk) => {
+      this.emit('dir', this.realpath, (chunk) => {
         if (this.response.headersSent) {
           return this.headersSent();
         }
 
-        this.writeHead();
+        this.writeHeaders();
         this.end(chunk);
       });
     } else {
@@ -398,7 +378,10 @@ export default class FileSend extends Events {
   }
 
   redirect(location) {
-    const html = 'Redirecting to <a href="' + location + '">' + escapeHtml(location) + '</a>';
+    location = encodeUrl(location);
+
+    const href = escapeHtml(location);
+    const html = 'Redirecting to <a href="' + href + '">' + href + '</a>';
 
     this.status(301);
     this.setHeader('Cache-Control', 'no-cache');
@@ -407,7 +390,7 @@ export default class FileSend extends Events {
     this.setHeader('Content-Security-Policy', "default-src 'self'");
     this.setHeader('X-Content-Type-Options', 'nosniff');
     this.setHeader('Location', location);
-    this.writeHead();
+    this.writeHeaders();
     this.end(html);
   }
 
@@ -460,6 +443,20 @@ export default class FileSend extends Events {
     }
   }
 
+  writeHeaders() {
+    const response = this.response;
+    const headers = this.getHeaders();
+
+    response.statusCode = this.statusCode;
+    response.statusMessage = this.statusMessage;
+
+    Object
+      .keys(headers)
+      .forEach(function(name) {
+        response.setHeader(name, headers[name]);
+      });
+  }
+
   end(chunk) {
     if (chunk) {
       return this.stdin.end(chunk);
@@ -468,7 +465,7 @@ export default class FileSend extends Events {
     this.stdin.end();
   }
 
-  sendIndex(stats) {
+  sendIndex() {
     const hasTrailingSlash = this.hasTrailingSlash();
     const path = hasTrailingSlash ? this.path : this.path + '/';
 
@@ -479,7 +476,7 @@ export default class FileSend extends Events {
         return next();
       }
 
-      fs.stat(resolve(this.root, path), (error, stats) => {
+      fs.stat(this.root + path, (error, stats) => {
         if (error || !stats.isFile()) {
           return next();
         }
@@ -488,7 +485,7 @@ export default class FileSend extends Events {
       });
     }, () => {
       if (hasTrailingSlash) {
-        return this.dir(this.realpath, stats);
+        return this.dir();
       }
 
       this.redirect(path);
@@ -596,7 +593,7 @@ export default class FileSend extends Events {
 
       // Is directory
       if (stats.isDirectory()) {
-        return this.sendIndex(stats);
+        return this.sendIndex();
       } else if (this.hasTrailingSlash()) {
         // Not a directory but has trailing slash
         return this.error(404);
@@ -615,7 +612,7 @@ export default class FileSend extends Events {
 
         // Remove content-type
         this.removeHeader('Content-Type');
-        this.writeHead();
+        this.writeHeaders();
 
         // End with empty content
         return this.end();
@@ -625,7 +622,7 @@ export default class FileSend extends Events {
       if (this.method === 'HEAD') {
         // Set content-length
         this.setHeader('Content-Length', stats.size);
-        this.writeHead();
+        this.writeHeaders();
 
         // End with empty content
         return this.end();
@@ -633,7 +630,7 @@ export default class FileSend extends Events {
 
       // Parse range
       if (this.parseRange(stats)) {
-        this.writeHead();
+        this.writeHeaders();
         // Read file
         this.sendFile();
       }

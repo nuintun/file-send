@@ -7,8 +7,8 @@ function createServer(root, port) {
     var send = new FileSend(request, url.parse(request.url).pathname, {
       root: root,
       maxAge: '3day',
-      ignore: ['/**/.*?(/*.*|/)'],
-      index: ['index.html']
+      ignore: ['/node_modules/**/*'],
+      index: ['index.html', 'index.js']
     });
 
     send.use(FileSend.through(function(chunk, enc, next) {
