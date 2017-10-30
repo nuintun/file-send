@@ -1,6 +1,13 @@
 const fs = require('fs');
 const rollup = require('rollup');
 
+const banner = `/**
+ * @module file-send
+ * @license MIT
+ * @version 2017/10/25
+ */
+`
+
 rollup.rollup({
   input: 'index.js',
   external: [
@@ -25,7 +32,9 @@ rollup.rollup({
     file: 'dist/index.js',
     format: 'cjs',
     indent: true,
-    strict: true
+    strict: true,
+    interop: false,
+    banner: banner
   });
 }).catch(function(error) {
   console.error(error);

@@ -1,21 +1,25 @@
-'use strict';
+/**
+ * @module file-send
+ * @license MIT
+ * @version 2017/10/25
+ */
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+'use strict';
 
 var fs = require('fs');
 var http = require('http');
 var Stream = require('stream');
 var Events = require('events');
 var mime = require('mime-types');
-var etag = _interopDefault(require('etag'));
-var fresh = _interopDefault(require('fresh'));
-var destroy = _interopDefault(require('destroy'));
-var encodeUrl = _interopDefault(require('encodeurl'));
-var micromatch = _interopDefault(require('micromatch'));
-var escapeHtml = _interopDefault(require('escape-html'));
-var onFinished = _interopDefault(require('on-finished'));
-var parseRange = _interopDefault(require('range-parser'));
-var ms = _interopDefault(require('ms'));
+var etag = require('etag');
+var fresh = require('fresh');
+var destroy = require('destroy');
+var encodeUrl = require('encodeurl');
+var micromatch = require('micromatch');
+var escapeHtml = require('escape-html');
+var onFinished = require('on-finished');
+var parseRange = require('range-parser');
+var ms = require('ms');
 var path = require('path');
 
 /**
