@@ -6,7 +6,7 @@ rollup.rollup({
   external: [
     'fs', 'path', 'http', 'url', 'stream', 'ms', 'etag', 'fresh',
     'destroy', 'mime-types', 'encodeurl', 'micromatch',
-    'on-finished', 'escape-html', 'range-parser'
+    'on-finished', 'escape-html', 'range-parser', 'events'
   ]
 }).then(function(bundle) {
   let stat;

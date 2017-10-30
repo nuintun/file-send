@@ -1,19 +1,22 @@
 'use strict';
 
-require('ms');
-require('fs');
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+
+var fs = require('fs');
 var http = require('http');
-require('etag');
-require('fresh');
 var Stream = require('stream');
-require('destroy');
-require('mime-types');
+var Events = require('events');
+var mime = require('mime-types');
 require('encodeurl');
-require('micromatch');
-require('on-finished');
-require('escape-html');
-require('range-parser');
+var etag = _interopDefault(require('etag'));
+var fresh = _interopDefault(require('fresh'));
+var destroy = _interopDefault(require('destroy'));
+var micromatch = _interopDefault(require('micromatch'));
+var escapeHtml = _interopDefault(require('escape-html'));
+var onFinished = _interopDefault(require('on-finished'));
+var parseRange = _interopDefault(require('range-parser'));
 var path = require('path');
+var ms = _interopDefault(require('ms'));
 
 /**
  * @module utils
@@ -62,7 +65,18 @@ function typeIs(value, type) {
  * @param {string} root
  * @returns {boolean}
  */
+function isOutBound(path$$1, root) {
+  if (process.platform === 'win32') {
+    path$$1 = path$$1.toLowerCase();
+    root = root.toLowerCase();
+  }
 
+  if (path$$1.length < root.length) {
+    return true;
+  }
+
+  return path$$1.indexOf(root) !== 0;
+}
 
 /**
  * @function normalize
@@ -114,7 +128,9 @@ function normalize(path$$1) {
  * @param {string} path
  * @returns {string}
  */
-
+function posixURI(path$$1) {
+  return path$$1.replace(/\\/g, '/');
+}
 
 /**
  * @function decodeURI
@@ -143,7 +159,11 @@ function decodeURI(uri) {
  * @param {string} date
  * @private
  */
+function parseHttpDate(date) {
+  const timestamp = date && Date.parse(date);
 
+  return typeIs(timestamp, 'number') ? timestamp : NaN;
+}
 
 /**
  * @function Faster apply
@@ -162,19 +182,6 @@ function decodeURI(uri) {
  */
 function isUndefined(value) {
   return value === undef;
-}
-
-/**
- * @function setHeaders
- * @param {Response} response
- * @param {Object} headers
- */
-function setHeaders(response, headers) {
-  Object
-    .keys(headers)
-    .forEach(function(key) {
-      response.setHeader(key, headers[key]);
-    });
 }
 
 /**
@@ -202,24 +209,41 @@ function pipeline(streams) {
 }
 
 /**
- * @module async
- * @license MIT
- * @version 2017/10/25
+ * @function parseTokenList
+ * @description Parse a HTTP token list.
+ * @param {string} value
  */
 
-/**
- * @class Iterator
- */
+function parseTokenList(value) {
+  let end = 0;
+  let list = [];
+  let start = 0;
 
+  // gather tokens
+  for (let i = 0, length = value.length; i < length; i++) {
+    switch (value.charCodeAt(i)) {
+      case 0x20:
+        /*   */
+        if (start === end) {
+          start = end = i + 1;
+        }
+        break;
+      case 0x2c:
+        /* , */
+        list.push(value.substring(start, end));
+        start = end = i + 1;
+        break;
+      default:
+        end = i + 1;
+        break;
+    }
+  }
 
-/**
- * series
- *
- * @param {Array} array
- * @param {Function} iterator
- * @param {Function} done
- * @param {any} context
- */
+  // final token
+  list.push(value.substring(start, end));
+
+  return list;
+}
 
 /**
  * @module through
@@ -230,7 +254,47 @@ function pipeline(streams) {
 /**
  * @class DestroyableTransform
  */
+class DestroyableTransform extends Stream.Transform {
 
+  /**
+   * @constructor
+   * @param {Object} options
+   */
+  constructor(options) {
+    super(options);
+
+    this._destroyed = false;
+  }
+
+  /**
+   * @method destroy
+   * @param {any} error
+   */
+  destroy(error) {
+    if (this._destroyed) return;
+
+    this._destroyed = true;
+
+    const self = this;
+
+    process.nextTick(function() {
+      if (error) self.emit('error', error);
+
+      self.emit('close');
+    });
+  }
+}
+
+/**
+ * @function noop
+ * @description A noop _transform function
+ * @param {any} chunk
+ * @param {string} encoding
+ * @param {Function} next
+ */
+function noop(chunk, encoding, next) {
+  next(null, chunk);
+}
 
 /**
  * @function throuth
@@ -240,6 +304,101 @@ function pipeline(streams) {
  * @param {Function} [flush]
  * @returns {DestroyableTransform}
  */
+function through(options, transform, flush) {
+  if (typeIs(options, 'function')) {
+    flush = transform;
+    transform = options;
+    options = {};
+  }
+
+  options = options || {};
+  options.objectMode = options.objectMode || false;
+  options.highWaterMark = options.highWaterMark || 16;
+
+  if (!typeIs(transform, 'function')) transform = noop;
+  if (!typeIs(flush, 'function')) flush = null;
+
+  const stream = new DestroyableTransform(options);
+
+  stream._transform = transform;
+
+  if (flush) stream._flush = flush;
+
+  return stream;
+}
+
+/**
+ * @module async
+ * @license MIT
+ * @version 2017/10/25
+ */
+
+/**
+ * @class Iterator
+ */
+class Iterator {
+  /**
+   * @constructor
+   * @param {Array} array
+   */
+  constructor(array) {
+    this.index = 0;
+    this.array = Array.isArray(array) ? array : [];
+  }
+
+  /**
+   * @method next
+   * @description Create the next item.
+   * @returns {{done: boolean, value: undefined}}
+   */
+  next() {
+    const done = this.index >= this.array.length;
+    const value = !done ? this.array[this.index++] : undefined;
+
+    return {
+      done: done,
+      value: value
+    };
+  }
+}
+
+/**
+ * series
+ *
+ * @param {Array} array
+ * @param {Function} iterator
+ * @param {Function} done
+ * @param {any} context
+ */
+function series(array, iterator, done) {
+  // Create a new iterator
+  const it = new Iterator(array);
+
+  // Bind context
+  if (arguments.length >= 4) {
+    iterator = iterator.bind(context);
+    done = done.bind(context);
+  }
+
+  /**
+   * @function walk
+   * @param it
+   */
+  function walk(it) {
+    const item = it.next();
+
+    if (item.done) {
+      done();
+    } else {
+      iterator(item.value, function() {
+        walk(it);
+      }, it.index);
+    }
+  }
+
+  // Run walk
+  walk(it);
+}
 
 // Current working directory
 const CWD = process.cwd();
@@ -247,11 +406,21 @@ const CWD = process.cwd();
 const MAX_MAX_AGE = 60 * 60 * 24 * 365;
 
 function normalizeCharset(charset) {
-  return util.typeIs(charset, 'string') ? charset : null;
+  return typeIs(charset, 'string') ? charset : null;
 }
 
 function normalizeRoot(root) {
-  return util.posixURI(util.typeIs(root, 'string') ? path.resolve(root) : CWD);
+  return posixURI(typeIs(root, 'string') ? path.resolve(root) : CWD);
+}
+
+function normalizePath(path$$1) {
+  path$$1 = decodeURI(path$$1);
+
+  return path$$1 === -1 ? path$$1 : normalize(path$$1);
+}
+
+function normalizeRealpath(root, path$$1) {
+  return path$$1 === -1 ? path$$1 : posixURI(path.join(root, path$$1));
 }
 
 function normalizeList(list) {
@@ -273,12 +442,6 @@ function normalizeAccess(access) {
   }
 }
 
-function normalizePath(path$$1) {
-  path$$1 = decodeURI(path$$1);
-
-  return path$$1 === -1 ? path$$1 : normalize(path$$1);
-}
-
 function normalizeMaxAge(maxAge) {
   maxAge = typeIs(maxAge, 'string') ? ms(maxAge) / 1000 : Number(maxAge);
   maxAge = !isNaN(maxAge) ? Math.min(Math.max(0, maxAge), MAX_MAX_AGE) : 0;
@@ -290,6 +453,13 @@ function normalizeBoolean(boolean, def) {
   return isUndefined(boolean) ? def : Boolean(boolean);
 }
 
+function normalizeGlob(glob) {
+  glob = glob || {};
+  glob.dot = normalizeBoolean(glob.dot, true);
+
+  return glob;
+}
+
 /**
  * @module file-send
  * @license MIT
@@ -297,13 +467,17 @@ function normalizeBoolean(boolean, def) {
  */
 
 // Headers key symbol
+const glob = Symbol('glob');
 const headers = Symbol('headers');
 const middlewares = Symbol('middlewares');
+
+// File not found status
+const NOT_FOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
 
 /**
  * @class FileSend
  */
-class FileSend extends Stream {
+class FileSend extends Events {
   /**
    * @constructor
    * @param {Request} request
@@ -319,19 +493,22 @@ class FileSend extends Stream {
       throw new TypeError('The param path must be a string.');
     }
 
-    super();
+    super(options);
 
-    this[headers] = {};
     this[middlewares] = [];
+    this.stdin = through();
     this.request = request;
     this.method = request.method;
     this.path = normalizePath(path$$1);
+    this[headers] = Object.create(null);
     this.root = normalizeRoot(options.root);
+    this[glob] = normalizeGlob(options.glob);
     this.index = normalizeList(options.index);
     this.ignore = normalizeList(options.ignore);
     this.maxAge = normalizeMaxAge(options.maxAge);
     this.charset = normalizeCharset(options.charset);
     this.etag = normalizeBoolean(options.etag, true);
+    this.realpath = normalizeRealpath(this.root, this.path);
     this.ignoreAccess = normalizeAccess(options.ignoreAccess);
     this.immutable = normalizeBoolean(options.immutable, false);
     this.acceptRanges = normalizeBoolean(options.acceptRanges, true);
@@ -340,36 +517,62 @@ class FileSend extends Stream {
   }
 
   use(middleware) {
-    if (middleware instanceof Stream.Transform) {
+    if (middleware instanceof Stream) {
       this[middlewares].push(middleware);
     }
   }
 
   setHeader(name, value) {
-    this[headers][name.toLowerCase()] = value;
+    // 0 => name
+    // 1 => value
+    this[headers][name.toLowerCase()] = [name, value];
   }
 
   getHeader(name) {
-    return this[headers][name.toLowerCase()];
+    return this[headers][name.toLowerCase()][1];
   }
 
   getHeaders() {
-    return this[headers];
+    const headerItems = this[headers];
+    const result = Object.create(null);
+
+    Object
+      .keys(headerItems)
+      .forEach((name) => {
+        let headerItem = headerItems[name];
+
+        result[headerItem[0]] = headerItem[1];
+      });
+
+    return result;
   }
 
   removeHeader(name) {
     delete this[headers][name.toLowerCase()];
   }
 
+  writeHead() {
+    const response = this.response;
+    const headers = this.getHeaders();
+
+    Object
+      .keys(headers)
+      .forEach(function(name) {
+        response.setHeader(name, headers[name]);
+      });
+  }
+
   hasListeners(event) {
     return this.listenerCount(event) > 0;
   }
 
-  headersSent(response) {
-    response.end('Can\'t set headers after they are sent.');
+  headersSent() {
+    this.end('Can\'t set headers after they are sent.');
   }
 
-  status(response, statusCode, statusMessage) {
+  status(statusCode, statusMessage) {
+    const response = this.response;
+
     this.statusCode = statusCode;
     this.statusMessage = statusMessage || http.STATUS_CODES[statusCode];
 
@@ -377,8 +580,10 @@ class FileSend extends Stream {
     response.statusMessage = this.statusMessage;
   }
 
-  error(response, statusCode, statusMessage) {
-    this.status(response, statusCode, statusMessage);
+  error(statusCode, statusMessage) {
+    const response = this.response;
+
+    this.status(statusCode, statusMessage);
 
     statusCode = this.statusCode;
     statusMessage = this.statusMessage;
@@ -389,25 +594,37 @@ class FileSend extends Stream {
 
     // Emit if listeners instead of responding
     if (this.hasListeners('error')) {
-      this.emit('error', error, (message) => {
+      this.emit('error', error, (chunk) => {
         if (response.headersSent) {
-          return this.headersSent(response);
+          return this.headersSent();
         }
 
-        response.end(message);
+        this.writeHead();
+        this.end(chunk);
       });
     } else {
+      if (!response.headersSent) {
+        return this.headersSent();
+      }
+
       // Set headers
       this.setHeader('Cache-Control', 'private');
       this.setHeader('Content-Type', 'text/html; charset=UTF-8');
       this.setHeader('Content-Length', Buffer.byteLength(statusMessage));
       this.setHeader('Content-Security-Policy', "default-src 'self'");
       this.setHeader('X-Content-Type-Options', 'nosniff');
+      this.writeHead();
+      this.end(statusMessage);
     }
   }
 
-  statError() {
+  statError(error) {
+    // 404 error
+    if (NOT_FOUND.indexOf(error.code) !== -1) {
+      return this.error(404);
+    }
 
+    this.error(500, error.message);
   }
 
   hasTrailingSlash() {
@@ -423,27 +640,457 @@ class FileSend extends Stream {
       || headers['if-modified-since'];
   }
 
-  pipe(response, options) {
-    if (!response instanceof http.ServerResponse) {
-      throw new TypeError('The param response must be a http response.')
+  isPreconditionFailure() {
+    const request = this.request;
+    const response = this.response;
+    // if-match
+    const match = request.headers['if-match'];
+
+    if (match) {
+      const etag$$1 = response.getHeader('ETag');
+
+      return !etag$$1 || (match !== '*' && parseTokenList(match).every(function(match) {
+        return match !== etag$$1 && match !== 'W/' + etag$$1 && 'W/' + match !== etag$$1;
+      }));
     }
 
+    // if-unmodified-since
+    const unmodifiedSince = parseHttpDate(request.headers['if-unmodified-since']);
+
+    if (!isNaN(unmodifiedSince)) {
+      const lastModified = parseHttpDate(response.getHeader('Last-Modified'));
+
+      return isNaN(lastModified) || lastModified > unmodifiedSince;
+    }
+
+    return false;
+  }
+
+  isCachable() {
+    const statusCode = this.statusCode;
+
+    return statusCode === 304 || (statusCode >= 200 && statusCode < 300);
+  }
+
+  isFresh() {
+    return fresh(this.request.headers, {
+      'etag': this.getHeader('ETag'),
+      'last-modified': this.getHeader('Last-Modified')
+    });
+  }
+
+  isRangeFresh() {
+    const ifRange = this.request.headers['if-range'];
+
+    if (!ifRange) {
+      return true;
+    }
+
+    // if-range as etag
+    if (ifRange.indexOf('"') !== -1) {
+      const etag$$1 = this.getHeader('ETag');
+
+      return Boolean(etag$$1 && ifRange.indexOf(etag$$1) !== -1);
+    }
+
+    // if-range as modified date
+    const lastModified = this.getHeader('Last-Modified');
+
+    return parseHttpDate(lastModified) <= parseHttpDate(ifRange);
+  }
+
+  isIgnore(path$$1) {
+    return this.ignore.length && micromatch(path$$1, this.ignore, this[glob]).length;
+  }
+
+  parseRange(stats) {
+    const size = stats.size;
+    let contentLength = size;
+    let ranges = this.request.headers['range'];
+
+    // Reset ranges
+    this.ranges = [];
+
+    // Range support
+    if (ranges) {
+      // Range fresh
+      if (this.isRangeFresh()) {
+        // Parse range
+        ranges = parseRange(size, ranges, { combine: true });
+
+        // Valid ranges, support multiple ranges
+        if (Array.isArray(ranges) && ranges.type === 'bytes') {
+          this.status(206);
+
+          // Multiple ranges
+          if (ranges.length > 1) {
+            // Range boundary
+            let boundary = '<' + util.boundaryGenerator() + '>';
+            // If user set content-type use user define
+            const contentType = this.getHeader('Content-Type') || 'application/octet-stream';
+
+            // Set multipart/byteranges
+            this.setHeader('Content-Type', 'multipart/byteranges; boundary=' + boundary);
+
+            // Create boundary and end boundary
+            boundary = '\r\n--' + boundary;
+
+            // Closed boundary
+            const close = boundary + '--\r\n';
+
+            // Common boundary
+            boundary += '\r\nContent-Type: ' + contentType;
+
+            // Reset content-length
+            contentLength = 0;
+
+            // Loop ranges
+            ranges.forEach((range) => {
+              // Range start and end
+              const start = range.start;
+              const end = range.end;
+
+              // Set fields
+              const open = boundary + '\r\nContent-Range: ' + 'bytes ' + start + '-' + end + '/' + size + '\r\n\r\n';
+
+              // Set property
+              range.open = open;
+              // Compute content-length
+              contentLength += end - start + Buffer.byteLength(open) + 1;
+
+              // Cache range
+              this.ranges.push(range);
+            });
+
+            // The first open boundary remove \r\n
+            const open = this.ranges[0].open;
+
+            this.ranges[0].open = open.replace(/^\r\n/, '');
+            // The last add closed boundary
+            this.ranges[this.ranges.length - 1].close = close;
+            // Compute content-length
+            contentLength += Buffer.byteLength(close);
+          } else {
+            const range = ranges[0];
+            const start = range.start;
+            const end = range.end;
+
+            // Set content-range
+            this.setHeader('Content-Range', 'bytes ' + start + '-' + end + '/' + size);
+
+            // Cache reange
+            this.ranges.push(range);
+
+            // Compute content-length
+            contentLength = end - start + 1;
+          }
+        } else if (ranges === -1) {
+          // Set content-range
+          this.setHeader('Content-Range', 'bytes */' + size);
+
+          // Unsatisfiable 416
+          this.error(416);
+
+          return false;
+        }
+      }
+    }
+
+    // Set content-length
+    this.setHeader('Content-Length', contentLength);
+
+    return true;
+  }
+
+  dir(realpath, stats) {
+    // If have event directory listener, use user define
+    // emit event directory
+    if (this.hasListeners('dir')) {
+      this.emit('dir', realpath, stats, (chunk) => {
+        if (this.response.headersSent) {
+          return this.headersSent();
+        }
+
+        this.writeHead();
+        this.end(chunk);
+      });
+    } else {
+      this.error(403);
+    }
+  }
+
+  redirect(location) {
+    const html = 'Redirecting to <a href="' + location + '">' + escapeHtml(location) + '</a>';
+
+    this.status(301);
+    this.setHeader('Cache-Control', 'no-cache');
+    this.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    this.setHeader('Content-Length', Buffer.byteLength(html));
+    this.setHeader('Content-Security-Policy', "default-src 'self'");
+    this.setHeader('X-Content-Type-Options', 'nosniff');
+    this.setHeader('Location', location);
+    this.writeHead();
+    this.end(html);
+  }
+
+  initHeaders(stats) {
+    const response = this.response;
+
+    // Accept-Ranges
+    if (this.acceptRanges) {
+      // Set Accept-Ranges
+      this.setHeader('Accept-Ranges', 'bytes');
+    }
+
+    // Content-Type
+    if (!(response.getHeader('Content-Type'))) {
+      // Get type
+      let type = mime.lookup(this.path);
+
+      if (type) {
+        let charset = this.charset;
+
+        // Get charset
+        charset = charset ? '; charset=' + charset : '';
+
+        // Set Content-Type
+        this.setHeader('Content-Type', type + charset);
+      }
+    }
+
+    // Cache-Control
+    if (this.cacheControl && this.maxAge > 0 && !(response.getHeader('Cache-Control'))) {
+      let cacheControl = 'public, max-age=' + this.maxAge;
+
+      if (this.immutable) {
+        cacheControl += ', immutable';
+      }
+
+      // Set Cache-Control
+      this.setHeader('Cache-Control', cacheControl);
+    }
+
+    // Last-Modified
+    if (this.lastModified && !(response.getHeader('Last-Modified'))) {
+      // Get mtime utc string
+      this.setHeader('Last-Modified', stats.mtime.toUTCString());
+    }
+
+    if (this.etag && !(response.getHeader('ETag'))) {
+      // Set ETag
+      this.setHeader('ETag', etag(stats));
+    }
+  }
+
+  end(chunk) {
+    if (chunk) {
+      return this.stdin.end(chunk);
+    }
+
+    this.stdin.end();
+  }
+
+  sendIndex(stats) {
+    const hasTrailingSlash = this.hasTrailingSlash();
+    const path$$1 = hasTrailingSlash ? this.path : this.path + '/';
+
+    series(this.index.map(function(index) {
+      return path$$1 + index;
+    }), (path$$1, next) => {
+      if (this.isIgnore(path$$1)) {
+        return next();
+      }
+
+      fs.stat(path.resolve(this.root, path$$1), (error, stats) => {
+        if (error || !stats.isFile()) {
+          return next();
+        }
+
+        this.redirect(posixURI(path$$1));
+      });
+    }, () => {
+      if (hasTrailingSlash) {
+        return this.dir(this.realpath, stats);
+      }
+
+      this.redirect(path$$1);
+    });
+  }
+
+  sendFile() {
+    const stdin = this.stdin;
+    let ranges = this.ranges;
+    const response = this.response;
+
+    // Stream error
+    const onerror = (error) => {
+      // Request already finished
+      if (onFinished.isFinished(response)) {
+        return stdin.end();
+      }
+
+      // Stat error
+      this.statError(error);
+    };
+
+    // Error handling code-smell
+    stdin.on('error', onerror);
+
+    // Format ranges
+    ranges = ranges.length ? ranges : [{}];
+
+    // Contat range
+    series(ranges, (range, next) => {
+      // Request already finished
+      if (onFinished.isFinished(response)) {
+        return stdin.end();
+      }
+
+      // Push open boundary
+      range.open && stdin.write(range.open);
+
+      // Create file stream
+      const file = fs.createReadStream(this.realpath, range);
+
+      // Error handling code-smell
+      file.on('error', function(error) {
+        // Call onerror
+        onerror(error);
+        // Destroy file stream
+        destroy(file);
+      });
+
+      // File stream end
+      file.on('end', function() {
+        // Stop pipe stdin
+        file.unpipe(stdin);
+
+        // Push close boundary
+        range.close && stdin.write(range.close);
+
+        // Destroy file stream
+        destroy(file);
+      });
+
+      // Next
+      file.on('close', next);
+
+      // Pipe stdin
+      file.pipe(stdin, { end: false });
+    }, () => {
+      // End stdin
+      this.end();
+    });
+  }
+
+  bootstrap() {
+    const response = this.response;
+
+    // Set status
+    this.status(response.statusCode || 200);
+
+    // Path -1 or null byte(s)
+    if (this.path === -1 || this.path.indexOf('\0') !== -1) {
+      return this.error(400);
+    }
+
+    // Malicious path
+    if (isOutBound(this.realpath, this.root)) {
+      return this.error(403);
+    }
+
+    // Is ignore path or file
+    if (this.isIgnore(this.path)) {
+      switch (this.ignoreAccess) {
+        case 'deny':
+          return this.error(403);
+        case 'ignore':
+          return this.error(404);
+      }
+    }
+
+    // Read file
+    fs.stat(this.realpath, (error, stats) => {
+      // Stat error
+      if (error) {
+        return this.statError(error);
+      }
+
+      // Is directory
+      if (stats.isDirectory()) {
+        return this.sendIndex(stats);
+      } else if (this.hasTrailingSlash()) {
+        // Not a directory but has trailing slash
+        return this.error(404);
+      }
+
+      // Set headers and parse range
+      this.initHeaders(stats);
+
+      // Conditional get support
+      if (this.isConditionalGET()) {
+        if (this.isPreconditionFailure()) {
+          this.status(412);
+        } else if (this.isCachable() && this.isFresh()) {
+          this.status(304);
+        }
+
+        // Remove content-type
+        this.removeHeader('Content-Type');
+        this.writeHead();
+
+        // End with empty content
+        return this.end();
+      }
+
+      // Head request
+      if (this.method === 'HEAD') {
+        // Set content-length
+        this.setHeader('Content-Length', stats.size);
+        this.writeHead();
+
+        // End with empty content
+        return this.end();
+      }
+
+      // Parse range
+      if (this.parseRange(stats)) {
+        this.writeHead();
+        // Read file
+        this.sendFile();
+      }
+    });
+  }
+
+  pipe(response, options) {
+    if (!(response instanceof http.ServerResponse)) {
+      throw new TypeError('The param response must be a http response.');
+    }
+
+    if (this.response) {
+      throw new TypeError('There already have a http response alive.');
+    }
+
+    this.response = response;
+
     if (response.headersSent) {
-      this.headersSent(response);
+      this.headersSent();
 
       return response;
     }
 
-    setHeaders(response, this.getHeaders());
+    this.bootstrap();
 
-    const streams = [this];
+    if (this[middlewares].length) {
+      return this.stdin
+        .pipe(pipeline(this[middlewares]))
+        .pipe(response, options);
+    }
 
-    streams.concat(this[middlewares]);
-
-    streams.push(response);
-
-    return pipeline(streams);
+    return this.stdin.pipe(response, options);
   }
 }
+
+FileSend.through = through;
 
 module.exports = FileSend;
