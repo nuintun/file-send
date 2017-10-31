@@ -1050,17 +1050,22 @@ FileSend.prototype.read = function(response) {
 
     // Conditional get support
     if (context.isConditionalGET()) {
+      var end = function() {
+        // Remove content-type
+        context.removeHeader('Content-Type');
+        // End with empty content
+        context.end(response);
+      };
+
       if (context.isPreconditionFailure()) {
         context.status(response, 412);
+
+        return end();
       } else if (context.isCachable() && context.isFresh()) {
         context.status(response, 304);
+
+        return end();
       }
-
-      // Remove content-type
-      context.removeHeader('Content-Type');
-
-      // End with empty content
-      return context.end(response);
     }
 
     // Head request
