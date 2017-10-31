@@ -1273,7 +1273,7 @@ class FileSend extends Events {
           this.writeHeaders();
 
           // End with empty content
-          return this.end();
+          this.end();
         };
 
         if (this.isPreconditionFailure()) {
