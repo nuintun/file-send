@@ -90,22 +90,42 @@ export default class FileSend extends Events {
     this.lastModified = normalizeBoolean(options.lastModified, true);
   }
 
+  /**
+   * @method use
+   * @param {Stream} middleware
+   * @public
+   */
   use(middleware) {
     if (middleware instanceof Stream) {
       this[middlewares].push(middleware);
     }
   }
 
+  /**
+   * @method setHeader
+   * @param {string} name
+   * @param {string} value
+   * @public
+   */
   setHeader(name, value) {
     // 0 => name
     // 1 => value
     this[headers][name.toLowerCase()] = [name, value];
   }
 
+  /**
+   * @method getHeader
+   * @param {string} name
+   * @public
+   */
   getHeader(name) {
     return this[headers][name.toLowerCase()][1];
   }
 
+  /**
+   * @method getHeaders
+   * @public
+   */
   getHeaders() {
     const headerItems = this[headers];
     const result = Object.create(null);
@@ -121,23 +141,57 @@ export default class FileSend extends Events {
     return result;
   }
 
+  /**
+   * @method removeHeader
+   * @param {string} name
+   * @public
+   */
   removeHeader(name) {
     delete this[headers][name.toLowerCase()];
   }
 
+  /**
+   * @method removeHeaders
+   * @public
+   */
+  removeHeaders() {
+    this[headers] = Object.create(null);
+  }
+
+  /**
+   * @method hasListeners
+   * @param {string} event
+   * @public
+   */
   hasListeners(event) {
     return this.listenerCount(event) > 0;
   }
 
+  /**
+   * @method headersSent
+   * @private
+   */
   headersSent() {
     this.end('Can\'t set headers after they are sent.');
   }
 
+  /**
+   * @method status
+   * @param {number} statusCode
+   * @param {string} statusMessage
+   * @public
+   */
   status(statusCode, statusMessage) {
     this.statusCode = statusCode;
     this.statusMessage = statusMessage || http.STATUS_CODES[statusCode];
   }
 
+  /**
+   * @method error
+   * @param {number} statusCode
+   * @param {string} statusMessage
+   * @public
+   */
   error(statusCode, statusMessage) {
     const response = this.response;
 
@@ -176,6 +230,11 @@ export default class FileSend extends Events {
     }
   }
 
+  /**
+   * @method statError
+   * @param {Error} error
+   * @private
+   */
   statError(error) {
     // 404 error
     if (NOT_FOUND.indexOf(error.code) !== -1) {
@@ -185,10 +244,18 @@ export default class FileSend extends Events {
     this.error(500, error.message);
   }
 
+  /**
+   * @method hasTrailingSlash
+   * @private
+   */
   hasTrailingSlash() {
     return this.path[this.path.length - 1] === '/';
   }
 
+  /**
+   * @method isConditionalGET
+   * @private
+   */
   isConditionalGET() {
     const headers = this.request.headers;
 
@@ -198,6 +265,10 @@ export default class FileSend extends Events {
       || headers['if-modified-since'];
   }
 
+  /**
+   * @method isPreconditionFailure
+   * @private
+   */
   isPreconditionFailure() {
     const request = this.request;
     const response = this.response;
@@ -224,12 +295,20 @@ export default class FileSend extends Events {
     return false;
   }
 
+  /**
+   * @method isCachable
+   * @private
+   */
   isCachable() {
     const statusCode = this.statusCode;
 
     return statusCode === 304 || (statusCode >= 200 && statusCode < 300);
   }
 
+  /**
+   * @method isFresh
+   * @private
+   */
   isFresh() {
     return fresh(this.request.headers, {
       'etag': this.getHeader('ETag'),
@@ -237,6 +316,10 @@ export default class FileSend extends Events {
     });
   }
 
+  /**
+   * @method isRangeFresh
+   * @private
+   */
   isRangeFresh() {
     const ifRange = this.request.headers['if-range'];
 
@@ -257,10 +340,20 @@ export default class FileSend extends Events {
     return utils.parseHttpDate(lastModified) <= utils.parseHttpDate(ifRange);
   }
 
+  /**
+   * @method isIgnore
+   * @param {string} path
+   * @private
+   */
   isIgnore(path) {
     return this.ignore.length && micromatch(path, this.ignore, this[glob]).length;
   }
 
+  /**
+   * @method parseRange
+   * @param {Stats} stats
+   * @private
+   */
   parseRange(stats) {
     const size = stats.size;
     let contentLength = size;
@@ -283,33 +376,32 @@ export default class FileSend extends Events {
           // Multiple ranges
           if (ranges.length > 1) {
             // Range boundary
-            let boundary = '<' + util.boundaryGenerator() + '>';
+            let boundary = `<${ utils.boundaryGenerator() }>`;
             // If user set content-type use user define
             const contentType = this.getHeader('Content-Type') || 'application/octet-stream';
 
             // Set multipart/byteranges
-            this.setHeader('Content-Type', 'multipart/byteranges; boundary=' + boundary);
+            this.setHeader('Content-Type', `multipart/byteranges; boundary=${ boundary }`);
 
             // Create boundary and end boundary
-            boundary = '\r\n--' + boundary;
+            boundary = `\r\n--${ boundary }`;
 
             // Closed boundary
-            const close = boundary + '--\r\n';
+            const close = `${ boundary }--\r\n`;
 
             // Common boundary
-            boundary += '\r\nContent-Type: ' + contentType;
+            boundary += `\r\nContent-Type: ${ contentType }`;
 
             // Reset content-length
             contentLength = 0;
 
-            // Loop ranges
+            // Map ranges
             ranges.forEach((range) => {
               // Range start and end
               const start = range.start;
               const end = range.end;
-
               // Set fields
-              const open = boundary + '\r\nContent-Range: ' + 'bytes ' + start + '-' + end + '/' + size + '\r\n\r\n';
+              const open = `${ boundary }\r\nContent-Range: bytes ${ start }-${ end }/${ size }\r\n\r\n`;
 
               // Set property
               range.open = open;
@@ -321,11 +413,10 @@ export default class FileSend extends Events {
             });
 
             // The first open boundary remove \r\n
-            const open = this.ranges[0].open;
-
-            this.ranges[0].open = open.replace(/^\r\n/, '');
+            this.ranges[0].open = this.ranges[0].open.replace(/^\r\n/, '');
             // The last add closed boundary
             this.ranges[this.ranges.length - 1].close = close;
+
             // Compute content-length
             contentLength += Buffer.byteLength(close);
           } else {
@@ -334,9 +425,9 @@ export default class FileSend extends Events {
             const end = range.end;
 
             // Set content-range
-            this.setHeader('Content-Range', 'bytes ' + start + '-' + end + '/' + size);
+            this.setHeader('Content-Range', `bytes ${ start }-${ end }/${ size }`);
 
-            // Cache reange
+            // Cache range
             this.ranges.push(range);
 
             // Compute content-length
@@ -344,8 +435,7 @@ export default class FileSend extends Events {
           }
         } else if (ranges === -1) {
           // Set content-range
-          this.setHeader('Content-Range', 'bytes */' + size);
-
+          this.setHeader('Content-Range', `bytes */${ size }`);
           // Unsatisfiable 416
           this.error(416);
 
@@ -360,6 +450,10 @@ export default class FileSend extends Events {
     return true;
   }
 
+  /**
+   * @method dir
+   * @private
+   */
   dir() {
     // If have event directory listener, use user define
     // emit event directory
@@ -377,11 +471,16 @@ export default class FileSend extends Events {
     }
   }
 
+  /**
+   * @method redirect
+   * @param {string} location
+   * @public
+   */
   redirect(location) {
     location = encodeUrl(location);
 
     const href = escapeHtml(location);
-    const html = 'Redirecting to <a href="' + href + '">' + href + '</a>';
+    const html = `Redirecting to <a href="${ href }">${ href }</a>`;
 
     this.status(301);
     this.setHeader('Cache-Control', 'no-cache');
@@ -394,6 +493,11 @@ export default class FileSend extends Events {
     this.end(html);
   }
 
+  /**
+   * @method initHeaders
+   * @param {Stats} stats
+   * @private
+   */
   initHeaders(stats) {
     const response = this.response;
 
@@ -412,7 +516,7 @@ export default class FileSend extends Events {
         let charset = this.charset;
 
         // Get charset
-        charset = charset ? '; charset=' + charset : '';
+        charset = charset ? `; charset=${ charset }` : '';
 
         // Set Content-Type
         this.setHeader('Content-Type', type + charset);
@@ -421,7 +525,7 @@ export default class FileSend extends Events {
 
     // Cache-Control
     if (this.cacheControl && this.maxAge > 0 && !(response.getHeader('Cache-Control'))) {
-      let cacheControl = 'public, max-age=' + this.maxAge;
+      let cacheControl = `public, max-age=${ this.maxAge }`;
 
       if (this.immutable) {
         cacheControl += ', immutable';
@@ -443,6 +547,10 @@ export default class FileSend extends Events {
     }
   }
 
+  /**
+   * @method writeHeaders
+   * @private
+   */
   writeHeaders() {
     const response = this.response;
     const headers = this.getHeaders();
@@ -457,6 +565,11 @@ export default class FileSend extends Events {
       });
   }
 
+  /**
+   * @method end
+   * @param {string} chunk
+   * @public
+   */
   end(chunk) {
     if (chunk) {
       return this.stdin.end(chunk);
@@ -465,9 +578,13 @@ export default class FileSend extends Events {
     this.stdin.end();
   }
 
+  /**
+   * @method sendIndex
+   * @private
+   */
   sendIndex() {
     const hasTrailingSlash = this.hasTrailingSlash();
-    const path = hasTrailingSlash ? this.path : this.path + '/';
+    const path = hasTrailingSlash ? this.path : `${ this.path }/`;
 
     series(this.index.map(function(index) {
       return path + index;
@@ -492,7 +609,14 @@ export default class FileSend extends Events {
     });
   }
 
+  /**
+   * @method sendFile
+   * @private
+   */
   sendFile() {
+    // Write headers
+    this.writeHeaders();
+
     const stdin = this.stdin;
     let ranges = this.ranges;
     const response = this.response;
@@ -558,6 +682,10 @@ export default class FileSend extends Events {
     });
   }
 
+  /**
+   * @method bootstrap
+   * @private
+   */
   bootstrap() {
     const response = this.response;
 
@@ -630,20 +758,25 @@ export default class FileSend extends Events {
 
       // Parse range
       if (this.parseRange(stats)) {
-        this.writeHeaders();
         // Read file
         this.sendFile();
       }
     });
   }
 
+  /**
+   * @method pipe
+   * @param {Response} response
+   * @param {Object} options
+   * @public
+   */
   pipe(response, options) {
-    if (!(response instanceof http.ServerResponse)) {
-      throw new TypeError('The param response must be a http response.');
-    }
-
     if (this.response) {
       throw new TypeError('There already have a http response alive.');
+    }
+
+    if (!(response instanceof http.ServerResponse)) {
+      throw new TypeError('The param response must be a http response.');
     }
 
     this.response = response;
@@ -665,5 +798,3 @@ export default class FileSend extends Events {
     return this.stdin.pipe(response, options);
   }
 }
-
-FileSend.through = through;

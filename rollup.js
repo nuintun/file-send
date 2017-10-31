@@ -1,12 +1,16 @@
 const fs = require('fs');
 const rollup = require('rollup');
+const pkg = require('./package.json');
 
 const banner = `/**
- * @module file-send
- * @license MIT
- * @version 2017/10/25
+ * @module ${ pkg.name }
+ * @author ${ pkg.author.name }
+ * @license ${ pkg.license }
+ * @version ${ pkg.version }
+ * @description ${ pkg.description }
+ * @see ${ pkg.homepage }
  */
-`
+`;
 
 rollup.rollup({
   input: 'index.js',
