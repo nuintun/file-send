@@ -1267,18 +1267,25 @@ class FileSend extends Events {
 
       // Conditional get support
       if (this.isConditionalGET()) {
+        const end = () => {
+          // Remove content-type
+          this.removeHeader('Content-Type');
+          this.writeHeaders();
+
+          // End with empty content
+          return this.end();
+        };
+
         if (this.isPreconditionFailure()) {
           this.status(412);
+
+          return end();
+
         } else if (this.isCachable() && this.isFresh()) {
           this.status(304);
+
+          return end();
         }
-
-        // Remove content-type
-        this.removeHeader('Content-Type');
-        this.writeHeaders();
-
-        // End with empty content
-        return this.end();
       }
 
       // Head request

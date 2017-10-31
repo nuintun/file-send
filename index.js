@@ -755,18 +755,25 @@ export default class FileSend extends Events {
 
       // Conditional get support
       if (this.isConditionalGET()) {
-        if (this.isPreconditionFailure()) {
-          this.status(412);
-        } else if (this.isCachable() && this.isFresh()) {
-          this.status(304);
+        const end = () => {
+          // Remove content-type
+          this.removeHeader('Content-Type');
+          this.writeHeaders();
+
+          // End with empty content
+          return this.end();
         }
 
-        // Remove content-type
-        this.removeHeader('Content-Type');
-        this.writeHeaders();
+        if (this.isPreconditionFailure()) {
+          this.status(412);
 
-        // End with empty content
-        return this.end();
+          return end();
+
+        } else if (this.isCachable() && this.isFresh()) {
+          this.status(304);
+
+          return end();
+        }
       }
 
       // Head request
