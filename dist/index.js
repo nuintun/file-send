@@ -113,7 +113,7 @@ function normalize(path$$1) {
 
   // a/b/c/../../d ==> a/b/../d ==> a/d
   do {
-    src = src.replace(DOUBLE_DOT_RE, function(matched, dirname) {
+    src = src.replace(DOUBLE_DOT_RE, (matched, dirname) => {
       return dirname === '..' ? matched : '';
     });
 
@@ -293,7 +293,7 @@ class DestroyableTransform extends Stream.Transform {
 
     const self = this;
 
-    process.nextTick(function() {
+    process.nextTick(() => {
       if (error) self.emit('error', error);
 
       self.emit('close');
@@ -406,7 +406,7 @@ function series(array, iterator, done) {
     if (item.done) {
       done();
     } else {
-      iterator(item.value, function() {
+      iterator(item.value, () => {
         walk(it);
       }, it.index);
     }
@@ -463,7 +463,7 @@ function normalizeRealpath(root, path$$1) {
 function normalizeList(list) {
   list = Array.isArray(list) ? list : [list];
 
-  return list.filter(function(item) {
+  return list.filter((item) => {
     return item && typeIs(item, 'string');
   })
 }
@@ -758,7 +758,7 @@ class FileSend extends Events {
     if (match) {
       const etag$$1 = response.getHeader('ETag');
 
-      return !etag$$1 || (match !== '*' && parseTokenList(match).every(function(match) {
+      return !etag$$1 || (match !== '*' && parseTokenList(match).every((match) => {
         return match !== etag$$1 && match !== 'W/' + etag$$1 && 'W/' + match !== etag$$1;
       }));
     }
@@ -1038,9 +1038,13 @@ class FileSend extends Events {
     response.statusCode = this.statusCode;
     response.statusMessage = this.statusMessage;
 
+    if (this.hasListeners('headers')) {
+      this.emit('headers', headers);
+    }
+
     Object
       .keys(headers)
-      .forEach(function(name) {
+      .forEach((name) => {
         response.setHeader(name, headers[name]);
       });
   }
@@ -1050,12 +1054,16 @@ class FileSend extends Events {
    * @param {string} chunk
    * @public
    */
-  end(chunk) {
+  end(chunk, encoding, callback) {
     if (chunk) {
-      return this.stdin.end(chunk);
+      this.stdin.end(chunk, encoding, callback);
+    } else {
+      this.stdin.end();
     }
 
-    this.stdin.end();
+    if (this.hasListeners('end')) {
+      this.emit('end');
+    }
   }
 
   /**
@@ -1066,7 +1074,7 @@ class FileSend extends Events {
     const hasTrailingSlash = this.hasTrailingSlash();
     const path$$1 = hasTrailingSlash ? this.path : `${ this.path }/`;
 
-    series(this.index.map(function(index) {
+    series(this.index.map((index) => {
       return path$$1 + index;
     }), (path$$1, next) => {
       if (this.isIgnore(path$$1)) {
@@ -1132,7 +1140,7 @@ class FileSend extends Events {
       const file = fs.createReadStream(this.realpath, range);
 
       // Error handling code-smell
-      file.on('error', function(error) {
+      file.on('error', (error) => {
         // Call onerror
         onerror(error);
         // Destroy file stream
@@ -1140,7 +1148,7 @@ class FileSend extends Events {
       });
 
       // File stream end
-      file.on('end', function() {
+      file.on('end', () => {
         // Stop pipe stdin
         file.unpipe(stdin);
 
@@ -1259,16 +1267,20 @@ class FileSend extends Events {
       throw new TypeError('The param response must be a http response.');
     }
 
+    // Set response
     this.response = response;
 
+    // Headers already sent
     if (response.headersSent) {
       this.headersSent();
 
       return response;
     }
 
+    // Bootstrap
     this.bootstrap();
 
+    // Pipeline
     if (this[middlewares].length) {
       return this.stdin
         .pipe(pipeline(this[middlewares]))
@@ -1278,5 +1290,8 @@ class FileSend extends Events {
     return this.stdin.pipe(response, options);
   }
 }
+
+// Exports mime
+FileSend.mime = mime;
 
 module.exports = FileSend;
