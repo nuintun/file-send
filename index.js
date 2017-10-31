@@ -17,7 +17,6 @@ import destroy from 'destroy';
 import encodeUrl from 'encodeurl';
 import micromatch from 'micromatch';
 import escapeHtml from 'escape-html';
-import onFinished from 'on-finished';
 import parseRange from 'range-parser';
 
 import {
@@ -647,7 +646,7 @@ export default class FileSend extends Events {
     // Stream error
     const onerror = (error) => {
       // Request already finished
-      if (onFinished.isFinished(response)) {
+      if (response.finished) {
         return stdin.end();
       }
 
@@ -664,7 +663,7 @@ export default class FileSend extends Events {
     // Contat range
     series(ranges, (range, next) => {
       // Request already finished
-      if (onFinished.isFinished(response)) {
+      if (response.finished) {
         return stdin.end();
       }
 

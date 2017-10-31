@@ -20,7 +20,6 @@ var destroy = require('destroy');
 var encodeUrl = require('encodeurl');
 var micromatch = require('micromatch');
 var escapeHtml = require('escape-html');
-var onFinished = require('on-finished');
 var parseRange = require('range-parser');
 var ms = require('ms');
 var path = require('path');
@@ -1159,7 +1158,7 @@ class FileSend extends Events {
     // Stream error
     const onerror = (error) => {
       // Request already finished
-      if (onFinished.isFinished(response)) {
+      if (response.finished) {
         return stdin.end();
       }
 
@@ -1176,7 +1175,7 @@ class FileSend extends Events {
     // Contat range
     series(ranges, (range, next) => {
       // Request already finished
-      if (onFinished.isFinished(response)) {
+      if (response.finished) {
         return stdin.end();
       }
 
