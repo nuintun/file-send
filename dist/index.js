@@ -262,6 +262,38 @@ function parseTokenList(value) {
 }
 
 /**
+ * @function createErrorDocument
+ * @param {number} statusCode
+ * @param {string} statusMessage
+ * @returns {string}
+ */
+function createErrorDocument(statusCode, statusMessage) {
+  return '<!DOCTYPE html>\n'
+    + '<html>\n'
+    + '  <head>\n'
+    + '    <meta name="renderer" content="webkit" />\n'
+    + '    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />\n'
+    + '    <meta content="text/html; charset=utf-8" http-equiv="content-type" />\n'
+    + `    <title>${ statusCode }</title>\n`
+    + '    <style>\n'
+    + '      html, body, div, p {\n'
+    + '        margin: 0; padding: 0;\n'
+    + '        text-align: center;\n'
+    + '        font-family: Calibri, "Lucida Console", Consolas, "Liberation Mono", Menlo, Courier, monospace;\n'
+    + '      }\n'
+    + '      p { color: #0e90d2; line-height: 100%; }\n'
+    + '      .ui-code { font-size: 200px; font-weight: bold; margin-top: 66px; }\n'
+    + '      .ui-message { font-size: 80px; }\n'
+    + '    </style>\n'
+    + '  </head>\n'
+    + '  <body>\n'
+    + `    <p class="ui-code">${ statusCode }</p>\n`
+    + `    <p class="ui-message">${ statusMessage }</p>\n`
+    + '  </body>\n'
+    + '</html>\n';
+}
+
+/**
  * @module through
  * @license MIT
  * @version 2017/10/25
@@ -699,14 +731,17 @@ class FileSend extends Events {
         return this.headersSent();
       }
 
+      // Error document
+      const document = createErrorDocument(statusCode, statusMessage);
+
       // Set headers
       this.setHeader('Cache-Control', 'private');
       this.setHeader('Content-Type', 'text/html; charset=UTF-8');
-      this.setHeader('Content-Length', Buffer.byteLength(statusMessage));
-      this.setHeader('Content-Security-Policy', "default-src 'self'");
+      this.setHeader('Content-Length', Buffer.byteLength(document));
+      this.setHeader('Content-Security-Policy', `default-src 'self' 'unsafe-inline'`);
       this.setHeader('X-Content-Type-Options', 'nosniff');
       this.writeHeaders();
-      this.end(statusMessage);
+      this.end(document);
     }
   }
 

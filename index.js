@@ -219,14 +219,17 @@ export default class FileSend extends Events {
         return this.headersSent();
       }
 
+      // Error document
+      const document = utils.createErrorDocument(statusCode, statusMessage);
+
       // Set headers
       this.setHeader('Cache-Control', 'private');
       this.setHeader('Content-Type', 'text/html; charset=UTF-8');
-      this.setHeader('Content-Length', Buffer.byteLength(statusMessage));
-      this.setHeader('Content-Security-Policy', "default-src 'self'");
+      this.setHeader('Content-Length', Buffer.byteLength(document));
+      this.setHeader('Content-Security-Policy', `default-src 'self' 'unsafe-inline'`);
       this.setHeader('X-Content-Type-Options', 'nosniff');
       this.writeHeaders();
-      this.end(statusMessage);
+      this.end(document);
     }
   }
 

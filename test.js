@@ -8,7 +8,7 @@ function createServer(root, port) {
       root: root,
       maxAge: 0,
       ignore: ['/node_modules/**/*'],
-      index: ['index.html', 'index.js']
+      index: ['index.html']
     });
 
     send.pipe(response);
