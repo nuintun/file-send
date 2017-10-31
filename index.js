@@ -99,6 +99,8 @@ export default class FileSend extends Events {
     if (middleware instanceof Stream) {
       this[middlewares].push(middleware);
     }
+
+    return this;
   }
 
   /**
@@ -111,6 +113,8 @@ export default class FileSend extends Events {
     // 0 => name
     // 1 => value
     this[headers][name.toLowerCase()] = [name, value];
+
+    return this;
   }
 
   /**
@@ -148,6 +152,8 @@ export default class FileSend extends Events {
    */
   removeHeader(name) {
     delete this[headers][name.toLowerCase()];
+
+    return this;
   }
 
   /**
@@ -156,6 +162,8 @@ export default class FileSend extends Events {
    */
   removeHeaders() {
     this[headers] = Object.create(null);
+
+    return this;
   }
 
   /**
@@ -184,6 +192,8 @@ export default class FileSend extends Events {
   status(statusCode, statusMessage) {
     this.statusCode = statusCode;
     this.statusMessage = statusMessage || http.STATUS_CODES[statusCode];
+
+    return this;
   }
 
   /**
@@ -262,10 +272,10 @@ export default class FileSend extends Events {
   isConditionalGET() {
     const headers = this.request.headers;
 
-    return headers['if-match']
-      || headers['if-unmodified-since']
-      || headers['if-none-match']
-      || headers['if-modified-since'];
+    return headers['If-Match']
+      || headers['If-Unmodified-Since']
+      || headers['If-None-Match']
+      || headers['If-Modified-Since'];
   }
 
   /**
@@ -276,7 +286,7 @@ export default class FileSend extends Events {
     const request = this.request;
     const response = this.response;
     // if-match
-    const match = request.headers['if-match'];
+    const match = request.headers['If-Match'];
 
     if (match) {
       const etag = response.getHeader('ETag');
@@ -287,7 +297,7 @@ export default class FileSend extends Events {
     }
 
     // if-unmodified-since
-    const unmodifiedSince = utils.parseHttpDate(request.headers['if-unmodified-since']);
+    const unmodifiedSince = utils.parseHttpDate(request.headers['If-Unmodified-Since']);
 
     if (!isNaN(unmodifiedSince)) {
       const lastModified = utils.parseHttpDate(response.getHeader('Last-Modified'));
@@ -324,20 +334,20 @@ export default class FileSend extends Events {
    * @private
    */
   isRangeFresh() {
-    const ifRange = this.request.headers['if-range'];
+    const ifRange = this.request.headers['If-Range'];
 
     if (!ifRange) {
       return true;
     }
 
-    // if-range as etag
+    // If-Range as etag
     if (ifRange.indexOf('"') !== -1) {
       const etag = this.getHeader('ETag');
 
       return Boolean(etag && ifRange.indexOf(etag) !== -1);
     }
 
-    // if-range as modified date
+    // If-Range as modified date
     const lastModified = this.getHeader('Last-Modified');
 
     return utils.parseHttpDate(lastModified) <= utils.parseHttpDate(ifRange);
@@ -358,17 +368,19 @@ export default class FileSend extends Events {
    * @private
    */
   parseRange(stats) {
-    const size = stats.size;
-    let contentLength = size;
-    let ranges = this.request.headers['range'];
-
     // Reset ranges
     this.ranges = [];
 
+    // Get size
+    const size = stats.size;
+    let contentLength = size;
+
     // Range support
-    if (ranges) {
+    if (this.acceptRanges) {
+      let ranges = this.request.headers['Range'];
+
       // Range fresh
-      if (this.isRangeFresh()) {
+      if (ranges && this.isRangeFresh()) {
         // Parse range
         ranges = parseRange(size, ranges, { combine: true });
 
