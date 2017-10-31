@@ -784,10 +784,10 @@ class FileSend extends Events {
   isConditionalGET() {
     const headers = this.request.headers;
 
-    return headers['If-Match']
-      || headers['If-Unmodified-Since']
-      || headers['If-None-Match']
-      || headers['If-Modified-Since'];
+    return headers['if-match']
+      || headers['if-unmodified-since']
+      || headers['if-none-match']
+      || headers['if-modified-since'];
   }
 
   /**
@@ -798,7 +798,7 @@ class FileSend extends Events {
     const request = this.request;
     const response = this.response;
     // if-match
-    const match = request.headers['If-Match'];
+    const match = request.headers['if-match'];
 
     if (match) {
       const etag$$1 = response.getHeader('ETag');
@@ -809,7 +809,7 @@ class FileSend extends Events {
     }
 
     // if-unmodified-since
-    const unmodifiedSince = parseHttpDate(request.headers['If-Unmodified-Since']);
+    const unmodifiedSince = parseHttpDate(request.headers['if-unmodified-since']);
 
     if (!isNaN(unmodifiedSince)) {
       const lastModified = parseHttpDate(response.getHeader('Last-Modified'));
@@ -846,7 +846,7 @@ class FileSend extends Events {
    * @private
    */
   isRangeFresh() {
-    const ifRange = this.request.headers['If-Range'];
+    const ifRange = this.request.headers['if-range'];
 
     if (!ifRange) {
       return true;
@@ -889,7 +889,7 @@ class FileSend extends Events {
 
     // Range support
     if (this.acceptRanges) {
-      let ranges = this.request.headers['Range'];
+      let ranges = this.request.headers['range'];
 
       // Range fresh
       if (ranges && this.isRangeFresh()) {
