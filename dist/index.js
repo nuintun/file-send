@@ -1151,17 +1151,9 @@ class FileSend extends Events {
     // Write headers
     this.writeHeaders();
 
-    const stdin = this.stdin;
     let ranges = this.ranges;
-    const response = this.response;
-
-    // Stream error
+    const stdin = this.stdin;
     const onerror = (error) => {
-      // Request already finished
-      if (response.finished) {
-        return stdin.end();
-      }
-
       // Stat error
       this.statError(error);
     };
@@ -1174,11 +1166,6 @@ class FileSend extends Events {
 
     // Contat range
     series(ranges, (range, next) => {
-      // Request already finished
-      if (response.finished) {
-        return stdin.end();
-      }
-
       // Push open boundary
       range.open && stdin.write(range.open);
 
