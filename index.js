@@ -179,7 +179,7 @@ export default class FileSend extends Events {
    * @private
    */
   headersSent() {
-    this.end('Can\'t set headers after they are sent.');
+    this.responseEnd('Can\'t set headers after they are sent.');
   }
 
   /**
@@ -191,6 +191,11 @@ export default class FileSend extends Events {
   status(statusCode, statusMessage) {
     this.statusCode = statusCode;
     this.statusMessage = statusMessage || http.STATUS_CODES[statusCode];
+
+    const response = this.response;
+
+    response.statusCode = this.statusCode;
+    response.statusMessage = this.statusMessage;
 
     return this;
   }
@@ -220,8 +225,7 @@ export default class FileSend extends Events {
           return this.headersSent();
         }
 
-        this.writeHeaders();
-        this.end(chunk);
+        this.responseEnd(chunk);
       });
     } else {
       if (response.headersSent) {
@@ -237,8 +241,7 @@ export default class FileSend extends Events {
       this.setHeader('Content-Length', Buffer.byteLength(document));
       this.setHeader('Content-Security-Policy', `default-src 'self' 'unsafe-inline'`);
       this.setHeader('X-Content-Type-Options', 'nosniff');
-      this.writeHeaders();
-      this.end(document);
+      this.responseEnd(document);
     }
   }
 
@@ -477,8 +480,7 @@ export default class FileSend extends Events {
           return this.headersSent();
         }
 
-        this.writeHeaders();
-        this.end(chunk);
+        this.responseEnd(chunk);
       });
     } else {
       this.error(403);
@@ -503,8 +505,7 @@ export default class FileSend extends Events {
     this.setHeader('Content-Security-Policy', "default-src 'self'");
     this.setHeader('X-Content-Type-Options', 'nosniff');
     this.setHeader('Location', location);
-    this.writeHeaders();
-    this.end(html);
+    this.responseEnd(html);
   }
 
   /**
@@ -566,15 +567,12 @@ export default class FileSend extends Events {
    * @private
    */
   writeHeaders() {
+    if (this.hasListeners('headers')) {
+      this.emit('headers', this.getHeaders());
+    }
+
     const response = this.response;
     const headers = this.getHeaders();
-
-    response.statusCode = this.statusCode;
-    response.statusMessage = this.statusMessage;
-
-    if (this.hasListeners('headers')) {
-      this.emit('headers', headers);
-    }
 
     Object
       .keys(headers)
@@ -584,8 +582,29 @@ export default class FileSend extends Events {
   }
 
   /**
+   * @method responseEnd
+   * @param {string} chunk
+   * @param {string} chunk
+   * @param {Function} chunk
+   * @private
+   */
+  responseEnd(chunk, encoding, callback) {
+    const response = this.response;
+
+    if (response) {
+      if (chunk) {
+        response.end(chunk, encoding, callback);
+      } else {
+        response.end();
+      }
+    }
+  }
+
+  /**
    * @method end
    * @param {string} chunk
+   * @param {string} encoding
+   * @param {Function} callback
    * @public
    */
   end(chunk, encoding, callback) {
@@ -593,10 +612,6 @@ export default class FileSend extends Events {
       this.stdin.end(chunk, encoding, callback);
     } else {
       this.stdin.end();
-    }
-
-    if (this.hasListeners('end')) {
-      this.emit('end');
     }
   }
 
@@ -636,21 +651,9 @@ export default class FileSend extends Events {
    * @private
    */
   sendFile() {
-    // Write headers
-    this.writeHeaders();
-
     let ranges = this.ranges;
     const stdin = this.stdin;
     const response = this.response;
-
-    // Stream error
-    const onerror = (error) => {
-      // Stat error
-      this.statError(error);
-    };
-
-    // Error handling code-smell
-    stdin.on('error', onerror);
 
     // Format ranges
     ranges = ranges.length ? ranges : [{}];
@@ -665,10 +668,11 @@ export default class FileSend extends Events {
 
       // Error handling code-smell
       file.on('error', (error) => {
-        // Call onerror
-        onerror(error);
         // Destroy file stream
         destroy(file);
+
+        // Emit stdin error
+        stdin.emit('error', error);
       });
 
       // File stream end
@@ -744,24 +748,23 @@ export default class FileSend extends Events {
 
       // Conditional get support
       if (this.isConditionalGET()) {
-        const end = () => {
+        const responseEnd = () => {
           // Remove content-type
           this.removeHeader('Content-Type');
-          this.writeHeaders();
 
           // End with empty content
-          this.end();
+          this.responseEnd();
         }
 
         if (this.isPreconditionFailure()) {
           this.status(412);
 
-          return end();
+          return responseEnd();
 
         } else if (this.isCachable() && this.isFresh()) {
           this.status(304);
 
-          return end();
+          return responseEnd();
         }
       }
 
@@ -769,10 +772,9 @@ export default class FileSend extends Events {
       if (this.method === 'HEAD') {
         // Set content-length
         this.setHeader('Content-Length', stats.size);
-        this.writeHeaders();
 
         // End with empty content
-        return this.end();
+        return this.responseEnd();
       }
 
       // Parse range
@@ -805,20 +807,38 @@ export default class FileSend extends Events {
     if (response.headersSent) {
       this.headersSent();
 
-      return response;
+      return this.stdin.pipe(response, options);
     }
+
+    // Origin response writeHead
+    const writeHead = response.writeHead;
+
+    // Rewrite response writeHead
+    response.writeHead = (statusCode, statusMessage, headers) => {
+      // Set headers to response
+      this.writeHeaders();
+
+      // Call response writeHead
+      writeHead.call(response, statusCode, statusMessage, headers);
+
+      // Reset to origin writeHead
+      delete response.writeHead;
+    };
+
+    // Listening error event
+    response.once('error', (error) => {
+      this.statError(error);
+    });
 
     // Bootstrap
     this.bootstrap();
 
     // Pipeline
-    if (this[middlewares].length) {
-      return this.stdin
-        .pipe(utils.pipeline(this[middlewares]))
-        .pipe(response, options);
-    }
+    const streams = [this.stdin].concat(this[middlewares]);
 
-    return this.stdin.pipe(response, options);
+    streams.push(response);
+
+    return utils.pipeline(streams);
   }
 }
 

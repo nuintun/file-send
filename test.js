@@ -6,6 +6,8 @@ const cluster = require('cluster');
 const FileSend = require('./dist/index');
 const NUMCPUS = require('os').cpus().length;
 
+const through = require('./test//through');
+
 // create server
 function createServer(root, port) {
   http.createServer(function(request, response) {
@@ -27,6 +29,19 @@ function createServer(root, port) {
 
     //   process.send(message);
     // });
+
+    // let html = '';
+
+    // send
+    //   .use(through((chunk, enc, next) => {
+    //     html += chunk;
+    //     next();
+    //   }, function(next) {
+    //     this.push(html);
+
+    //     next();
+    //   }))
+    //   .use(through());
 
     send.pipe(response);
   }).listen(port || 8080);

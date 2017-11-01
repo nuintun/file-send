@@ -39,9 +39,6 @@ http.createServer((request, response) => {
   .on('error', function(error, next) {
     // error events
   })
-  .on('end', function(headers) {
-    // completed events
-  })
   .use(through2()) // Set middleware
   .pipe(response); // Send file to response
 });
@@ -128,7 +125,6 @@ Enable or diable the immutable directive in the Cache-Control response header, d
   - `headers` the headers are about to be set on a file `(headers)`
   - `dir` a directory was requested`(realpath, next)`
   - `error` an error occurred `(error, next)`
-  - `end` streaming has completed
 
 ## Error-handling
 
