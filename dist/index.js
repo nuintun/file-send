@@ -95,15 +95,15 @@ function normalize(path$$1) {
   path$$1 = path$$1.replace(/\\/g, '/');
 
   // :///a/b/c ==> ://a/b/c
-  path$$1 = path$$1.replace(/(:)?\/{2,}/, '$1//');
+  path$$1 = path$$1.replace(/:\/{3,}/, '://');
 
   // /a/b/./c/./d ==> /a/b/c/d
   path$$1 = path$$1.replace(/\/\.\//g, '/');
 
-  // @author wh1100717
   // a//b/c ==> a/b/c
+  // //a//b/c ==> a/b/c
   // a///b/////c ==> a/b/c
-  path$$1 = path$$1.replace(/([^:/])\/+\//g, '$1/');
+  path$$1 = path$$1.replace(/\/{2,}/g, '/');
 
   // Transfer path
   let src = path$$1;
@@ -1011,10 +1011,8 @@ class FileSend extends Events {
    * @public
    */
   redirect(location) {
-    location = encodeUrl(location);
-
-    const href = escapeHtml(location);
-    const html = `Redirecting to <a href="${ href }">${ href }</a>`;
+    const href = encodeUrl(location);
+    const html = `Redirecting to <a href="${ href }">${ escapeHtml(location) }</a>`;
 
     this.status(301);
     this.setHeader('Cache-Control', 'no-cache');
@@ -1022,7 +1020,7 @@ class FileSend extends Events {
     this.setHeader('Content-Length', Buffer.byteLength(html));
     this.setHeader('Content-Security-Policy', "default-src 'self'");
     this.setHeader('X-Content-Type-Options', 'nosniff');
-    this.setHeader('Location', location);
+    this.setHeader('Location', href);
     this.responseEnd(html);
   }
 

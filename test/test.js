@@ -443,7 +443,10 @@ describe('FileSend(req, path, options)', () => {
       const cb = holding(1, done);
       const server = http.createServer((req, res) => {
         new FileSend(req, pathname(req.url), { root: fixtures })
-          .on('headers', function() { cb(); })
+          .on('headers', function() {
+            this.setHeader('Server', 'file-send');
+            cb();
+          })
           .pipe(res);
       });
 
@@ -451,6 +454,154 @@ describe('FileSend(req, path, options)', () => {
         .get(url(server, '/bogus'))
         .end((err, res) => {
           expect(res.notFound).to.be.true;
+          expect(res.headers).to.have.ownProperty('server', 'file-send');
+
+          cb();
+        });
+    });
+
+    it('should fire on index', (done) => {
+      const cb = holding(1, done);
+      const server = http.createServer((req, res) => {
+        new FileSend(req, pathname(req.url), { root: fixtures, index: ['index.html'] })
+          .on('headers', function() {
+            this.setHeader('Server', 'file-send');
+            cb();
+          })
+          .pipe(res);
+      });
+
+      request
+        .get(url(server, '/pets/'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.have.string('tobi');
+          expect(res.headers).to.have.ownProperty('server', 'file-send');
+
+          cb();
+        });
+    });
+
+    it('should fire on redirect', (done) => {
+      const cb = holding(1, done);
+      const server = http.createServer((req, res) => {
+        new FileSend(req, pathname(req.url), { root: fixtures })
+          .on('headers', function() {
+            this.setHeader('Server', 'file-send');
+            cb();
+          })
+          .pipe(res);
+      });
+
+      request
+        .get(url(server, '/pets'))
+        .redirects(0)
+        .end((err, res) => {
+          expect(res.status).to.equal(301);
+          expect(res.headers).to.have.ownProperty('location', '/pets/');
+          expect(res.headers).to.have.ownProperty('server', 'file-send');
+
+          cb();
+        });
+    });
+
+    it('should allow altering headers', (done) => {
+      const cb = holding(1, done);
+      const server = http.createServer((req, res) => {
+        new FileSend(req, pathname(req.url), { root: fixtures })
+          .on('headers', headers)
+          .pipe(res);
+      });
+
+      function headers() {
+        this.setHeader('Cache-Control', 'no-cache');
+        this.setHeader('Content-Type', 'text/x-custom');
+        this.setHeader('ETag', 'W/"everything"');
+        this.setHeader('X-Created', fs.statSync(this.realpath).ctime.toUTCString());
+
+        cb();
+      }
+
+      request
+        .get(url(server, '/nums'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('123456789');
+          expect(res.headers).to.have.ownProperty('cache-control', 'no-cache');
+          expect(res.headers).to.have.ownProperty('content-type', 'text/x-custom');
+          expect(res.headers).to.have.ownProperty('etag', 'W/"everything"');
+          expect(res.headers['x-created']).to.match(dateRegExp);
+
+          cb();
+        });
+    });
+  });
+
+  describe('when no "dir" listeners are present', () => {
+    let server;
+
+    before(function() {
+      server = http.createServer((req, res) => {
+        new FileSend(req, pathname(req.url), { root: fixtures }).pipe(res);
+      });
+
+      server.listen();
+    });
+
+    it('should default with 403', (done) => {
+      request
+        .get(url(server, '/pets/'))
+        .end((err, res) => {
+          expect(res.forbidden).to.be.true;
+
+          done();
+        });
+    });
+
+    it('should not redirect to protocol-relative locations', (done) => {
+      request
+        .get(url(server, '//pets'))
+        .redirects(0)
+        .end((err, res) => {
+          expect(res.status).to.equal(301);
+          expect(res.text).to.equal('Redirecting to <a href="/pets/">/pets/</a>');
+          expect(res.headers).to.have.ownProperty('location', '/pets/');
+          expect(res.headers).to.have.ownProperty('content-type', 'text/html; charset=UTF-8');
+
+          done();
+        });
+    });
+
+    it('should respond with an HTML redirect', (done) => {
+      const cb = holding(1, done);
+
+      request
+        .get(url(server, '/pets'))
+        .redirects(0)
+        .end((err, res) => {
+          expect(res.status).to.equal(301);
+          expect(res.text).to.equal('Redirecting to <a href="/pets/">/pets/</a>');
+          expect(res.headers).to.have.ownProperty('location', '/pets/');
+          expect(res.headers).to.have.ownProperty('content-type', 'text/html; charset=UTF-8');
+
+          cb();
+        });
+
+      const snow = http.createServer((req, res) => {
+        req.url = '/snow ☃';
+        new FileSend(req, pathname(req.url), { root: fixtures }).pipe(res);
+      });
+
+      snow.listen();
+
+      request
+        .get(url(snow, '/snow'))
+        .redirects(0)
+        .end((err, res) => {
+          expect(res.status).to.equal(301);
+          expect(res.text).to.equal('Redirecting to <a href="/snow%20%E2%98%83/">/snow ☃/</a>');
+          expect(res.headers).to.have.ownProperty('location', '/snow%20%E2%98%83/');
+          expect(res.headers).to.have.ownProperty('content-type', 'text/html; charset=UTF-8');
 
           cb();
         });

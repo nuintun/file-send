@@ -493,10 +493,8 @@ export default class FileSend extends Events {
    * @public
    */
   redirect(location) {
-    location = encodeUrl(location);
-
-    const href = escapeHtml(location);
-    const html = `Redirecting to <a href="${ href }">${ href }</a>`;
+    const href = encodeUrl(location);
+    const html = `Redirecting to <a href="${ href }">${ escapeHtml(location) }</a>`;
 
     this.status(301);
     this.setHeader('Cache-Control', 'no-cache');
@@ -504,7 +502,7 @@ export default class FileSend extends Events {
     this.setHeader('Content-Length', Buffer.byteLength(html));
     this.setHeader('Content-Security-Policy', "default-src 'self'");
     this.setHeader('X-Content-Type-Options', 'nosniff');
-    this.setHeader('Location', location);
+    this.setHeader('Location', href);
     this.responseEnd(html);
   }
 
