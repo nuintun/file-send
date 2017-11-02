@@ -7,8 +7,6 @@
  * @see https://nuintun.github.io/file-send
  */
 
-'use strict';
-
 var fs = require('fs');
 var http = require('http');
 var Stream = require('stream');
@@ -334,6 +332,12 @@ const lastModified = Symbol('lastModified');
 const hasTrailingSlash = Symbol('hasTrailingSlash');
 const isConditionalGET = Symbol('isConditionalGET');
 const isPreconditionFailure = Symbol('isPreconditionFailure');
+
+/**
+ * @module normalize
+ * @license MIT
+ * @version 2017/11/02
+ */
 
 // Current working directory
 const CWD = process.cwd();

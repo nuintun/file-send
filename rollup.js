@@ -36,7 +36,7 @@ rollup.rollup({
     file: 'dist/index.js',
     format: 'cjs',
     indent: true,
-    strict: true,
+    strict: false,
     interop: false,
     banner: banner
   });
