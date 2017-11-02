@@ -1234,10 +1234,7 @@ class FileSend extends Events {
    * @private
    */
   [parseRange$1](stats) {
-    // Reset ranges
-    this.ranges = [];
-
-    // Get size
+    const result = [];
     const size = stats.size;
     let contentLength = size;
 
@@ -1290,13 +1287,13 @@ class FileSend extends Events {
               contentLength += end - start + Buffer.byteLength(open) + 1;
 
               // Cache range
-              this.ranges.push(range);
+              result.push(range);
             });
 
             // The first open boundary remove \r\n
-            this.ranges[0].open = this.ranges[0].open.replace(/^\r\n/, '');
+            result[0].open = result[0].open.replace(/^\r\n/, '');
             // The last add closed boundary
-            this.ranges[this.ranges.length - 1].close = close;
+            result[result.length - 1].close = close;
 
             // Compute content-length
             contentLength += Buffer.byteLength(close);
@@ -1309,18 +1306,13 @@ class FileSend extends Events {
             this.setHeader('Content-Range', `bytes ${ start }-${ end }/${ size }`);
 
             // Cache range
-            this.ranges.push(range);
+            result.push(range);
 
             // Compute content-length
             contentLength = end - start + 1;
           }
-        } else if (ranges === -1) {
-          // Set content-range
-          this.setHeader('Content-Range', `bytes */${ size }`);
-          // Unsatisfiable 416
-          this[error](416);
-
-          return false;
+        } else {
+          return ranges;
         }
       }
     }
@@ -1328,7 +1320,13 @@ class FileSend extends Events {
     // Set content-length
     this.setHeader('Content-Length', contentLength);
 
-    return true;
+    // If non range return all file
+    if (!result.length) {
+      result.push({});
+    }
+
+    // Return result
+    return result;
   }
 
   /**
@@ -1429,6 +1427,7 @@ class FileSend extends Events {
     const hasTrailingSlash$$1 = this[hasTrailingSlash]();
     const path$$1 = hasTrailingSlash$$1 ? this.path : `${ this.path }/`;
 
+    // Iterator index
     series(this.index.map((index$$1) => {
       return path$$1 + index$$1;
     }), (path$$1, next) => {
@@ -1456,15 +1455,11 @@ class FileSend extends Events {
    * @method sendFile
    * @private
    */
-  [sendFile]() {
-    let ranges = this.ranges;
+  [sendFile](ranges) {
     const realpath = this.realpath;
     const stdin$$1 = this[stdin];
 
-    // Format ranges
-    ranges = ranges.length ? ranges : [{}];
-
-    // Contat range
+    // Iterator ranges
     series(ranges, (range, next) => {
       // Push open boundary
       range.open && stdin$$1.write(range.open);
@@ -1584,19 +1579,26 @@ class FileSend extends Events {
         return this[responseEnd]();
       }
 
-      // Parse range
-      if (this[parseRange$1](stats)) {
+      // Parse ranges
+      const ranges = this[parseRange$1](stats);
+
+      // 416
+      if (ranges === -1) {
+        // Set content-range
+        this.setHeader('Content-Range', `bytes */${ size }`);
+        // Unsatisfiable 416
+        this[error](416);
+      } else {
         // Emit file event
         if (this.hasListeners('file')) {
           this.emit('file', realpath, stats);
         }
 
         // Read file
-        this[sendFile]();
+        this[sendFile](ranges);
       }
     });
   }
-
 }
 
 // Exports mime
