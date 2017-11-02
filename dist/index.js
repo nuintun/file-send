@@ -7,6 +7,8 @@
  * @see https://nuintun.github.io/file-send
  */
 
+'use strict';
+
 var fs = require('fs');
 var http = require('http');
 var Stream = require('stream');
