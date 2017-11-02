@@ -805,7 +805,7 @@ export default class FileSend extends Events {
     if (response.headersSent) {
       this.headersSent();
 
-      return this.stdin.pipe(response, options);
+      return response;
     }
 
     // Origin response writeHead
