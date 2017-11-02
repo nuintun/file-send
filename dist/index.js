@@ -14,6 +14,8 @@ var http = require('http');
 var Stream = require('stream');
 var Events = require('events');
 var mime = require('mime-types');
+var ms = require('ms');
+var path = require('path');
 var etag = require('etag');
 var fresh = require('fresh');
 var destroy = require('destroy');
@@ -21,8 +23,6 @@ var encodeUrl = require('encodeurl');
 var micromatch = require('micromatch');
 var escapeHtml = require('escape-html');
 var parseRange = require('range-parser');
-var ms = require('ms');
-var path = require('path');
 
 /**
  * @module utils
@@ -30,9 +30,10 @@ var path = require('path');
  * @version 2017/10/24
  */
 
-const undef = void(0);
 const toString = Object.prototype.toString;
 const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+
+const undef = void(0);
 
 /**
  * @function typeIs
@@ -298,160 +299,41 @@ function createErrorDocument(statusCode, statusMessage) {
     + '</html>\n';
 }
 
-/**
- * @module through
- * @license MIT
- * @version 2017/10/25
- */
-
-/**
- * @class DestroyableTransform
- */
-class DestroyableTransform extends Stream.Transform {
-
-  /**
-   * @constructor
-   * @param {Object} options
-   */
-  constructor(options) {
-    super(options);
-
-    this._destroyed = false;
-  }
-
-  /**
-   * @method destroy
-   * @param {any} error
-   */
-  destroy(error) {
-    if (this._destroyed) return;
-
-    this._destroyed = true;
-
-    const self = this;
-
-    process.nextTick(() => {
-      if (error) self.emit('error', error);
-
-      self.emit('close');
-    });
-  }
-}
-
-/**
- * @function noop
- * @description A noop _transform function
- * @param {any} chunk
- * @param {string} encoding
- * @param {Function} next
- */
-function noop(chunk, encoding, next) {
-  next(null, chunk);
-}
-
-/**
- * @function throuth
- * @description Create a new export function, contains common logic for dealing with arguments
- * @param {Object} [options]
- * @param {Function} transform
- * @param {Function} [flush]
- * @returns {DestroyableTransform}
- */
-function through(options, transform, flush) {
-  if (typeIs(options, 'function')) {
-    flush = transform;
-    transform = options;
-    options = {};
-  }
-
-  options = options || {};
-  options.objectMode = options.objectMode || false;
-  options.highWaterMark = options.highWaterMark || 16;
-
-  if (!typeIs(transform, 'function')) transform = noop;
-  if (!typeIs(flush, 'function')) flush = null;
-
-  const stream = new DestroyableTransform(options);
-
-  stream._transform = transform;
-
-  if (flush) stream._flush = flush;
-
-  return stream;
-}
-
-/**
- * @module async
- * @license MIT
- * @version 2017/10/25
- */
-
-/**
- * @class Iterator
- */
-class Iterator {
-  /**
-   * @constructor
-   * @param {Array} array
-   */
-  constructor(array) {
-    this.index = 0;
-    this.array = Array.isArray(array) ? array : [];
-  }
-
-  /**
-   * @method next
-   * @description Create the next item.
-   * @returns {{done: boolean, value: undefined}}
-   */
-  next() {
-    const done = this.index >= this.array.length;
-    const value = !done ? this.array[this.index++] : undefined;
-
-    return {
-      done: done,
-      value: value
-    };
-  }
-}
-
-/**
- * series
- *
- * @param {Array} array
- * @param {Function} iterator
- * @param {Function} done
- * @param {any} context
- */
-function series(array, iterator, done) {
-  // Create a new iterator
-  const it = new Iterator(array);
-
-  // Bind context
-  if (arguments.length >= 4) {
-    iterator = iterator.bind(context);
-    done = done.bind(context);
-  }
-
-  /**
-   * @function walk
-   * @param it
-   */
-  function walk(it) {
-    const item = it.next();
-
-    if (item.done) {
-      done();
-    } else {
-      iterator(item.value, () => {
-        walk(it);
-      }, it.index);
-    }
-  }
-
-  // Run walk
-  walk(it);
-}
+// Key symbol
+const dir = Symbol('dir');
+const etag$1 = Symbol('etag');
+const path$1 = Symbol('path');
+const root = Symbol('root');
+const glob = Symbol('glob');
+const stdin = Symbol('stdin');
+const error = Symbol('error');
+const index = Symbol('index');
+const ignore = Symbol('ignore');
+const maxAge = Symbol('maxAge');
+const charset = Symbol('charset');
+const request = Symbol('request');
+const isFresh = Symbol('isFresh');
+const response = Symbol('response');
+const isIgnore = Symbol('isIgnore');
+const sendFile = Symbol('sendFile');
+const immutable = Symbol('immutable');
+const sendIndex = Symbol('sendIndex');
+const bootstrap = Symbol('bootstrap');
+const statError = Symbol('statError');
+const isCachable = Symbol('isCachable');
+const parseRange$1 = Symbol('parseRange');
+const initHeaders = Symbol('initHeaders');
+const responseEnd = Symbol('responseEnd');
+const headersSent = Symbol('headersSent');
+const middlewares = Symbol('middlewares');
+const isRangeFresh = Symbol('isRangeFresh');
+const ignoreAccess = Symbol('ignoreAccess');
+const acceptRanges = Symbol('acceptRanges');
+const cacheControl = Symbol('cacheControl');
+const lastModified = Symbol('lastModified');
+const hasTrailingSlash = Symbol('hasTrailingSlash');
+const isConditionalGET = Symbol('isConditionalGET');
+const isPreconditionFailure = Symbol('isPreconditionFailure');
 
 // Current working directory
 const CWD = process.cwd();
@@ -552,15 +434,165 @@ function normalizeGlob(glob) {
 }
 
 /**
- * @module file-send
+ * @module async
  * @license MIT
  * @version 2017/10/25
  */
 
-// Headers key symbol
-const glob = Symbol('glob');
-const headers = Symbol('headers');
-const middlewares = Symbol('middlewares');
+/**
+ * @class Iterator
+ */
+class Iterator {
+  /**
+   * @constructor
+   * @param {Array} array
+   */
+  constructor(array) {
+    this.index = 0;
+    this.array = Array.isArray(array) ? array : [];
+  }
+
+  /**
+   * @method next
+   * @description Create the next item.
+   * @returns {{done: boolean, value: undefined}}
+   */
+  next() {
+    const done = this.index >= this.array.length;
+    const value = !done ? this.array[this.index++] : undefined;
+
+    return {
+      done: done,
+      value: value
+    };
+  }
+}
+
+/**
+ * series
+ *
+ * @param {Array} array
+ * @param {Function} iterator
+ * @param {Function} done
+ * @param {any} context
+ */
+function series(array, iterator, done) {
+  // Create a new iterator
+  const it = new Iterator(array);
+
+  // Bind context
+  if (arguments.length >= 4) {
+    iterator = iterator.bind(context);
+    done = done.bind(context);
+  }
+
+  /**
+   * @function walk
+   * @param it
+   */
+  function walk(it) {
+    const item = it.next();
+
+    if (item.done) {
+      done();
+    } else {
+      iterator(item.value, () => {
+        walk(it);
+      }, it.index);
+    }
+  }
+
+  // Run walk
+  walk(it);
+}
+
+/**
+ * @module through
+ * @license MIT
+ * @version 2017/10/25
+ */
+
+/**
+ * @class DestroyableTransform
+ */
+class DestroyableTransform extends Stream.Transform {
+
+  /**
+   * @constructor
+   * @param {Object} options
+   */
+  constructor(options) {
+    super(options);
+
+    this._destroyed = false;
+  }
+
+  /**
+   * @method destroy
+   * @param {any} error
+   */
+  destroy(error) {
+    if (this._destroyed) return;
+
+    this._destroyed = true;
+
+    const self = this;
+
+    process.nextTick(() => {
+      if (error) self.emit('error', error);
+
+      self.emit('close');
+    });
+  }
+}
+
+/**
+ * @function noop
+ * @description A noop _transform function
+ * @param {any} chunk
+ * @param {string} encoding
+ * @param {Function} next
+ */
+function noop(chunk, encoding, next) {
+  next(null, chunk);
+}
+
+/**
+ * @function throuth
+ * @description Create a new export function, contains common logic for dealing with arguments
+ * @param {Object} [options]
+ * @param {Function} transform
+ * @param {Function} [flush]
+ * @returns {DestroyableTransform}
+ */
+function through(options, transform, flush) {
+  if (typeIs(options, 'function')) {
+    flush = transform;
+    transform = options;
+    options = {};
+  }
+
+  options = options || {};
+  options.objectMode = options.objectMode || false;
+  options.highWaterMark = options.highWaterMark || 16;
+
+  if (!typeIs(transform, 'function')) transform = noop;
+  if (!typeIs(flush, 'function')) flush = null;
+
+  const stream = new DestroyableTransform(options);
+
+  stream._transform = transform;
+
+  if (flush) stream._flush = flush;
+
+  return stream;
+}
+
+/**
+ * @module file-send
+ * @license MIT
+ * @version 2017/10/25
+ */
 
 // File not found status
 const NOT_FOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
@@ -575,8 +607,8 @@ class FileSend extends Events {
    * @param {String} path
    * @param {Object} options
    */
-  constructor(request, path$$1, options) {
-    if (!(request instanceof http.IncomingMessage)) {
+  constructor(request$$1, path$$1, options) {
+    if (!(request$$1 instanceof http.IncomingMessage)) {
       throw new TypeError('The param request must be a http request.');
     }
 
@@ -586,25 +618,285 @@ class FileSend extends Events {
 
     super(options);
 
+    this.path = path$$1;
+    this.root = options.root;
+    this.index = options.index;
+    this.ignore = options.ignore;
+    this.maxAge = options.maxAge;
+    this.charset = options.charset;
+    this.etag = options.etag;
+    this.ignoreAccess = options.ignoreAccess;
+    this.immutable = options.immutable;
+    this.acceptRanges = options.acceptRanges;
+    this.cacheControl = options.cacheControl;
+    this.lastModified = options.lastModified;
+
     this[middlewares] = [];
-    this.stdin = through();
-    this.request = request;
-    this.method = request.method;
-    this.path = normalizePath(path$$1);
-    this[headers] = Object.create(null);
-    this.root = normalizeRoot(options.root);
+    this[request] = request$$1;
+    this[stdin] = through();
     this[glob] = normalizeGlob(options.glob);
-    this.index = normalizeList(options.index);
-    this.ignore = normalizeList(options.ignore);
-    this.maxAge = normalizeMaxAge(options.maxAge);
-    this.charset = normalizeCharset(options.charset);
-    this.etag = normalizeBoolean(options.etag, true);
-    this.realpath = normalizeRealpath(this.root, this.path);
-    this.ignoreAccess = normalizeAccess(options.ignoreAccess);
-    this.immutable = normalizeBoolean(options.immutable, false);
-    this.acceptRanges = normalizeBoolean(options.acceptRanges, true);
-    this.cacheControl = normalizeBoolean(options.cacheControl, true);
-    this.lastModified = normalizeBoolean(options.lastModified, true);
+  }
+
+  /**
+   * @property request
+   * @method get
+   */
+  get request() {
+    return this[request];
+  }
+
+  /**
+   * @property response
+   * @method get
+   */
+  get response() {
+    const response$$1 = this[response];
+
+    if (!response$$1) {
+      throw new Error('Can\'t get http response before called pipe method.');
+    }
+
+    return response$$1;
+  }
+
+  /**
+   * @property method
+   * @method get
+   */
+  get method() {
+    return this.request.method;
+  }
+
+  /**
+   * @property path
+   * @method set
+   */
+  set path(path$$1) {
+    this[path$1] = normalizePath(path$$1);
+  }
+
+  /**
+   * @property path
+   * @method get
+   */
+  get path() {
+    return this[path$1];
+  }
+
+  /**
+   * @property root
+   * @method set
+   */
+  set root(root$$1) {
+    this[root] = normalizeRoot(root$$1);
+  }
+
+  /**
+   * @property root
+   * @method get
+   */
+  get root() {
+    return this[root];
+  }
+
+  /**
+   * @property realpath
+   * @method get
+   */
+  get realpath() {
+    return normalizeRealpath(this.root, this.path);
+  }
+
+  /**
+   * @property index
+   * @method set
+   */
+  set index(index$$1) {
+    this[index] = normalizeList(index$$1);
+  }
+
+  /**
+   * @property index
+   * @method get
+   */
+  get index() {
+    return this[index];
+  }
+
+  /**
+   * @property ignore
+   * @method set
+   */
+  set ignore(ignore$$1) {
+    this[ignore] = normalizeList(ignore$$1);
+  }
+
+  /**
+   * @property ignore
+   * @method get
+   */
+  get ignore() {
+    return this[ignore];
+  }
+
+  /**
+   * @property ignoreAccess
+   * @method set
+   */
+  set ignoreAccess(ignoreAccess$$1) {
+    this[ignoreAccess] = normalizeAccess(ignoreAccess$$1);
+  }
+
+  /**
+   * @property ignoreAccess
+   * @method get
+   */
+  get ignoreAccess() {
+    return this[ignoreAccess];
+  }
+
+  /**
+   * @property maxAge
+   * @method set
+   */
+  set maxAge(maxAge$$1) {
+    this[maxAge] = normalizeMaxAge(maxAge$$1);
+  }
+
+  /**
+   * @property maxAge
+   * @method get
+   */
+  get maxAge() {
+    return this[maxAge];
+  }
+
+  /**
+   * @property charset
+   * @method set
+   */
+  set charset(charset$$1) {
+    this[charset] = normalizeCharset(charset$$1);
+  }
+
+  /**
+   * @property charset
+   * @method get
+   */
+  get charset() {
+    this[charset];
+  }
+
+  /**
+   * @property etag
+   * @method set
+   */
+  set etag(etag$$1) {
+    this[etag$1] = normalizeBoolean(etag$$1, true);
+  }
+
+  /**
+   * @property etag
+   * @method get
+   */
+  get etag() {
+    return this[etag$1];
+  }
+
+  /**
+   * @property immutable
+   * @method set
+   */
+  set immutable(immutable$$1) {
+    this[immutable] = normalizeBoolean(immutable$$1, false);
+  }
+
+  /**
+   * @property immutable
+   * @method get
+   */
+  get immutable() {
+    return this[immutable];
+  }
+
+  /**
+   * @property acceptRanges
+   * @method set
+   */
+  set acceptRanges(acceptRanges$$1) {
+    this[acceptRanges] = normalizeBoolean(acceptRanges$$1, true);
+  }
+
+  /**
+   * @property acceptRanges
+   * @method get
+   */
+  get acceptRanges() {
+    return this[acceptRanges];
+  }
+
+  /**
+   * @property cacheControl
+   * @method set
+   */
+  set cacheControl(cacheControl$$1) {
+    this[cacheControl] = normalizeBoolean(cacheControl$$1, true);
+  }
+
+  /**
+   * @property cacheControl
+   * @method get
+   */
+  get cacheControl() {
+    return this[cacheControl];
+  }
+
+  /**
+   * @property lastModified
+   * @method set
+   */
+  set lastModified(lastModified$$1) {
+    this[lastModified] = normalizeBoolean(lastModified$$1, true);
+  }
+
+  /**
+   * @property lastModified
+   * @method get
+   */
+  get lastModified() {
+    return this[lastModified];
+  }
+
+  /**
+   * @property statusCode
+   * @method set
+   */
+  set statusCode(statusCode) {
+    this.response.statusCode = statusCode;
+  }
+
+  /**
+   * @property statusCode
+   * @method get
+   */
+  get statusCode() {
+    return this.response.statusCode;
+  }
+
+  /**
+   * @property statusMessage
+   * @method set
+   */
+  set statusMessage(statusMessage) {
+    this.response.statusMessage = statusMessage || http.STATUS_CODES[this.statusCode];
+  }
+
+  /**
+   * @property statusMessage
+   * @method get
+   */
+  get statusMessage() {
+    return this.response.statusMessage;
   }
 
   /**
@@ -627,11 +919,7 @@ class FileSend extends Events {
    * @public
    */
   setHeader(name, value) {
-    // 0 => name
-    // 1 => value
-    this[headers][name.toLowerCase()] = [name, value];
-
-    return this;
+    this.response.setHeader(name, value);
   }
 
   /**
@@ -640,7 +928,7 @@ class FileSend extends Events {
    * @public
    */
   getHeader(name) {
-    return this[headers][name.toLowerCase()][1];
+    return this.response.getHeader(name);
   }
 
   /**
@@ -648,18 +936,7 @@ class FileSend extends Events {
    * @public
    */
   getHeaders() {
-    const headerItems = this[headers];
-    const result = Object.create(null);
-
-    Object
-      .keys(headerItems)
-      .forEach((name) => {
-        let headerItem = headerItems[name];
-
-        result[headerItem[0]] = headerItem[1];
-      });
-
-    return result;
+    return this.response.getHeaders();
   }
 
   /**
@@ -668,19 +945,21 @@ class FileSend extends Events {
    * @public
    */
   removeHeader(name) {
-    delete this[headers][name.toLowerCase()];
-
-    return this;
+    this.response.removeHeader(name);
   }
 
   /**
    * @method removeHeaders
    * @public
    */
-  removeHeaders() {
-    this[headers] = Object.create(null);
+  hasHeader(name) {
+    const response$$1 = this.response;
 
-    return this;
+    if (response$$1.hasHeader) {
+      return response$$1.hasHeader(name);
+    }
+
+    return response$$1.getHeader(name) !== undef;
   }
 
   /**
@@ -693,14 +972,6 @@ class FileSend extends Events {
   }
 
   /**
-   * @method headersSent
-   * @private
-   */
-  headersSent() {
-    this.responseEnd('Can\'t set headers after they are sent.');
-  }
-
-  /**
    * @method status
    * @param {number} statusCode
    * @param {string} statusMessage
@@ -708,14 +979,90 @@ class FileSend extends Events {
    */
   status(statusCode, statusMessage) {
     this.statusCode = statusCode;
-    this.statusMessage = statusMessage || http.STATUS_CODES[statusCode];
+    this.statusMessage = statusMessage;
+  }
 
-    const response = this.response;
+  /**
+   * @method redirect
+   * @param {string} location
+   * @public
+   */
+  redirect(location) {
+    const href = encodeUrl(location);
+    const html = `Redirecting to <a href="${ href }">${ escapeHtml(location) }</a>`;
 
-    response.statusCode = this.statusCode;
-    response.statusMessage = this.statusMessage;
+    this.status(301);
+    this.setHeader('Cache-Control', 'no-cache');
+    this.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    this.setHeader('Content-Length', Buffer.byteLength(html));
+    this.setHeader('Content-Security-Policy', "default-src 'self'");
+    this.setHeader('X-Content-Type-Options', 'nosniff');
+    this.setHeader('Location', href);
+    this[responseEnd](html);
+  }
 
-    return this;
+  /**
+   * @method pipe
+   * @param {Response} response
+   * @param {Object} options
+   * @public
+   */
+  pipe(response$$1, options) {
+    if (this[response]) {
+      throw new TypeError('There already have a http response alive.');
+    }
+
+    if (!(response$$1 instanceof http.ServerResponse)) {
+      throw new TypeError('The param response must be a http response.');
+    }
+
+    // Set response
+    this[response] = response$$1;
+
+    // Headers already sent
+    if (response$$1.headersSent) {
+      this[headersSent]();
+
+      return response$$1;
+    }
+
+    // Listening error event
+    response$$1.once('error', (error$$1) => {
+      this[statError](error$$1);
+    });
+
+    // Bootstrap
+    this[bootstrap]();
+
+    // Pipeline
+    const streams = [this[stdin]].concat(this[middlewares]);
+
+    streams.push(response$$1);
+
+    return pipeline(streams);
+  }
+
+  /**
+   * @method end
+   * @param {string} chunk
+   * @param {string} encoding
+   * @param {Function} callback
+   * @public
+   */
+  end(chunk, encoding, callback) {
+    if (chunk) {
+      this[stdin].end(chunk, encoding, callback);
+    } else {
+      this[stdin].end();
+    }
+  }
+
+  /**
+   * @method headersSent
+   * @private
+   */
+  [headersSent]() {
+    this[responseEnd]('Can\'t set headers after they are sent.');
   }
 
   /**
@@ -724,30 +1071,30 @@ class FileSend extends Events {
    * @param {string} statusMessage
    * @public
    */
-  error(statusCode, statusMessage) {
-    const response = this.response;
+  [error](statusCode, statusMessage) {
+    const response$$1 = this.response;
 
     this.status(statusCode, statusMessage);
 
     statusCode = this.statusCode;
     statusMessage = this.statusMessage;
 
-    const error = new Error(statusMessage);
+    const error$$1 = new Error(statusMessage);
 
-    error.statusCode = statusCode;
+    error$$1.statusCode = statusCode;
 
     // Emit if listeners instead of responding
     if (this.hasListeners('error')) {
-      this.emit('error', error, (chunk) => {
-        if (response.headersSent) {
-          return this.headersSent();
+      this.emit('error', error$$1, (chunk) => {
+        if (response$$1.headersSent) {
+          return this[headersSent]();
         }
 
-        this.responseEnd(chunk);
+        this[responseEnd](chunk);
       });
     } else {
-      if (response.headersSent) {
-        return this.headersSent();
+      if (response$$1.headersSent) {
+        return this[headersSent]();
       }
 
       // Error document
@@ -759,7 +1106,7 @@ class FileSend extends Events {
       this.setHeader('Content-Length', Buffer.byteLength(document));
       this.setHeader('Content-Security-Policy', `default-src 'self' 'unsafe-inline'`);
       this.setHeader('X-Content-Type-Options', 'nosniff');
-      this.responseEnd(document);
+      this[responseEnd](document);
     }
   }
 
@@ -768,20 +1115,20 @@ class FileSend extends Events {
    * @param {Error} error
    * @private
    */
-  statError(error) {
+  [statError](error$$1) {
     // 404 error
-    if (NOT_FOUND.indexOf(error.code) !== -1) {
-      return this.error(404);
+    if (NOT_FOUND.indexOf(error$$1.code) !== -1) {
+      return this[error](404);
     }
 
-    this.error(500, error.message);
+    this[error](500, error$$1.message);
   }
 
   /**
    * @method hasTrailingSlash
    * @private
    */
-  hasTrailingSlash() {
+  [hasTrailingSlash]() {
     return this.path[this.path.length - 1] === '/';
   }
 
@@ -789,7 +1136,7 @@ class FileSend extends Events {
    * @method isConditionalGET
    * @private
    */
-  isConditionalGET() {
+  [isConditionalGET]() {
     const headers = this.request.headers;
 
     return headers['if-match']
@@ -802,14 +1149,13 @@ class FileSend extends Events {
    * @method isPreconditionFailure
    * @private
    */
-  isPreconditionFailure() {
-    const request = this.request;
-    const response = this.response;
+  [isPreconditionFailure]() {
+    const request$$1 = this.request;
     // if-match
-    const match = request.headers['if-match'];
+    const match = request$$1.headers['if-match'];
 
     if (match) {
-      const etag$$1 = response.getHeader('ETag');
+      const etag$$1 = this.getHeader('ETag');
 
       return !etag$$1 || (match !== '*' && parseTokenList(match).every((match) => {
         return match !== etag$$1 && match !== 'W/' + etag$$1 && 'W/' + match !== etag$$1;
@@ -817,12 +1163,12 @@ class FileSend extends Events {
     }
 
     // if-unmodified-since
-    const unmodifiedSince = parseHttpDate(request.headers['if-unmodified-since']);
+    const unmodifiedSince = parseHttpDate(request$$1.headers['if-unmodified-since']);
 
     if (!isNaN(unmodifiedSince)) {
-      const lastModified = parseHttpDate(response.getHeader('Last-Modified'));
+      const lastModified$$1 = parseHttpDate(this.getHeader('Last-Modified'));
 
-      return isNaN(lastModified) || lastModified > unmodifiedSince;
+      return isNaN(lastModified$$1) || lastModified$$1 > unmodifiedSince;
     }
 
     return false;
@@ -832,7 +1178,7 @@ class FileSend extends Events {
    * @method isCachable
    * @private
    */
-  isCachable() {
+  [isCachable]() {
     const statusCode = this.statusCode;
 
     return statusCode === 304 || (statusCode >= 200 && statusCode < 300);
@@ -842,7 +1188,7 @@ class FileSend extends Events {
    * @method isFresh
    * @private
    */
-  isFresh() {
+  [isFresh]() {
     return fresh(this.request.headers, {
       'etag': this.getHeader('ETag'),
       'last-modified': this.getHeader('Last-Modified')
@@ -853,7 +1199,7 @@ class FileSend extends Events {
    * @method isRangeFresh
    * @private
    */
-  isRangeFresh() {
+  [isRangeFresh]() {
     const ifRange = this.request.headers['if-range'];
 
     if (!ifRange) {
@@ -868,9 +1214,9 @@ class FileSend extends Events {
     }
 
     // If-Range as modified date
-    const lastModified = this.getHeader('Last-Modified');
+    const lastModified$$1 = this.getHeader('Last-Modified');
 
-    return parseHttpDate(lastModified) <= parseHttpDate(ifRange);
+    return parseHttpDate(lastModified$$1) <= parseHttpDate(ifRange);
   }
 
   /**
@@ -878,7 +1224,7 @@ class FileSend extends Events {
    * @param {string} path
    * @private
    */
-  isIgnore(path$$1) {
+  [isIgnore](path$$1) {
     return this.ignore.length && micromatch(path$$1, this.ignore, this[glob]).length;
   }
 
@@ -887,7 +1233,7 @@ class FileSend extends Events {
    * @param {Stats} stats
    * @private
    */
-  parseRange(stats) {
+  [parseRange$1](stats) {
     // Reset ranges
     this.ranges = [];
 
@@ -900,7 +1246,7 @@ class FileSend extends Events {
       let ranges = this.request.headers['range'];
 
       // Range fresh
-      if (ranges && this.isRangeFresh()) {
+      if (ranges && this[isRangeFresh]()) {
         // Parse range
         ranges = parseRange(size, ranges, { combine: true });
 
@@ -972,7 +1318,7 @@ class FileSend extends Events {
           // Set content-range
           this.setHeader('Content-Range', `bytes */${ size }`);
           // Unsatisfiable 416
-          this.error(416);
+          this[error](416);
 
           return false;
         }
@@ -989,39 +1335,20 @@ class FileSend extends Events {
    * @method dir
    * @private
    */
-  dir() {
+  [dir]() {
     // If have event directory listener, use user define
     // emit event directory
     if (this.hasListeners('dir')) {
       this.emit('dir', this.realpath, (chunk) => {
         if (this.response.headersSent) {
-          return this.headersSent();
+          return this[headersSent]();
         }
 
-        this.responseEnd(chunk);
+        this[responseEnd](chunk);
       });
     } else {
-      this.error(403);
+      this[error](403);
     }
-  }
-
-  /**
-   * @method redirect
-   * @param {string} location
-   * @public
-   */
-  redirect(location) {
-    const href = encodeUrl(location);
-    const html = `Redirecting to <a href="${ href }">${ escapeHtml(location) }</a>`;
-
-    this.status(301);
-    this.setHeader('Cache-Control', 'no-cache');
-    this.setHeader('Content-Type', 'text/html; charset=UTF-8');
-    this.setHeader('Content-Length', Buffer.byteLength(html));
-    this.setHeader('Content-Security-Policy', "default-src 'self'");
-    this.setHeader('X-Content-Type-Options', 'nosniff');
-    this.setHeader('Location', href);
-    this.responseEnd(html);
   }
 
   /**
@@ -1029,72 +1356,50 @@ class FileSend extends Events {
    * @param {Stats} stats
    * @private
    */
-  initHeaders(stats) {
-    const response = this.response;
-
-    // Accept-Ranges
+  [initHeaders](stats) {
     if (this.acceptRanges) {
       // Set Accept-Ranges
       this.setHeader('Accept-Ranges', 'bytes');
     }
 
     // Content-Type
-    if (!(response.getHeader('Content-Type'))) {
+    if (!(this.hasHeader('Content-Type'))) {
       // Get type
       let type = mime.lookup(this.path);
 
       if (type) {
-        let charset = this.charset;
+        let charset$$1 = this.charset;
 
         // Get charset
-        charset = charset ? `; charset=${ charset }` : '';
+        charset$$1 = charset$$1 ? `; charset=${ charset$$1 }` : '';
 
         // Set Content-Type
-        this.setHeader('Content-Type', type + charset);
+        this.setHeader('Content-Type', type + charset$$1);
       }
     }
 
     // Cache-Control
-    if (this.cacheControl && this.maxAge > 0 && !(response.getHeader('Cache-Control'))) {
-      let cacheControl = `public, max-age=${ this.maxAge }`;
+    if (this.cacheControl && this.maxAge > 0 && !(this.hasHeader('Cache-Control'))) {
+      let cacheControl$$1 = `public, max-age=${ this.maxAge }`;
 
       if (this.immutable) {
-        cacheControl += ', immutable';
+        cacheControl$$1 += ', immutable';
       }
 
       // Set Cache-Control
-      this.setHeader('Cache-Control', cacheControl);
+      this.setHeader('Cache-Control', cacheControl$$1);
     }
 
     // Last-Modified
-    if (this.lastModified && !(response.getHeader('Last-Modified'))) {
+    if (this.lastModified && !(this.hasHeader('Last-Modified'))) {
       // Get mtime utc string
       this.setHeader('Last-Modified', stats.mtime.toUTCString());
     }
 
-    if (this.etag && !(response.getHeader('ETag'))) {
+    if (this.etag && !(this.hasHeader('ETag'))) {
       // Set ETag
       this.setHeader('ETag', etag(stats));
     }
-  }
-
-  /**
-   * @method writeHeaders
-   * @private
-   */
-  writeHeaders() {
-    if (this.hasListeners('headers')) {
-      this.emit('headers', this.getHeaders());
-    }
-
-    const response = this.response;
-    const headers = this.getHeaders();
-
-    Object
-      .keys(headers)
-      .forEach((name) => {
-        response.setHeader(name, headers[name]);
-      });
   }
 
   /**
@@ -1104,30 +1409,15 @@ class FileSend extends Events {
    * @param {Function} chunk
    * @private
    */
-  responseEnd(chunk, encoding, callback) {
-    const response = this.response;
+  [responseEnd](chunk, encoding, callback) {
+    const response$$1 = this.response;
 
-    if (response) {
+    if (response$$1) {
       if (chunk) {
-        response.end(chunk, encoding, callback);
+        response$$1.end(chunk, encoding, callback);
       } else {
-        response.end();
+        response$$1.end();
       }
-    }
-  }
-
-  /**
-   * @method end
-   * @param {string} chunk
-   * @param {string} encoding
-   * @param {Function} callback
-   * @public
-   */
-  end(chunk, encoding, callback) {
-    if (chunk) {
-      this.stdin.end(chunk, encoding, callback);
-    } else {
-      this.stdin.end();
     }
   }
 
@@ -1135,27 +1425,27 @@ class FileSend extends Events {
    * @method sendIndex
    * @private
    */
-  sendIndex() {
-    const hasTrailingSlash = this.hasTrailingSlash();
-    const path$$1 = hasTrailingSlash ? this.path : `${ this.path }/`;
+  [sendIndex]() {
+    const hasTrailingSlash$$1 = this[hasTrailingSlash]();
+    const path$$1 = hasTrailingSlash$$1 ? this.path : `${ this.path }/`;
 
-    series(this.index.map((index) => {
-      return path$$1 + index;
+    series(this.index.map((index$$1) => {
+      return path$$1 + index$$1;
     }), (path$$1, next) => {
-      if (this.isIgnore(path$$1)) {
+      if (this[isIgnore](path$$1)) {
         return next();
       }
 
-      fs.stat(this.root + path$$1, (error, stats) => {
-        if (error || !stats.isFile()) {
+      fs.stat(this.root + path$$1, (error$$1, stats) => {
+        if (error$$1 || !stats.isFile()) {
           return next();
         }
 
         this.redirect(posixURI(path$$1));
       });
     }, () => {
-      if (hasTrailingSlash) {
-        return this.dir();
+      if (hasTrailingSlash$$1) {
+        return this[dir]();
       }
 
       this.redirect(path$$1);
@@ -1166,35 +1456,38 @@ class FileSend extends Events {
    * @method sendFile
    * @private
    */
-  sendFile() {
+  [sendFile]() {
     let ranges = this.ranges;
-    const stdin = this.stdin;
+    const realpath = this.realpath;
+    const stdin$$1 = this[stdin];
+
+    // Format ranges
     ranges = ranges.length ? ranges : [{}];
 
     // Contat range
     series(ranges, (range, next) => {
       // Push open boundary
-      range.open && stdin.write(range.open);
+      range.open && stdin$$1.write(range.open);
 
       // Create file stream
-      const file = fs.createReadStream(this.realpath, range);
+      const file = fs.createReadStream(realpath, range);
 
       // Error handling code-smell
-      file.on('error', (error) => {
+      file.on('error', (error$$1) => {
         // Destroy file stream
         destroy(file);
 
         // Emit stdin error
-        stdin.emit('error', error);
+        stdin$$1.emit('error', error$$1);
       });
 
       // File stream end
       file.on('end', () => {
         // Stop pipe stdin
-        file.unpipe(stdin);
+        file.unpipe(stdin$$1);
 
         // Push close boundary
-        range.close && stdin.write(range.close);
+        range.close && stdin$$1.write(range.close);
 
         // Destroy file stream
         destroy(file);
@@ -1204,7 +1497,7 @@ class FileSend extends Events {
       file.on('close', next);
 
       // Pipe stdin
-      file.pipe(stdin, { end: false });
+      file.pipe(stdin$$1, { end: false });
     }, () => {
       // End stdin
       this.end();
@@ -1215,69 +1508,70 @@ class FileSend extends Events {
    * @method bootstrap
    * @private
    */
-  bootstrap() {
-    const response = this.response;
+  [bootstrap]() {
+    const response$$1 = this.response;
+    const realpath = this.realpath;
 
     // Set status
-    this.status(response.statusCode || 200);
+    this.status(response$$1.statusCode || 200);
 
     // Path -1 or null byte(s)
     if (this.path === -1 || this.path.indexOf('\0') !== -1) {
-      return this.error(400);
+      return this[error](400);
     }
 
     // Malicious path
-    if (isOutBound(this.realpath, this.root)) {
-      return this.error(403);
+    if (isOutBound(realpath, this.root)) {
+      return this[error](403);
     }
 
     // Is ignore path or file
-    if (this.isIgnore(this.path)) {
+    if (this[isIgnore](this.path)) {
       switch (this.ignoreAccess) {
         case 'deny':
-          return this.error(403);
+          return this[error](403);
         case 'ignore':
-          return this.error(404);
+          return this[error](404);
       }
     }
 
     // Read file
-    fs.stat(this.realpath, (error, stats) => {
+    fs.stat(realpath, (error$$1, stats) => {
       // Stat error
-      if (error) {
-        return this.statError(error);
+      if (error$$1) {
+        return this[statError](error$$1);
       }
 
       // Is directory
       if (stats.isDirectory()) {
-        return this.sendIndex();
-      } else if (this.hasTrailingSlash()) {
+        return this[sendIndex]();
+      } else if (this[hasTrailingSlash]()) {
         // Not a directory but has trailing slash
-        return this.error(404);
+        return this[error](404);
       }
 
       // Set headers and parse range
-      this.initHeaders(stats);
+      this[initHeaders](stats);
 
       // Conditional get support
-      if (this.isConditionalGET()) {
-        const responseEnd = () => {
+      if (this[isConditionalGET]()) {
+        const responseEnd$$1 = () => {
           // Remove content-type
           this.removeHeader('Content-Type');
 
           // End with empty content
-          this.responseEnd();
+          this[responseEnd]();
         };
 
-        if (this.isPreconditionFailure()) {
+        if (this[isPreconditionFailure]()) {
           this.status(412);
 
-          return responseEnd();
+          return responseEnd$$1();
 
-        } else if (this.isCachable() && this.isFresh()) {
+        } else if (this[isCachable] && this[isFresh]()) {
           this.status(304);
 
-          return responseEnd();
+          return responseEnd$$1();
         }
       }
 
@@ -1287,72 +1581,22 @@ class FileSend extends Events {
         this.setHeader('Content-Length', stats.size);
 
         // End with empty content
-        return this.responseEnd();
+        return this[responseEnd]();
       }
 
       // Parse range
-      if (this.parseRange(stats)) {
+      if (this[parseRange$1](stats)) {
+        // Emit file event
+        if (this.hasListeners('file')) {
+          this.emit('file', realpath, stats);
+        }
+
         // Read file
-        this.sendFile();
+        this[sendFile]();
       }
     });
   }
 
-  /**
-   * @method pipe
-   * @param {Response} response
-   * @param {Object} options
-   * @public
-   */
-  pipe(response, options) {
-    if (this.response) {
-      throw new TypeError('There already have a http response alive.');
-    }
-
-    if (!(response instanceof http.ServerResponse)) {
-      throw new TypeError('The param response must be a http response.');
-    }
-
-    // Set response
-    this.response = response;
-
-    // Headers already sent
-    if (response.headersSent) {
-      this.headersSent();
-
-      return response;
-    }
-
-    // Origin response writeHead
-    const writeHead = response.writeHead;
-
-    // Rewrite response writeHead
-    response.writeHead = (statusCode, statusMessage, headers) => {
-      // Set headers to response
-      this.writeHeaders();
-
-      // Call response writeHead
-      writeHead.call(response, statusCode, statusMessage, headers);
-
-      // Reset to origin writeHead
-      delete response.writeHead;
-    };
-
-    // Listening error event
-    response.once('error', (error) => {
-      this.statError(error);
-    });
-
-    // Bootstrap
-    this.bootstrap();
-
-    // Pipeline
-    const streams = [this.stdin].concat(this[middlewares]);
-
-    streams.push(response);
-
-    return pipeline(streams);
-  }
 }
 
 // Exports mime
