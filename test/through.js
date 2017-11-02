@@ -4,6 +4,8 @@
  * @version 2017/10/25
  */
 
+'use strict';
+
 const Transform = require('stream').Transform;
 
 /**
