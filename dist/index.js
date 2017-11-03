@@ -73,13 +73,13 @@ function typeIs(value, type) {
  * @returns {boolean}
  */
 function isOutBound(path$$1, root) {
+  if (path$$1.length < root.length) {
+    return true;
+  }
+
   if (process.platform === 'win32') {
     path$$1 = path$$1.toLowerCase();
     root = root.toLowerCase();
-  }
-
-  if (path$$1.length < root.length) {
-    return true;
   }
 
   return path$$1.indexOf(root) !== 0;
@@ -313,6 +313,7 @@ const maxAge = Symbol('maxAge');
 const charset = Symbol('charset');
 const request = Symbol('request');
 const isFresh = Symbol('isFresh');
+const realpath = Symbol('realpath');
 const response = Symbol('response');
 const isIgnore = Symbol('isIgnore');
 const sendFile = Symbol('sendFile');
@@ -659,7 +660,7 @@ class FileSend extends Events {
     const response$$1 = this[response];
 
     if (!response$$1) {
-      throw new Error('Can\'t get http response before called pipe method.');
+      throw new ReferenceError('Can\'t get http response before called pipe method.');
     }
 
     return response$$1;
@@ -678,7 +679,12 @@ class FileSend extends Events {
    * @method set
    */
   set path(path$$1) {
-    this[path$1] = normalizePath(path$$1);
+    const root$$1 = this.root;
+
+    path$$1 = normalizePath(path$$1);
+
+    this[path$1] = path$$1;
+    this[realpath] = root$$1 ? normalizeRealpath(root$$1, path$$1) : path$$1;
   }
 
   /**
@@ -694,7 +700,12 @@ class FileSend extends Events {
    * @method set
    */
   set root(root$$1) {
-    this[root] = normalizeRoot(root$$1);
+    const path$$1 = this.path;
+
+    root$$1 = normalizeRoot(root$$1);
+
+    this[root] = root$$1;
+    this[realpath] = path$$1 ? normalizeRealpath(root$$1, path$$1) : root$$1;
   }
 
   /**
@@ -710,7 +721,7 @@ class FileSend extends Events {
    * @method get
    */
   get realpath() {
-    return normalizeRealpath(this.root, this.path);
+    return this[realpath];
   }
 
   /**
@@ -1015,11 +1026,11 @@ class FileSend extends Events {
    */
   pipe(response$$1, options) {
     if (this[response]) {
-      throw new TypeError('There already have a http response alive.');
+      throw new RangeError('The pipe method can only be called once.');
     }
 
     if (!(response$$1 instanceof http.ServerResponse)) {
-      throw new TypeError('The param response must be a http response.');
+      throw new TypeError('The response must be a http response.');
     }
 
     // Set response
@@ -1462,7 +1473,7 @@ class FileSend extends Events {
    * @private
    */
   [sendFile](ranges) {
-    const realpath = this.realpath;
+    const realpath$$1 = this.realpath;
     const stdin$$1 = this[stdin];
 
     // Iterator ranges
@@ -1471,7 +1482,7 @@ class FileSend extends Events {
       range.open && stdin$$1.write(range.open);
 
       // Create file stream
-      const file = fs.createReadStream(realpath, range);
+      const file = fs.createReadStream(realpath$$1, range);
 
       // Error handling code-smell
       file.on('error', (error$$1) => {
@@ -1511,7 +1522,7 @@ class FileSend extends Events {
    */
   [bootstrap]() {
     const response$$1 = this.response;
-    const realpath = this.realpath;
+    const realpath$$1 = this.realpath;
 
     // Set status
     this.status(response$$1.statusCode || 200);
@@ -1522,7 +1533,7 @@ class FileSend extends Events {
     }
 
     // Malicious path
-    if (isOutBound(realpath, this.root)) {
+    if (isOutBound(realpath$$1, this.root)) {
       return this[error](403);
     }
 
@@ -1537,7 +1548,7 @@ class FileSend extends Events {
     }
 
     // Read file
-    fs.stat(realpath, (error$$1, stats) => {
+    fs.stat(realpath$$1, (error$$1, stats) => {
       // Stat error
       if (error$$1) {
         return this[statError](error$$1);
@@ -1597,7 +1608,7 @@ class FileSend extends Events {
       } else {
         // Emit file event
         if (this.hasListeners('file')) {
-          this.emit('file', realpath, stats);
+          this.emit('file', realpath$$1, stats);
         }
 
         // Read file

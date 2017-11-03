@@ -83,7 +83,7 @@ export default class FileSend extends Events {
     const response = this[symbol.response];
 
     if (!response) {
-      throw new Error('Can\'t get http response before called pipe method.');
+      throw new ReferenceError('Can\'t get http response before called pipe method.');
     }
 
     return response;
@@ -102,7 +102,12 @@ export default class FileSend extends Events {
    * @method set
    */
   set path(path) {
-    this[symbol.path] = normalize.normalizePath(path);
+    const root = this.root;
+
+    path = normalize.normalizePath(path);
+
+    this[symbol.path] = path;
+    this[symbol.realpath] = root ? normalize.normalizeRealpath(root, path) : path;
   }
 
   /**
@@ -118,7 +123,12 @@ export default class FileSend extends Events {
    * @method set
    */
   set root(root) {
-    this[symbol.root] = normalize.normalizeRoot(root);
+    const path = this.path;
+
+    root = normalize.normalizeRoot(root);
+
+    this[symbol.root] = root;
+    this[symbol.realpath] = path ? normalize.normalizeRealpath(root, path) : root;
   }
 
   /**
@@ -134,7 +144,7 @@ export default class FileSend extends Events {
    * @method get
    */
   get realpath() {
-    return normalize.normalizeRealpath(this.root, this.path);
+    return this[symbol.realpath];
   }
 
   /**
@@ -439,11 +449,11 @@ export default class FileSend extends Events {
    */
   pipe(response, options) {
     if (this[symbol.response]) {
-      throw new TypeError('There already have a http response alive.');
+      throw new RangeError('The pipe method can only be called once.');
     }
 
     if (!(response instanceof http.ServerResponse)) {
-      throw new TypeError('The param response must be a http response.');
+      throw new TypeError('The response must be a http response.');
     }
 
     // Set response
