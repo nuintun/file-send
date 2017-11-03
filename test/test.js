@@ -19,14 +19,7 @@ function pathname(url) {
 const dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
 const fixtures = path.join(__dirname, 'fixtures');
 const server = http.createServer((req, res) => {
-  new FileSend(req, pathname(req.url), { root: fixtures })
-    .on('dir', function(realpath, next) {
-      this.status(403);
-
-      next(this.statusMessage);
-    })
-    .on('end', function() {})
-    .pipe(res);
+  new FileSend(req, pathname(req.url), { root: fixtures }).pipe(res);
 }).listen();
 
 function url(server, url) {
@@ -113,7 +106,7 @@ describe('FileSend(req, path, options)', () => {
   });
 
   it('should treat an ENAMETOOLONG as a 404', (done) => {
-    var path = '/' + new Array(100).join('foobar');
+    const path = '/' + new Array(100).join('foobar');
 
     request
       .get(url(server, path))
@@ -181,17 +174,15 @@ describe('FileSend(req, path, options)', () => {
       });
   });
 
-  it('should support other http method', (done) => {
-    const methods = ['head', 'post', 'put', 'del'];
+  it('should respond with 405 on an unsupport http method', (done) => {
+    const methods = ['post', 'put', 'del'];
     const cb = holding(methods.length - 1, done);
 
     methods.forEach((method) => {
       request
         [method](url(server, '/name.txt'))
         .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.headers).to.have.ownProperty('content-length', '4');
-          expect(res.text).to.equal(method === 'head' ? undefined : 'tobi');
+          expect(res.status).to.equal(405);
 
           cb();
         });
@@ -408,5 +399,602 @@ describe('FileSend(req, path, options)', () => {
 
         done();
       });
+  });
+
+  describe('when no "dir" listeners are present', () => {
+    it('should default with 403', (done) => {
+      request
+        .get(url(server, '/pets/'))
+        .end((err, res) => {
+          expect(res.forbidden).to.be.true;
+
+          done();
+        });
+    });
+
+    it('should not redirect to protocol-relative locations', (done) => {
+      request
+        .get(url(server, '//pets'))
+        .redirects(0)
+        .end(function(err, res) {
+          expect(res.status).to.equal(301);
+          expect(res.text).to.equal('Redirecting to <a href="/pets/">/pets/</a>');
+          expect(res.headers).to.have.ownProperty('location', '/pets/');
+          expect(res.headers).to.have.ownProperty('content-type', 'text/html; charset=UTF-8');
+
+          done();
+        });
+    });
+
+    it('should respond with an HTML redirect', (done) => {
+      request
+        .get(url(server, '/snow%20%E2%98%83'))
+        .redirects(0)
+        .end((err, res) => {
+          expect(res.status).to.equal(301);
+          expect(res.text).to.equal('Redirecting to <a href="/snow%20%E2%98%83/">/snow ☃/</a>');
+          expect(res.headers).to.have.ownProperty('location', '/snow%20%E2%98%83/');
+          expect(res.headers).to.have.ownProperty('content-type', 'text/html; charset=UTF-8');
+
+          done();
+        });
+    });
+  });
+
+  describe('dir event', () => {
+    it('should fire when request a dir without non match index', (done) => {
+      const cb = holding(2, done);
+      const server = http.createServer((req, res) => {
+        new FileSend(req, pathname(req.url), { root: fixtures })
+          .on('dir', function(realpath, next) {
+            cb();
+            this.status(403);
+            next(this.statusMessage);
+          })
+          .pipe(res);
+      });
+
+      request
+        .get(url(server, '/pets'))
+        .end((err, res) => {
+          expect(res.status).to.equal(403);
+
+          cb();
+        });
+
+      request
+        .get(url(server, '/pets/'))
+        .end((err, res) => {
+          expect(res.status).to.equal(403);
+
+          cb();
+        });
+    });
+  });
+
+  describe('file event', () => {
+    it('should fire when sending file', (done) => {
+      const cb = holding(1, done);
+      const server = http.createServer((req, res) => {
+        new FileSend(req, pathname(req.url), { root: fixtures })
+          .on('file', () => {
+            cb();
+          })
+          .pipe(res);
+      });
+
+      request
+        .get(url(server, '/nums'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('123456789');
+
+          cb();
+        });
+    });
+  });
+
+  describe('error event', () => {
+    it('should fire when on error', (done) => {
+      const cb = holding(1, done);
+      const server = http.createServer((req, res) => {
+        new FileSend(req, pathname(req.url), { root: fixtures })
+          .on('error', (error, next) => {
+            cb();
+            next();
+          })
+          .pipe(res);
+      });
+
+      request
+        .get(url(server, '/nums-non-exists'))
+        .end((err, res) => {
+          expect(res.status).to.equal(404);
+
+          cb();
+        });
+    });
+  });
+
+  describe('with conditional-GET', () => {
+    it('should respond with 304 on a match', (done) => {
+      request
+        .get(url(server, '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+
+          request
+            .get(url(server, '/name.txt'))
+            .set('If-None-Match', res.headers['etag'])
+            .set('If-Modified-Since', res.headers['last-modified'])
+            .end((err, res) => {
+              expect(res.status).to.equal(304);
+
+              done();
+            });
+        });
+    });
+
+    describe('where "If-Match" is set', () => {
+      it('should respond with 200 when "*"', (done) => {
+        request
+          .get(url(server, '/name.txt'))
+          .set('If-Match', '*')
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            done();
+          });
+      });
+
+      it('should respond with 412 when ETag unmatched', (done) => {
+        request
+          .get(url(server, '/name.txt'))
+          .set('If-Match', '"foo", "bar"')
+          .end((err, res) => {
+            expect(res.status).to.equal(412);
+
+            done();
+          });
+      });
+
+      it('should respond with 200 when ETag matched', (done) => {
+        request
+          .get(url(server, '/name.txt'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-Match', '"foo", "bar", ' + res.headers['etag'])
+              .end((err, res) => {
+                expect(res.status).to.equal(200);
+
+                done();
+              });
+          });
+      });
+    });
+
+    describe('where "If-Modified-Since" is set', () => {
+      it('should respond with 304 when unmodified', (done) => {
+        request
+          .get(url(server, '/name.txt'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-Modified-Since', res.headers['last-modified'])
+              .end((err, res) => {
+                expect(res.status).to.equal(304);
+
+                done();
+              });
+          });
+      });
+
+      it('should respond with 200 when modified', (done) => {
+        request
+          .get(url(server, '/name.txt'))
+          .end(function(err, res) {
+            expect(res.status).to.equal(200);
+
+            const lmod = new Date(res.headers['last-modified']);
+            const date = new Date(lmod - 60000);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-Modified-Since', date.toUTCString())
+              .end((err, res) => {
+                expect(res.status).to.equal(200);
+
+                done();
+              });
+          });
+      });
+    });
+
+    describe('where "If-None-Match" is set', () => {
+      it('should respond with 304 when ETag matched', (done) => {
+        request
+          .get(url(server, '/name.txt'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-None-Match', res.headers.etag)
+              .end((err, res) => {
+                expect(res.status).to.equal(304);
+
+                done();
+              });
+          });
+      });
+
+      it('should respond with 200 when ETag unmatched', (done) => {
+        request
+          .get(url(server, '/name.txt'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-None-Match', '"123"')
+              .end((err, res) => {
+                expect(res.status).to.equal(200);
+
+                done();
+              });
+          });
+      });
+    });
+
+    describe('where "If-Unmodified-Since" is set', () => {
+      it('should respond with 200 when unmodified', (done) => {
+        request
+          .get(url(server, '/name.txt'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-Unmodified-Since', res.headers['last-modified'])
+              .end((err, res) => {
+                expect(res.status).to.equal(200);
+
+                done();
+              });
+          });
+      });
+
+      it('should respond with 412 when modified', (done) => {
+        request
+          .get(url(server, '/name.txt'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            const lmod = new Date(res.headers['last-modified']);
+            const date = new Date(lmod - 60000).toUTCString();
+
+            request
+              .get(url(server, '/name.txt'))
+              .set('If-Unmodified-Since', date)
+              .end((err, res) => {
+                expect(res.status).to.equal(412);
+
+                done();
+              });
+          });
+      });
+
+      it('should respond with 200 when invalid date', (done) => {
+        request
+          .get(url(server, '/name.txt'))
+          .set('If-Unmodified-Since', 'foo')
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            done();
+          });
+      });
+    });
+  });
+
+  describe('with range request', () => {
+    it('should support byte ranges', (done) => {
+      request
+        .get(url(server, '/nums'))
+        .set('Range', 'bytes=0-4')
+        .end((err, res) => {
+          expect(res.status).to.equal(206);
+          expect(res.text).to.equal('12345');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 0-4/9');
+
+          done();
+        });
+    });
+
+    it('should be inclusive', (done) => {
+      request
+        .get(url(server, '/nums'))
+        .set('Range', 'bytes=0-0')
+        .end((err, res) => {
+          expect(res.status).to.equal(206);
+          expect(res.text).to.equal('1');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 0-0/9');
+
+          done();
+        });
+    });
+
+    it('should set Content-Range', (done) => {
+      request
+        .get(url(server, '/nums'))
+        .set('Range', 'bytes=2-5')
+        .end((err, res) => {
+          expect(res.status).to.equal(206);
+          expect(res.text).to.equal('3456');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 2-5/9');
+
+          done();
+        });
+    });
+
+    it('should support -n', (done) => {
+      request
+        .get(url(server, '/nums'))
+        .set('Range', 'bytes=-3')
+        .end((err, res) => {
+          expect(res.status).to.equal(206);
+          expect(res.text).to.equal('789');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 6-8/9');
+
+          done();
+        });
+    });
+
+    it('should support n-', (done) => {
+      request
+        .get(url(server, '/nums'))
+        .set('Range', 'bytes=3-')
+        .end((err, res) => {
+          expect(res.status).to.equal(206);
+          expect(res.text).to.equal('456789');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 3-8/9');
+
+          done();
+        });
+    });
+
+    it('should respond with 206 "Partial Content"', (done) => {
+      request
+        .get(url(server, '/nums'))
+        .set('Range', 'bytes=0-4')
+        .end((err, res) => {
+          expect(res.status).to.equal(206);
+          expect(res.text).to.equal('12345');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 0-4/9');
+
+          done();
+        });
+    });
+
+    it('should set Content-Length to the # of octets transferred', (done) => {
+      request
+        .get(url(server, '/nums'))
+        .set('Range', 'bytes=2-3')
+        .end((err, res) => {
+          expect(res.status).to.equal(206);
+          expect(res.text).to.equal('34');
+          expect(res.headers).to.have.ownProperty('content-length', '2');
+          expect(res.headers).to.have.ownProperty('content-range', 'bytes 2-3/9');
+
+          done();
+        });
+    });
+
+    describe('when last-byte-pos of the range is greater the length', () => {
+      it('is taken to be equal to one less than the length', (done) => {
+        request
+          .get(url(server, '/nums'))
+          .set('Range', 'bytes=2-50')
+          .end((err, res) => {
+            expect(res.status).to.equal(206);
+            expect(res.text).to.equal('3456789');
+            expect(res.headers).to.have.ownProperty('content-range', 'bytes 2-8/9');
+
+            done();
+          });
+      });
+
+      it('should adapt the Content-Length accordingly', (done) => {
+        request
+          .get(url(server, '/nums'))
+          .set('Range', 'bytes=2-50')
+          .end((err, res) => {
+            expect(res.status).to.equal(206);
+            expect(res.text).to.equal('3456789');
+            expect(res.headers).to.have.ownProperty('content-length', '7');
+            expect(res.headers).to.have.ownProperty('content-range', 'bytes 2-8/9');
+
+            done();
+          });
+      });
+    });
+
+    describe('when the first- byte-pos of the range is greater length', () => {
+      it('should respond with 416', (done) => {
+        request
+          .get(url(server, '/nums'))
+          .set('Range', 'bytes=9-50')
+          .end((err, res) => {
+            expect(res.status).to.equal(416);
+            expect(res.text).to.include('Range Not Satisfiable');
+
+            done();
+          });
+      });
+    });
+
+    describe('when syntactically invalid', () => {
+      it('should respond with 200 and the entire contents', (done) => {
+        request
+          .get(url(server, '/nums'))
+          .set('Range', 'asdf')
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+            expect(res.text).to.equal('123456789');
+
+            done();
+          });
+      });
+    });
+
+    describe('when multiple ranges', () => {
+      it('should respond with 206 and the range contents', (done) => {
+        let address = server.address();
+
+        if (!address) {
+          server.listen();
+
+          address = server.address();
+        }
+
+        const options = {
+          hostname: '127.0.0.1',
+          port: address.port,
+          path: '/nums',
+          method: 'GET',
+          keepAlive: true,
+          headers: {
+            'Range': 'bytes=1-1,3-',
+            'Cache-Control': 'no-cache'
+          }
+        };
+
+        const req = http.request(options, (res) => {
+          let data;
+
+          res.on('data', (chunk) => {
+            if (!data) {
+              data = chunk;
+            } else {
+              data = Buffer.concat([data, chunk]);
+            }
+          });
+
+          res.on('end', () => {
+            const contentType = res.headers['content-type'];
+            const boundary = /^multipart\/byteranges; boundary=(<[^<>]+>)$/.exec(contentType)[1];
+
+            expect(res.statusCode).to.equal(206);
+            expect(contentType).to.match(/^multipart\/byteranges; boundary=<[^<>]+>$/);
+            expect(data.toString()).to.include(boundary);
+
+            done();
+          });
+        });
+
+        req.on('error', (err) => {
+          done(err);
+        });
+
+        req.end();
+      });
+    });
+
+    describe('when if-range present', () => {
+      it('should respond with parts when etag unchanged', (done) => {
+        request
+          .get(url(server, '/nums'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            const etag = res.headers['etag'];
+
+            request
+              .get(url(server, '/nums'))
+              .set('If-Range', etag)
+              .set('Range', 'bytes=0-0')
+              .end((err, res) => {
+                expect(res.status).to.equal(206);
+                expect(res.text).to.equal('1');
+
+                done();
+              });
+          });
+      });
+
+      it('should respond with 200 when etag changed', (done) => {
+        request
+          .get(url(server, '/nums'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            const etag = res.headers['etag'].replace(/"(.)/, '"0$1');
+
+            request
+              .get(url(server, '/nums'))
+              .set('If-Range', etag)
+              .set('Range', 'bytes=0-0')
+              .end((err, res) => {
+                expect(res.status).to.equal(200);
+                expect(res.text).to.equal('123456789');
+
+                done();
+              });
+          });
+      });
+
+      it('should respond with parts when modified unchanged', (done) => {
+        request
+          .get(url(server, '/nums'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            const modified = res.headers['last-modified'];
+
+            request
+              .get(url(server, '/nums'))
+              .set('If-Range', modified)
+              .set('Range', 'bytes=0-0')
+              .end((err, res) => {
+                expect(res.status).to.equal(206);
+                expect(res.text).to.equal('1');
+
+                done();
+              });
+          });
+      });
+
+      it('should respond with 200 when modified changed', (done) => {
+        request
+          .get(url(server, '/nums'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+
+            const modified = Date.parse(res.headers['last-modified']) - 20000;
+
+            request
+              .get(url(server, '/nums'))
+              .set('If-Range', new Date(modified).toUTCString())
+              .set('Range', 'bytes=0-0')
+              .end((err, res) => {
+                expect(res.status).to.equal(200);
+                expect(res.text).to.equal('123456789');
+
+                done();
+              });
+          });
+      });
+    });
+  });
+});
+
+describe('FileSend.mime', () => {
+  it('should be exposed', () => {
+    expect(FileSend.mime).ok;
   });
 });

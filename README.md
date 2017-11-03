@@ -115,15 +115,13 @@ Enable or diable the immutable directive in the Cache-Control response header, d
 
 ### FileSend.mime
 
-  The mime export is the global instance of of the mime npm module.
-
-  This is used to configure the MIME types that are associated with file extensions as well as other options for how to resolve the MIME type of a file (like the default type to use for an unknown file extension).
+  The mime export is the global instance of of the `mime-types` npm module.
 
 ### Events
   The `FileSend` is an event emitter and will emit the following events:
 
-  - `headers` the headers are about to be set on a file `(headers)`
   - `dir` a directory was requested`(realpath, next)`
+  - `file` a file was requested `(realpath, stats)`  
   - `error` an error occurred `(error, next)`
 
 ## Error-handling

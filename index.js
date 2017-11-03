@@ -684,7 +684,7 @@ export default class FileSend extends Events {
 
       // Range fresh
       if (ranges && this[symbol.isRangeFresh]()) {
-        // Parse range
+        // Parse range -1 -2 or []
         ranges = parseRange(size, ranges, { combine: true });
 
         // Valid ranges, support multiple ranges
@@ -751,7 +751,7 @@ export default class FileSend extends Events {
             // Compute content-length
             contentLength = end - start + 1;
           }
-        } else {
+        } else if (ranges === -1) {
           return ranges;
         }
       }
@@ -948,8 +948,15 @@ export default class FileSend extends Events {
    * @private
    */
   [symbol.bootstrap]() {
+    const method = this.method;
     const response = this.response;
     const realpath = this.realpath;
+
+    // Only support GET and HEAD
+    if (method !== 'GET' && method !== 'HEAD') {
+      // End with empty content
+      return this[symbol.error](405);
+    }
 
     // Set status
     this.status(response.statusCode || 200);
@@ -1015,7 +1022,7 @@ export default class FileSend extends Events {
       }
 
       // Head request
-      if (this.method === 'HEAD') {
+      if (method === 'HEAD') {
         // Set content-length
         this.setHeader('Content-Length', stats.size);
 
@@ -1029,7 +1036,7 @@ export default class FileSend extends Events {
       // 416
       if (ranges === -1) {
         // Set content-range
-        this.setHeader('Content-Range', `bytes */${ size }`);
+        this.setHeader('Content-Range', `bytes */${ stats.size }`);
         // Unsatisfiable 416
         this[symbol.error](416);
       } else {
