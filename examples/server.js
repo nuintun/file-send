@@ -3,7 +3,7 @@
 const url = require('url');
 const http = require('http');
 const cluster = require('cluster');
-const FileSend = require('./dist/index');
+const FileSend = require('./dist/index.min');
 const NUMCPUS = require('os').cpus().length;
 
 // create server
@@ -14,18 +14,6 @@ function createServer(root, port) {
       maxAge: '3day',
       ignore: ['/**/.*?(/*.*|/)'],
       index: ['index.html']
-    });
-
-    send.on('headers', function(headers) {
-      const message = 'URL      : ' + request.url
-        + '\r\nPATH     : ' + send.path
-        + '\r\nROOT     : ' + send.root
-        + '\r\nREALPATH : ' + send.realpath
-        + '\r\nSTATUS   : ' + send.statusCode
-        + '\r\nHEADERS  : ' + JSON.stringify(headers, null, 2)
-        + '\r\n-----------------------------------------------------------------------------------------';
-
-      process.send(message);
     });
 
     send.pipe(response);

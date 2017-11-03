@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const rollup = require('rollup');
+const uglify = require('uglify-es');
 const pkg = require('./package.json');
 
 const banner = `/**
@@ -22,25 +23,32 @@ rollup.rollup({
     'on-finished', 'escape-html', 'range-parser', 'events'
   ]
 }).then(function(bundle) {
-  let stat;
-
   try {
-    stat = fs.statSync('dist')
+    fs.statSync('dist');
   } catch (e) {
     // no such file or directory
-  }
-
-  if (!stat) {
     fs.mkdirSync('dist');
   }
 
-  bundle.write({
-    file: 'dist/index.js',
+  bundle.generate({
     format: 'cjs',
-    indent: true,
     strict: true,
+    indent: true,
     interop: false,
     banner: banner
+  }).then(function(result) {
+    const src = 'dist/index.js';
+    const min = 'dist/index.min.js'
+
+    fs.writeFileSync(src, result.code);
+    console.log(`  Build ${ src } success!`);
+
+    result = uglify.minify(result.code, { ecma: 6 });
+
+    fs.writeFileSync(min, result.code);
+    console.log(`  Build ${ min } success!`);
+  }).catch(function(error) {
+    console.error(error);
   });
 }).catch(function(error) {
   console.error(error);

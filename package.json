@@ -6,6 +6,7 @@
     "name": "nuintun",
     "email": "nuintun@qq.com"
   },
+  "main": "dist/index.min.js",
   "homepage": "https://nuintun.github.io/file-send",
   "repository": {
     "type": "git",
@@ -43,6 +44,7 @@
     "chai": "^4.1.2",
     "holding": "^1.0.6",
     "rollup": "^0.50.0",
+    "uglify-es": "^3.1.6",
     "superagent": "^3.8.0"
   },
   "readmeFilename": "README.md",
