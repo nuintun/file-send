@@ -14,8 +14,8 @@ var http = require('http');
 var Stream = require('stream');
 var Events = require('events');
 var mime = require('mime-types');
-var ms = require('ms');
 var path = require('path');
+var ms = require('ms');
 var etag = require('etag');
 var fresh = require('fresh');
 var destroy = require('destroy');
@@ -73,16 +73,11 @@ function typeIs(value, type) {
  * @returns {boolean}
  */
 function isOutBound(path$$1, root) {
-  if (path$$1.length < root.length) {
-    return true;
-  }
+  path$$1 = path.relative(root, path$$1);
 
-  if (process.platform === 'win32') {
-    path$$1 = path$$1.toLowerCase();
-    root = root.toLowerCase();
-  }
+  if (/\.\.(?:[\\/]|$)/.test(path$$1)) return true;
 
-  return path$$1.indexOf(root) !== 0;
+  return false;
 }
 
 /**
@@ -352,7 +347,7 @@ const MAX_MAX_AGE = 60 * 60 * 24 * 365;
  * @param {string} charset
  */
 function normalizeCharset(charset) {
-  return typeIs(charset, 'string') ? charset : null;
+  return charset && typeIs(charset, 'string') ? charset : null;
 }
 
 /**
@@ -360,7 +355,7 @@ function normalizeCharset(charset) {
  * @param {string} root
  */
 function normalizeRoot(root) {
-  return posixURI(path.join(typeIs(root, 'string') ? path.resolve(root) : CWD));
+  return posixURI(typeIs(root, 'string') ? path.resolve(root) : CWD);
 }
 
 /**
@@ -801,7 +796,7 @@ class FileSend extends Events {
    * @method get
    */
   get charset() {
-    this[charset];
+    return this[charset];
   }
 
   /**
@@ -1026,7 +1021,7 @@ class FileSend extends Events {
    */
   pipe(response$$1, options) {
     if (this[response]) {
-      throw new RangeError('The pipe method can only be called once.');
+      throw new RangeError('The pipe method has been called more than once.');
     }
 
     if (!(response$$1 instanceof http.ServerResponse)) {
@@ -1394,7 +1389,7 @@ class FileSend extends Events {
     }
 
     // Cache-Control
-    if (this.cacheControl && this.maxAge > 0 && !(this.hasHeader('Cache-Control'))) {
+    if (this.cacheControl && !(this.hasHeader('Cache-Control'))) {
       let cacheControl$$1 = `public, max-age=${ this.maxAge }`;
 
       if (this.immutable) {

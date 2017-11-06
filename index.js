@@ -224,7 +224,7 @@ export default class FileSend extends Events {
    * @method get
    */
   get charset() {
-    this[symbol.charset];
+    return this[symbol.charset];
   }
 
   /**
@@ -449,7 +449,7 @@ export default class FileSend extends Events {
    */
   pipe(response, options) {
     if (this[symbol.response]) {
-      throw new RangeError('The pipe method can only be called once.');
+      throw new RangeError('The pipe method has been called more than once.');
     }
 
     if (!(response instanceof http.ServerResponse)) {
@@ -820,7 +820,7 @@ export default class FileSend extends Events {
     }
 
     // Cache-Control
-    if (this.cacheControl && this.maxAge > 0 && !(this.hasHeader('Cache-Control'))) {
+    if (this.cacheControl && !(this.hasHeader('Cache-Control'))) {
       let cacheControl = `public, max-age=${ this.maxAge }`;
 
       if (this.immutable) {

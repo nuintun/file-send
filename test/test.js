@@ -120,7 +120,7 @@ describe('FileSend(req, path, options)', () => {
   it('should handle headers already sent error', (done) => {
     const cb = holding(2, done);
 
-    let server = http.createServer(function(req, res) {
+    let server = http.createServer((req, res) => {
       res.write('0');
       new FileSend(req, pathname(req.url), { root: fixtures }).pipe(res);
     });
@@ -324,7 +324,7 @@ describe('FileSend(req, path, options)', () => {
   });
 
   it('should 404 if file disappears after stat, before open', (done) => {
-    const server = http.createServer(function(req, res) {
+    const server = http.createServer((req, res) => {
       const send = new FileSend(req, pathname(req.url), { root: fixtures });
 
       send.on('file', () => {
@@ -416,7 +416,7 @@ describe('FileSend(req, path, options)', () => {
       request
         .get(url(server, '//pets'))
         .redirects(0)
-        .end(function(err, res) {
+        .end((err, res) => {
           expect(res.status).to.equal(301);
           expect(res.text).to.equal('Redirecting to <a href="/pets/">/pets/</a>');
           expect(res.headers).to.have.ownProperty('location', '/pets/');
@@ -597,7 +597,7 @@ describe('FileSend(req, path, options)', () => {
       it('should respond with 200 when modified', (done) => {
         request
           .get(url(server, '/name.txt'))
-          .end(function(err, res) {
+          .end((err, res) => {
             expect(res.status).to.equal(200);
 
             const lmod = new Date(res.headers['last-modified']);
@@ -993,8 +993,536 @@ describe('FileSend(req, path, options)', () => {
   });
 });
 
+describe('Options', () => {
+  describe('acceptRanges', () => {
+    it('should support disabling accept-ranges', (done) => {
+      request
+        .get(url(createServer({ acceptRanges: false, root: fixtures }), '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.headers).to.not.have.ownProperty('accept-ranges');
+          expect(res.headers).to.not.have.ownProperty('content-range');
+
+          done();
+        });
+    });
+
+    it('should ignore requested range', (done) => {
+      request
+        .get(url(createServer({ acceptRanges: false, root: fixtures }), '/nums'))
+        .set('Range', 'bytes=0-2')
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.headers).to.not.have.ownProperty('accept-ranges');
+          expect(res.headers).to.not.have.ownProperty('content-range');
+          expect(res.text).to.equal('123456789');
+
+          done();
+        });
+    })
+  });
+
+  describe('root', () => {
+    it('should join root', (done) => {
+      request
+        .get(url(createServer({ root: fixtures }), '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
+
+          done();
+        });
+    });
+
+    it('should work with trailing slash', (done) => {
+      request
+        .get(url(createServer({ root: fixtures + '/' }), '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
+
+          done();
+        });
+    });
+
+    it('should restrict paths to within root', (done) => {
+      request
+        .get(url(createServer({ root: fixtures }), '/pets/../../index.js'))
+        .end((err, res) => {
+          expect(res.forbidden).to.be.true;
+
+          done();
+        });
+    });
+
+    it('should allow .. in root', (done) => {
+      request
+        .get(url(createServer({ root: __dirname + '/fixtures/../fixtures' }), '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
+
+          done();
+        });
+    });
+
+    it('should not allow root transversal', (done) => {
+      request
+        .get(url(createServer({ root: fixtures + '/name.d' }), '/../name.dir/name.txt'))
+        .end((err, res) => {
+          expect(res.forbidden).to.be.true;
+
+          done();
+        });
+    });
+  });
+
+  describe('cacheControl', () => {
+    it('should support disabling cache-control', (done) => {
+      request
+        .get(url(createServer({ cacheControl: false, root: fixtures }), '/nums'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.headers).to.not.have.ownProperty('cache-control');
+
+          done();
+        });
+    });
+
+    it('should ignore maxAge option', (done) => {
+      request
+        .get(url(createServer({ cacheControl: false, maxAge: 1000, root: fixtures }), '/nums'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.headers).to.not.have.ownProperty('cache-control');
+
+          done();
+        });
+    });
+  });
+
+  describe('etag', () => {
+    it('should support disabling etags', (done) => {
+      request
+        .get(url(createServer({ root: fixtures, 'etag': false }), '/nums'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('123456789');
+          expect(res.headers).to.not.have.ownProperty('etag');
+
+          done();
+        });
+    });
+  });
+
+  describe('charset', () => {
+    it('should default no charset', (done) => {
+      request
+        .get(url(server, '/tobi.html'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('<p>tobi</p>');
+          expect(res.headers['content-type']).to.not.include('charset');
+
+          done();
+        });
+    });
+
+    it('should can set charset', (done) => {
+      request
+        .get(url(createServer({ charset: 'utf-8', root: fixtures }), '/tobi.html'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('<p>tobi</p>');
+          expect(res.headers['content-type']).to.include('charset=utf-8');
+
+          done();
+        });
+    });
+  });
+
+  describe('ignore', () => {
+    it('should default no ignore', (done) => {
+      const cb = holding(1, done);
+
+      request
+        .get(url(server, '/.hidden'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('secret\n');
+
+          cb();
+        });
+
+      request
+        .get(url(server, '/.mine/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
+
+          cb();
+        });
+    });
+
+    it('should can ignore match', (done) => {
+      const cb = holding(1, done);
+      const server = createServer({ root: fixtures, ignore: ['**/.*?(/*)'] });
+
+      request
+        .get(url(server, '/.hidden'))
+        .end((err, res) => {
+          expect(res.forbidden).to.be.true;
+
+          cb();
+        });
+
+      request
+        .get(url(server, '/.mine/name.txt'))
+        .end((err, res) => {
+          expect(res.forbidden).to.be.true;
+
+          cb();
+        });
+    });
+  });
+
+  describe('ignoreAccess', () => {
+    describe('should default to "deny"', () => {
+      const server = createServer({ root: fixtures, ignore: ['**/.*?(/*)'] });
+
+      it('should 403 for ignore', (done) => {
+        request
+          .get(url(server, '/.hidden'))
+          .end((err, res) => {
+            expect(res.forbidden).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should 403 for ignore directory', (done) => {
+        request
+          .get(url(server, '/.mine'))
+          .end((err, res) => {
+            expect(res.forbidden).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should 403 for ignore directory with trailing slash', (done) => {
+        request
+          .get(url(server, '/.mine/'))
+          .end((err, res) => {
+            expect(res.forbidden).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should 403 for file within ignore directory', (done) => {
+        request
+          .get(url(server, '/.mine/name.txt'))
+          .end((err, res) => {
+            expect(res.forbidden).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should 403 for non-existent ignore', (done) => {
+        request
+          .get(url(server, '/.nothere'))
+          .end((err, res) => {
+            expect(res.forbidden).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should 403 for non-existent ignore directory', (done) => {
+        request
+          .get(url(server, '/.what/name.txt'))
+          .end((err, res) => {
+            expect(res.forbidden).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should skip ignore index', (done) => {
+        const server = createServer({
+          root: fixtures,
+          index: ['name.txt', 'name.html'],
+          ignore: ['/**/name.txt']
+        });
+
+        request
+          .get(url(server, '/'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+            expect(res.text).to.equal('<p>tobi</p>');
+
+            done();
+          });
+      });
+
+      it('should send files in root ignore directory', (done) => {
+        request
+          .get(url(createServer({ root: fixtures + '/.mine', ignore: ['**/.*?(/*)'] }), '/name.txt'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+            expect(res.text).to.equal('tobi');
+
+            done();
+          });
+      });
+    });
+
+    describe('when "ignore"', () => {
+      const server = createServer({ root: fixtures, ignore: ['**/.*?(/*)'], ignoreAccess: 'ignore' });
+
+      it('should 404 for ignore', (done) => {
+        request
+          .get(url(server, '/.hidden'))
+          .end((err, res) => {
+            expect(res.notFound).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should 404 for ignore directory', (done) => {
+        request
+          .get(url(server, '/.mine'))
+          .end((err, res) => {
+            expect(res.notFound).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should 404 for ignore directory with trailing slash', (done) => {
+        request
+          .get(url(server, '/.mine/'))
+          .end((err, res) => {
+            expect(res.notFound).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should 404 for file within ignore directory', (done) => {
+        request
+          .get(url(server, '/.mine/name.txt'))
+          .end((err, res) => {
+            expect(res.notFound).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should 404 for non-existent ignore', (done) => {
+        request
+          .get(url(server, '/.nothere'))
+          .end((err, res) => {
+            expect(res.notFound).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should 404 for non-existent ignore directory', (done) => {
+        request
+          .get(url(server, '/.what/name.txt'))
+          .end((err, res) => {
+            expect(res.notFound).to.be.true;
+
+            done();
+          });
+      });
+
+      it('should send files in root ignore directory', (done) => {
+        const server = createServer({ root: fixtures + '/.mine', ignore: ['**/.*?(/*)'], ignoreAccess: 'ignore' });
+
+        request
+          .get(url(server, '/name.txt'))
+          .end((err, res) => {
+            expect(res.status).to.equal(200);
+            expect(res.text).to.equal('tobi');
+
+            done();
+          });
+      });
+    });
+  });
+
+  describe('index', () => {
+    it('should default no index', (done) => {
+      request
+        .get(url(server, '/pets/'))
+        .end((err, res) => {
+          expect(res.forbidden).to.be.true;
+
+          done();
+        });
+    });
+
+    it('should be configurable', (done) => {
+      request
+        .get(url(createServer({ root: fixtures, index: 'tobi.html' }), '/'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('<p>tobi</p>');
+
+          done();
+        });
+    });
+
+    it('should support disabling', (done) => {
+      request
+        .get(url(createServer({ root: fixtures, index: false }), '/pets/'))
+        .end((err, res) => {
+          expect(res.forbidden).to.be.true;
+
+          done();
+        });
+    });
+
+    it('should support fallbacks', (done) => {
+      request
+        .get(url(createServer({ root: fixtures, index: ['default.htm', 'index.html'] }), '/pets/'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.include('tobi');
+
+          done();
+        });
+    });
+
+    it('should not follow directories', (done) => {
+      request
+        .get(url(createServer({ root: fixtures, index: ['pets', 'name.txt'] }), '/'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.include('tobi');
+
+          done();
+        });
+    });
+  });
+
+  describe('lastModified', () => {
+    it('should support disabling last-modified', (done) => {
+      const server = createServer({ root: fixtures, lastModified: false });
+
+      request
+        .get(url(server, '/nums'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('123456789');
+          expect(res.headers).to.not.have.ownProperty('last-modified');
+
+          done();
+        });
+    })
+  });
+
+  describe('maxAge', () => {
+    it('should default to 0', (done) => {
+      request
+        .get(url(server, '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
+          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=0');
+
+          done();
+        });
+    });
+
+    it('should floor to integer', (done) => {
+      request
+        .get(url(createServer({ root: fixtures, maxAge: 123.956 }), '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
+          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=123');
+
+          done();
+        });
+    });
+
+    it('should accept string', (done) => {
+      request
+        .get(url(createServer({ root: fixtures, maxAge: '30d' }), '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
+          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=2592000');
+
+          done();
+        });
+    });
+
+    it('should max at 1 year', (done) => {
+      request
+        .get(url(createServer({ root: fixtures, maxAge: Infinity }), '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
+          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=31536000');
+
+          done();
+        });
+    });
+  });
+
+  describe('immutable', () => {
+    it('should default to false', (done) => {
+      request
+        .get(url(server, '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
+          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=0');
+
+          done();
+        });
+    })
+
+    it('should set immutable directive in Cache-Control', (done) => {
+      request
+        .get(url(createServer({ immutable: true, maxAge: '1h', root: fixtures }), '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
+          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=3600, immutable');
+
+          done();
+        });
+    })
+  })
+});
+
 describe('FileSend.mime', () => {
   it('should be exposed', () => {
-    expect(FileSend.mime).ok;
+    expect(FileSend.mime).to.be.ok;
   });
 });
+
+function createServer(opts) {
+  const server = http.createServer((req, res) => {
+    try {
+      new FileSend(req, pathname(req.url), opts).pipe(res);
+    } catch (err) {
+      res.statusCode = 500;
+
+      res.end(String(err));
+    }
+  });
+
+  server.listen();
+
+  return server;
+}
