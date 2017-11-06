@@ -202,27 +202,22 @@ function isUndefined(value) {
  * @return {Stream}
  */
 function pipeline(streams) {
+  let index = 0;
+  let src = streams[index++];
   const length = streams.length;
 
-  if (length > 1) {
-    let index = 0;
-    let src = streams[index++];
+  while (index < length) {
+    let dest = streams[index++];
 
-    while (index < length) {
-      let dest = streams[index++];
+    // Listening error event
+    src.once('error', (error) => {
+      dest.emit('error', error);
+    });
 
-      // Listening error event
-      src.once('error', (error) => {
-        dest.emit('error', error);
-      });
-
-      src = src.pipe(dest);
-    }
-
-    return src;
-  } else {
-    return streams[0];
+    src = src.pipe(dest);
   }
+
+  return src;
 }
 
 /**
@@ -394,14 +389,7 @@ function normalizeList(list) {
  * @param {string} access
  */
 function normalizeAccess(access) {
-  switch (access) {
-    case 'deny':
-    case 'ignore':
-      return access;
-      break;
-    default:
-      return 'deny';
-  }
+  return access === 'ignore' ? access : 'deny';
 }
 
 /**
@@ -481,12 +469,6 @@ class Iterator {
 function series(array, iterator, done) {
   // Create a new iterator
   const it = new Iterator(array);
-
-  // Bind context
-  if (arguments.length >= 4) {
-    iterator = iterator.bind(context);
-    done = done.bind(context);
-  }
 
   /**
    * @function walk

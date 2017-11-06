@@ -88,7 +88,6 @@ describe('FileSend(req, path, options)', () => {
     request
       .get(url(server, '/some%99thing.txt'))
       .end((err, res) => {
-        // console.log(res.text);
         expect(res.badRequest).to.be.true;
 
         done();
@@ -172,6 +171,33 @@ describe('FileSend(req, path, options)', () => {
 
         cb();
       });
+  });
+
+  it('should support HEAD', (done) => {
+    request
+      .head(url(server, '/name.txt'))
+      .end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.headers).to.have.ownProperty('content-length', '4');
+        expect(res.text).to.be.undefined;
+
+        done();
+      });
+  });
+
+  it('should respond with 405 on an unsupport http method', (done) => {
+    const methods = ['post', 'put', 'del'];
+    const cb = holding(methods.length - 1, done);
+
+    methods.forEach((method) => {
+      request
+        [method](url(server, '/name.txt'))
+        .end((err, res) => {
+          expect(res.status).to.equal(405);
+
+          cb();
+        });
+    });
   });
 
   it('should respond with 405 on an unsupport http method', (done) => {
