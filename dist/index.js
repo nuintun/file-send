@@ -1401,6 +1401,9 @@ class FileSend extends Events {
         response$$1.end();
       }
     }
+
+    // Destroy stdin stream
+    destroy(this[stdin]);
   }
 
   /**

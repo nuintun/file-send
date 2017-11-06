@@ -852,6 +852,9 @@ export default class FileSend extends Events {
         response.end();
       }
     }
+
+    // Destroy stdin stream
+    destroy(this[symbol.stdin]);
   }
 
   /**
