@@ -372,14 +372,6 @@ export default class FileSend extends Events {
   }
 
   /**
-   * @method getHeaders
-   * @public
-   */
-  getHeaders() {
-    return this.response.getHeaders();
-  }
-
-  /**
    * @method removeHeader
    * @param {string} name
    * @public
