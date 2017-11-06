@@ -475,6 +475,8 @@ describe('FileSend(req, path, options)', () => {
           .on('dir', function(realpath, next) {
             cb();
             this.status(403);
+            // coveralls hit
+            this.getHeaders();
             next(this.statusMessage);
           })
           .pipe(res);
