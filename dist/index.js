@@ -520,12 +520,10 @@ class DestroyableTransform extends Stream.Transform {
 
     this._destroyed = true;
 
-    const self = this;
-
     process.nextTick(() => {
-      if (error) self.emit('error', error);
+      if (error) this.emit('error', error);
 
-      self.emit('close');
+      this.emit('close');
     });
   }
 }
