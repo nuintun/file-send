@@ -1456,11 +1456,11 @@ class FileSend extends Events {
 
       // Error handling code-smell
       file.on('error', (error$$1) => {
-        // Destroy file stream
-        destroy(file);
-
         // Emit stdin error
         stdin$$1.emit('error', error$$1);
+
+        // Destroy file stream
+        destroy(file);
       });
 
       // File stream end

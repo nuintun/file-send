@@ -908,11 +908,11 @@ export default class FileSend extends Events {
 
       // Error handling code-smell
       file.on('error', (error) => {
-        // Destroy file stream
-        destroy(file);
-
         // Emit stdin error
         stdin.emit('error', error);
+
+        // Destroy file stream
+        destroy(file);
       });
 
       // File stream end
