@@ -32,9 +32,11 @@ http.createServer((request, response) => {
   })
   .on('dir', function(realpath, next) {
     // dir events
+    next('dir');
   })
   .on('error', function(error, next) {
     // error events
+    next('error');
   })
   .use(through2()) // Set middleware
   .pipe(response); // Send file to response
