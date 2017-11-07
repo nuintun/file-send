@@ -59,14 +59,6 @@ http.createServer((request, response) => {
 
   Set ignore rules, support glob string.  see: [micromatch](https://github.com/jonschlinkert/micromatch)
 
-##### *glob* - ```Object```
-
-  Set micromatch options.  see: [micromatch](https://github.com/jonschlinkert/micromatch#options)
-
-#### *acceptRanges* - ```Boolean```
-
-  Enable or disable accepting ranged requests, defaults to true. Disabling this will not send Accept-Ranges and ignore the contents of the Range request header.
-
 ##### *ignoreAccess* - ```String```
 
   Set how "ignore" are treated when encountered.
@@ -76,17 +68,21 @@ http.createServer((request, response) => {
   - `'deny'` Send a 403 for any request for ignore matched.
   - `'ignore'` Pretend like the ignore matched does not exist and 404.
 
+##### *glob* - ```Object```
+
+  Set micromatch options.  see: [micromatch](https://github.com/jonschlinkert/micromatch#options)
+
+#### *acceptRanges* - ```Boolean```
+
+  Enable or disable accepting ranged requests, defaults to true. Disabling this will not send Accept-Ranges and ignore the contents of the Range request header.
+
 ##### *charset* - ```String```
 
   Set Content-Type charset.
 
-##### *parseQueryString* - ```String```
+##### *cacheControl* - ```Boolean```
 
-  Set url.parse options. see node url module.
-
-##### *slashesDenoteHost* - ```String```
-
-  Set url.parse options. see node url module.
+  Enable or disable setting `Cache-Control` response header, defaults to true. Disabling this will ignore the `immutable` and `maxAge` options.
 
 ##### *etag* - ```Boolean```
 
@@ -121,7 +117,7 @@ Enable or diable the immutable directive in the Cache-Control response header, d
   The `FileSend` is an event emitter and will emit the following events:
 
   - `dir` a directory was requested`(realpath, next)`
-  - `file` a file was requested `(realpath, stats)`  
+  - `file` a file was requested `(realpath, stats)`
   - `error` an error occurred `(error, next)`
 
 ## Error-handling
@@ -157,20 +153,8 @@ function createServer(root, port) {
     const send = new FileSend(request, url.parse(request.url).pathname, {
       root: root || process.cwd(),
       maxAge: '3day',
-      ignore: ['/**/.*?(/*.*|/)'],
-      index: ['index.html']
-    });
-
-    send.on('headers', function(headers) {
-      const message = 'URL      : ' + chalk.green.bold(request.url)
-        + '\r\nPATH     : ' + chalk.yellow.bold(send.path)
-        + '\r\nROOT     : ' + chalk.magenta.bold(send.root)
-        + '\r\nREALPATH : ' + chalk.magenta.bold(send.realpath)
-        + '\r\nSTATUS   : ' + chalk.cyan.bold(send.statusCode)
-        + '\r\nHEADERS  : ' + chalk.cyan.bold(JSON.stringify(headers, null, 2))
-        + '\r\n-----------------------------------------------------------------------------------------';
-
-      process.send(message);
+      index: ['index.html'],
+      ignore: ['/**/.*?(/*.*|/)']      
     });
 
     send.pipe(response);
@@ -192,10 +176,6 @@ if (cluster.isMaster) {
         );      
       });
     }
-
-    worker.on('message', function(message) {
-      console.log(message);
-    });
   }
 } else {
   // workers can share any tcp connection

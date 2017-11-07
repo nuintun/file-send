@@ -3,8 +3,8 @@
 const url = require('url');
 const http = require('http');
 const cluster = require('cluster');
-const FileSend = require('./dist/index.min');
 const NUMCPUS = require('os').cpus().length;
+const FileSend = require('./dist/index.min');
 
 // create server
 function createServer(root, port) {
@@ -12,8 +12,8 @@ function createServer(root, port) {
     const send = new FileSend(request, url.parse(request.url).pathname, {
       root: root || process.cwd(),
       maxAge: '3day',
-      ignore: ['/**/.*?(/*.*|/)'],
-      index: ['index.html']
+      index: ['index.html'],
+      ignore: ['/**/.*?(/*.*|/)']
     });
 
     send.pipe(response);
@@ -35,10 +35,6 @@ if (cluster.isMaster) {
         );
       });
     }
-
-    worker.on('message', function(message) {
-      console.log(message);
-    });
   }
 } else {
   // workers can share any tcp connection

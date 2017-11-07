@@ -12,8 +12,8 @@ function createServer(root, port) {
     const send = new FileSend(request, url.parse(request.url).pathname, {
       root: root || process.cwd(),
       maxAge: '3day',
-      ignore: ['/**/.*?(/*.*|/)'],
-      index: ['index.html']
+      index: ['index.html'],
+      ignore: ['/**/.*?(/*.*|/)']
     });
 
     send.pipe(response);
