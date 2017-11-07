@@ -4,13 +4,14 @@
  * @version 2017/10/25
  */
 
-import { typeIs } from './utils';
-import { Transform } from 'stream';
+'use strict';
+
+const Transform = require('stream').Transform;
 
 /**
  * @class DestroyableTransform
  */
-export class DestroyableTransform extends Transform {
+class DestroyableTransform extends Transform {
 
   /**
    * @constructor
@@ -31,10 +32,12 @@ export class DestroyableTransform extends Transform {
 
     this._destroyed = true;
 
-    process.nextTick(() => {
-      if (error) this.emit('error', error);
+    const self = this;
 
-      this.emit('close');
+    process.nextTick(() => {
+      if (error) self.emit('error', error);
+
+      self.emit('close');
     });
   }
 }
@@ -58,8 +61,8 @@ function noop(chunk, encoding, next) {
  * @param {Function} [flush]
  * @returns {DestroyableTransform}
  */
-export function through(options, transform, flush) {
-  if (typeIs(options, 'function')) {
+module.exports = function through(options, transform, flush) {
+  if (typeof options === 'function') {
     flush = transform;
     transform = options;
     options = {};
@@ -69,8 +72,8 @@ export function through(options, transform, flush) {
   options.objectMode = options.objectMode || false;
   options.highWaterMark = options.highWaterMark || 16;
 
-  if (!typeIs(transform, 'function')) transform = noop;
-  if (!typeIs(flush, 'function')) flush = null;
+  if (typeof transform !== 'function') transform = noop;
+  if (typeof flush !== 'function') flush = null;
 
   const stream = new DestroyableTransform(options);
 

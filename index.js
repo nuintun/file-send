@@ -1,1128 +1,1051 @@
-/*!
- * file-send
- * Date: 2016/6/21
- * https://github.com/nuintun/file-send
- *
- * This is licensed under the MIT License (MIT).
- * For details, see: https://github.com/nuintun/file-send/blob/master/LICENSE
+/**
+ * @module file-send
+ * @license MIT
+ * @version 2017/10/25
  */
 
-'use strict';
+import * as fs from 'fs';
+import * as http from 'http';
+import * as Stream from 'stream';
+import * as Events from 'events';
+import * as mime from 'mime-types';
+import * as utils from './lib/utils';
+import * as symbol from './lib/symbol';
+import * as normalize from './lib/normalize';
 
-// Import lib
-var ms = require('ms');
-var fs = require('fs');
-var url = require('url');
-var path = require('path');
-var http = require('http');
-var etag = require('etag');
-var fresh = require('fresh');
-var destroy = require('destroy');
-var mime = require('mime-types');
-var util = require('./lib/util');
-var async = require('./lib/async');
-var encodeUrl = require('encodeurl');
-var through = require('./lib/through');
-var micromatch = require('micromatch');
-var onFinished = require('on-finished');
-var escapeHtml = require('escape-html');
-var parseRange = require('range-parser');
-var EventEmitter = require('events').EventEmitter;
+import etag from 'etag';
+import fresh from 'fresh';
+import destroy from 'destroy';
+import encodeUrl from 'encodeurl';
+import micromatch from 'micromatch';
+import escapeHtml from 'escape-html';
+import parseRange from 'range-parser';
 
-// The path sep
-var SEP = path.sep;
-// Current working directory
-var CWD = process.cwd();
-// The max max-age set
-var MAXMAXAGE = 60 * 60 * 24 * 365;
+import { series } from './lib/async';
+import { through } from './lib/through';
+
 // File not found status
-var NOTFOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
-
-// Common method
-var join = path.join;
-var resolve = path.resolve;
-var parseUrl = url.parse;
-var listenerCount = EventEmitter.prototype.listenerCount;
-var originWriteHead = http.ServerResponse.prototype.writeHead;
-
-// Hack listener count
-listenerCount = util.typeIs(listenerCount, 'function') ? function(emitter, eventName) {
-  return emitter.listenerCount(eventName);
-} : EventEmitter.listenerCount;
-
-// Add http response write headers events
-http.ServerResponse.prototype.writeHead = function() {
-  var context = this;
-
-  // Emit headers event
-  if (listenerCount(context, 'headers') > 0) {
-    context.emit('headers');
-  }
-
-  // Call origin method
-  util.apply(originWriteHead, context, arguments);
-};
+const NOT_FOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
 
 /**
- * FileSend
- *
- * @param request
- * @param options
- * @returns {FileSend}
- * @constructor
+ * @class FileSend
  */
-function FileSend(request, options) {
-  var context = this;
+export default class FileSend extends Events {
+  /**
+   * @constructor
+   * @param {Request} request
+   * @param {String} path
+   * @param {Object} options
+   */
+  constructor(request, path, options) {
+    if (!(request instanceof http.IncomingMessage)) {
+      throw new TypeError('The param request must be a http request.');
+    }
 
-  if (!(context instanceof FileSend)) {
-    return new FileSend(request, options);
+    if (!utils.typeIs(path, 'string')) {
+      throw new TypeError('The param path must be a string.');
+    }
+
+    super(options);
+
+    this.path = path;
+    this.root = options.root;
+    this.index = options.index;
+    this.ignore = options.ignore;
+    this.maxAge = options.maxAge;
+    this.charset = options.charset;
+    this.etag = options.etag;
+    this.ignoreAccess = options.ignoreAccess;
+    this.immutable = options.immutable;
+    this.acceptRanges = options.acceptRanges;
+    this.cacheControl = options.cacheControl;
+    this.lastModified = options.lastModified;
+
+    this[symbol.middlewares] = [];
+    this[symbol.request] = request;
+    this[symbol.stdin] = through();
+    this[symbol.glob] = normalize.normalizeGlob(options.glob);
   }
 
-  if (!(request instanceof http.IncomingMessage)) {
-    throw new TypeError('The first argument must be a http request.');
+  /**
+   * @property request
+   * @method get
+   */
+  get request() {
+    return this[symbol.request];
   }
 
-  options = options || {};
+  /**
+   * @property response
+   * @method get
+   */
+  get response() {
+    const response = this[symbol.response];
 
-  context.headers = {};
-  context.ranges = [];
-  context.request = request;
-  context.method = context.request.method;
-  context.charset = util.typeIs(options.charset, 'string') ? options.charset : null;
-  context.glob = options.glob || {};
+    if (!response) {
+      throw new ReferenceError('Can\'t get http response before called pipe method.');
+    }
 
-  if (!context.glob.hasOwnProperty('dot')) {
-    context.glob.dot = true;
+    return response;
   }
 
-  // Variable declaration
-  var url, path, realpath, root, etag, index,
-    ignore, ignoreAccess, maxAge, lastModified;
+  /**
+   * @property method
+   * @method get
+   */
+  get method() {
+    return this.request.method;
+  }
 
-  // The url
-  Object.defineProperty(context, 'url', {
-    enumerable: true,
-    get: function() {
-      if (!url) {
-        url = util.decodeURI(request.url);
-        url = url === -1 ? url : util.normalize(url);
-      }
+  /**
+   * @property path
+   * @method set
+   */
+  set path(path) {
+    const root = this.root;
 
-      return url;
+    path = normalize.normalizePath(path);
+
+    this[symbol.path] = path;
+    this[symbol.realpath] = root ? normalize.normalizeRealpath(root, path) : path;
+  }
+
+  /**
+   * @property path
+   * @method get
+   */
+  get path() {
+    return this[symbol.path];
+  }
+
+  /**
+   * @property root
+   * @method set
+   */
+  set root(root) {
+    const path = this.path;
+
+    root = normalize.normalizeRoot(root);
+
+    this[symbol.root] = root;
+    this[symbol.realpath] = path ? normalize.normalizeRealpath(root, path) : root;
+  }
+
+  /**
+   * @property root
+   * @method get
+   */
+  get root() {
+    return this[symbol.root];
+  }
+
+  /**
+   * @property realpath
+   * @method get
+   */
+  get realpath() {
+    return this[symbol.realpath];
+  }
+
+  /**
+   * @property index
+   * @method set
+   */
+  set index(index) {
+    this[symbol.index] = normalize.normalizeList(index);
+  }
+
+  /**
+   * @property index
+   * @method get
+   */
+  get index() {
+    return this[symbol.index];
+  }
+
+  /**
+   * @property ignore
+   * @method set
+   */
+  set ignore(ignore) {
+    this[symbol.ignore] = normalize.normalizeList(ignore);
+  }
+
+  /**
+   * @property ignore
+   * @method get
+   */
+  get ignore() {
+    return this[symbol.ignore];
+  }
+
+  /**
+   * @property ignoreAccess
+   * @method set
+   */
+  set ignoreAccess(ignoreAccess) {
+    this[symbol.ignoreAccess] = normalize.normalizeAccess(ignoreAccess);
+  }
+
+  /**
+   * @property ignoreAccess
+   * @method get
+   */
+  get ignoreAccess() {
+    return this[symbol.ignoreAccess];
+  }
+
+  /**
+   * @property maxAge
+   * @method set
+   */
+  set maxAge(maxAge) {
+    this[symbol.maxAge] = normalize.normalizeMaxAge(maxAge);
+  }
+
+  /**
+   * @property maxAge
+   * @method get
+   */
+  get maxAge() {
+    return this[symbol.maxAge];
+  }
+
+  /**
+   * @property charset
+   * @method set
+   */
+  set charset(charset) {
+    this[symbol.charset] = normalize.normalizeCharset(charset);
+  }
+
+  /**
+   * @property charset
+   * @method get
+   */
+  get charset() {
+    return this[symbol.charset];
+  }
+
+  /**
+   * @property etag
+   * @method set
+   */
+  set etag(etag) {
+    this[symbol.etag] = normalize.normalizeBoolean(etag, true);
+  }
+
+  /**
+   * @property etag
+   * @method get
+   */
+  get etag() {
+    return this[symbol.etag];
+  }
+
+  /**
+   * @property immutable
+   * @method set
+   */
+  set immutable(immutable) {
+    this[symbol.immutable] = normalize.normalizeBoolean(immutable, false);
+  }
+
+  /**
+   * @property immutable
+   * @method get
+   */
+  get immutable() {
+    return this[symbol.immutable];
+  }
+
+  /**
+   * @property acceptRanges
+   * @method set
+   */
+  set acceptRanges(acceptRanges) {
+    this[symbol.acceptRanges] = normalize.normalizeBoolean(acceptRanges, true);
+  }
+
+  /**
+   * @property acceptRanges
+   * @method get
+   */
+  get acceptRanges() {
+    return this[symbol.acceptRanges];
+  }
+
+  /**
+   * @property cacheControl
+   * @method set
+   */
+  set cacheControl(cacheControl) {
+    this[symbol.cacheControl] = normalize.normalizeBoolean(cacheControl, true);
+  }
+
+  /**
+   * @property cacheControl
+   * @method get
+   */
+  get cacheControl() {
+    return this[symbol.cacheControl];
+  }
+
+  /**
+   * @property lastModified
+   * @method set
+   */
+  set lastModified(lastModified) {
+    this[symbol.lastModified] = normalize.normalizeBoolean(lastModified, true);
+  }
+
+  /**
+   * @property lastModified
+   * @method get
+   */
+  get lastModified() {
+    return this[symbol.lastModified];
+  }
+
+  /**
+   * @property statusCode
+   * @method set
+   */
+  set statusCode(statusCode) {
+    this.response.statusCode = statusCode;
+  }
+
+  /**
+   * @property statusCode
+   * @method get
+   */
+  get statusCode() {
+    return this.response.statusCode;
+  }
+
+  /**
+   * @property statusMessage
+   * @method set
+   */
+  set statusMessage(statusMessage) {
+    this.response.statusMessage = statusMessage || http.STATUS_CODES[this.statusCode];
+  }
+
+  /**
+   * @property statusMessage
+   * @method get
+   */
+  get statusMessage() {
+    return this.response.statusMessage;
+  }
+
+  /**
+   * @method use
+   * @param {Stream} middleware
+   * @public
+   */
+  use(middleware) {
+    if (middleware instanceof Stream) {
+      this[symbol.middlewares].push(middleware);
     }
-  });
 
-  // The root
-  Object.defineProperty(context, 'root', {
-    enumerable: true,
-    get: function() {
-      if (!root) {
-        root = util.typeIs(options.root, 'string')
-          ? resolve(options.root)
-          : CWD;
+    return this;
+  }
 
-        root = util.posixURI(join(root, SEP));
-      }
+  /**
+   * @method setHeader
+   * @param {string} name
+   * @param {string} value
+   * @public
+   */
+  setHeader(name, value) {
+    this.response.setHeader(name, value);
+  }
 
-      return root;
+  /**
+   * @method getHeader
+   * @param {string} name
+   * @public
+   */
+  getHeader(name) {
+    return this.response.getHeader(name);
+  }
+
+  /**
+   * @method removeHeader
+   * @param {string} name
+   * @public
+   */
+  removeHeader(name) {
+    this.response.removeHeader(name);
+  }
+
+  /**
+   * @method removeHeaders
+   * @public
+   */
+  hasHeader(name) {
+    const response = this.response;
+
+    if (response.hasHeader) {
+      return response.hasHeader(name);
     }
-  });
 
-  // The parsed url
-  Object.defineProperty(context, '_url', {
-    value: context.url === -1 ? {} : parseUrl(context.url, options.parseQueryString, options.slashesDenoteHost)
-  });
+    return response.getHeader(name) !== utils.undef;
+  }
 
-  // The path
-  Object.defineProperty(context, 'path', {
-    enumerable: true,
-    get: function() {
-      if (!path) {
-        var context = this;
+  /**
+   * @method hasListeners
+   * @param {string} event
+   * @public
+   */
+  hasListeners(event) {
+    return this.listenerCount(event) > 0;
+  }
 
-        path = context.url === -1
-          ? context.url
-          : util.decodeURI(context._url.pathname);
+  /**
+   * @method status
+   * @param {number} statusCode
+   * @param {string} statusMessage
+   * @public
+   */
+  status(statusCode, statusMessage) {
+    this.statusCode = statusCode;
+    this.statusMessage = statusMessage;
+  }
 
-        // //a/b/c ==> /a/b/c
-        path = path === -1
-          ? path
-          : path.replace(/^\/{2,}/, '/');
-      }
+  /**
+   * @method redirect
+   * @param {string} location
+   * @public
+   */
+  redirect(location) {
+    const href = encodeUrl(location);
+    const html = `Redirecting to <a href="${ href }">${ escapeHtml(location) }</a>`;
 
-      return path;
+    this.status(301);
+    this.setHeader('Cache-Control', 'no-cache');
+    this.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    this.setHeader('Content-Length', Buffer.byteLength(html));
+    this.setHeader('Content-Security-Policy', "default-src 'self'");
+    this.setHeader('X-Content-Type-Options', 'nosniff');
+    this.setHeader('Location', href);
+    this[symbol.responseEnd](html);
+  }
+
+  /**
+   * @method pipe
+   * @param {Response} response
+   * @param {Object} options
+   * @public
+   */
+  pipe(response, options) {
+    if (this[symbol.response]) {
+      throw new RangeError('The pipe method has been called more than once.');
     }
-  });
 
-  // The real path
-  Object.defineProperty(context, 'realpath', {
-    enumerable: true,
-    get: function() {
-      if (!realpath) {
-        var context = this;
-
-        realpath = context.path === -1
-          ? context.path
-          : util.posixURI(join(context.root, context.path));
-      }
-
-      return realpath;
+    if (!(response instanceof http.ServerResponse)) {
+      throw new TypeError('The response must be a http response.');
     }
-  });
 
-  // The query
-  Object.defineProperty(context, 'query', {
-    enumerable: true,
-    value: context._url.query
-  });
+    // Set response
+    this[symbol.response] = response;
 
-  // The etag
-  Object.defineProperty(context, 'etag', {
-    enumerable: true,
-    get: function() {
-      if (!etag) {
-        etag = options.etag !== undefined
-          ? Boolean(options.etag)
-          : true;
-      }
+    // Headers already sent
+    if (response.headersSent) {
+      this[symbol.headersSent]();
 
-      return etag;
+      return response;
     }
-  });
 
-  // The index
-  Object.defineProperty(context, 'index', {
-    enumerable: true,
-    get: function() {
-      if (!index) {
-        index = Array.isArray(options.index) ? options.index : [options.index];
+    // Listening error event
+    response.once('error', (error) => {
+      this[symbol.statError](error);
+    });
 
-        index = index.filter(function(index) {
-          return index && util.typeIs(index, 'string');
-        });
-      }
+    // Bootstrap
+    this[symbol.bootstrap]();
 
-      return index;
+    // Pipeline
+    const streams = [this[symbol.stdin]].concat(this[symbol.middlewares]);
+
+    streams.push(response);
+
+    return utils.pipeline(streams);
+  }
+
+  /**
+   * @method end
+   * @param {string} chunk
+   * @param {string} encoding
+   * @param {Function} callback
+   * @public
+   */
+  end(chunk, encoding, callback) {
+    if (chunk) {
+      this[symbol.stdin].end(chunk, encoding, callback);
+    } else {
+      this[symbol.stdin].end();
     }
-  });
+  }
 
-  // The ignore
-  Object.defineProperty(context, 'ignore', {
-    enumerable: true,
-    get: function() {
-      if (!ignore) {
-        ignore = Array.isArray(options.ignore) ? options.ignore : [options.ignore];
+  /**
+   * @method headersSent
+   * @private
+   */
+  [symbol.headersSent]() {
+    this[symbol.responseEnd]('Can\'t set headers after they are sent.');
+  }
 
-        ignore = ignore.filter(function(pattern) {
-          return pattern && util.typeIs(pattern, 'string');
-        });
-      }
+  /**
+   * @method error
+   * @param {number} statusCode
+   * @param {string} statusMessage
+   * @public
+   */
+  [symbol.error](statusCode, statusMessage) {
+    const response = this.response;
 
-      return ignore;
-    }
-  });
+    this.status(statusCode, statusMessage);
 
-  // The ignore-access
-  Object.defineProperty(context, 'ignoreAccess', {
-    enumerable: true,
-    get: function() {
-      if (!ignoreAccess) {
-        switch (options.ignoreAccess) {
-          case 'deny':
-          case 'ignore':
-            ignoreAccess = options.ignoreAccess;
-            break;
-          default:
-            ignoreAccess = 'deny';
+    statusCode = this.statusCode;
+    statusMessage = this.statusMessage;
+
+    const error = new Error(statusMessage);
+
+    error.statusCode = statusCode;
+
+    // Emit if listeners instead of responding
+    if (this.hasListeners('error')) {
+      this.emit('error', error, (chunk) => {
+        if (response.headersSent) {
+          return this[symbol.headersSent]();
         }
+
+        this[symbol.responseEnd](chunk);
+      });
+    } else {
+      if (response.headersSent) {
+        return this[symbol.headersSent]();
       }
 
-      return ignoreAccess;
-    }
-  });
+      // Error document
+      const document = utils.createErrorDocument(statusCode, statusMessage);
 
-  // The max-age
-  Object.defineProperty(context, 'maxAge', {
-    enumerable: true,
-    get: function() {
-      if (!maxAge) {
-        maxAge = util.typeIs(options.maxAge, 'string')
-          ? ms(options.maxAge) / 1000
-          : Number(options.maxAge);
-
-        maxAge = !isNaN(maxAge)
-          ? Math.min(Math.max(0, maxAge), MAXMAXAGE)
-          : 0;
-
-        maxAge = Math.floor(maxAge);
-      }
-
-      return maxAge;
-    }
-  });
-
-  // The last-modified
-  Object.defineProperty(context, 'lastModified', {
-    enumerable: true,
-    get: function() {
-      if (!lastModified) {
-        lastModified = options.lastModified !== undefined
-          ? Boolean(options.lastModified)
-          : true;
-      }
-
-      return lastModified;
-    }
-  });
-
-  // The stream
-  Object.defineProperty(context, 'stream', {
-    value: through(),
-    enumerable: false
-  });
-
-  // The pipe returned stream
-  Object.defineProperty(context, '_stream', {
-    writable: true,
-    enumerable: false,
-    value: context.stream
-  });
-
-  // The headers names
-  Object.defineProperty(context, 'headerNames', {
-    value: {},
-    enumerable: false
-  });
-
-  // The path has trailing slash
-  Object.defineProperty(context, 'hasTrailingSlash', {
-    value: context.path === -1 ? false : context.path.slice(-1) === '/'
-  });
-}
-
-/**
- * extend
- *
- * @type {EventEmitter}
- */
-FileSend.prototype = Object.create(EventEmitter.prototype, {
-  constructor: { value: FileSend }
-});
-
-/**
- * isConditionalGET
- *
- * @description Check if this is a conditional GET request
- *
- * @return {Boolean}
- * @private
- */
-FileSend.prototype.isConditionalGET = function() {
-  var context = this;
-  var headers = context.request.headers;
-
-  return headers['if-match']
-    || headers['if-unmodified-since']
-    || headers['if-none-match']
-    || headers['if-modified-since'];
-};
-
-/**
- * isPreconditionFailure
- *
- * @description Check if the request preconditions failed.
- *
- * @return {boolean}
- * @private
- */
-FileSend.prototype.isPreconditionFailure = function() {
-  var context = this;
-  var request = context.request;
-  // if-match
-  var match = request.headers['if-match'];
-
-  if (match) {
-    var etag = context.getHeader('ETag');
-
-    return !etag || (match !== '*' && match.split(/ *, */).every(function(match) {
-      return match !== etag && match !== 'W/' + etag && 'W/' + match !== etag;
-    }));
-  }
-
-  // if-unmodified-since
-  var unmodifiedSince = util.parseHttpDate(request.headers['if-unmodified-since']);
-
-  if (!isNaN(unmodifiedSince)) {
-    var lastModified = util.parseHttpDate(context.getHeader('Last-Modified'));
-
-    return isNaN(lastModified) || lastModified > unmodifiedSince;
-  }
-
-  return false;
-}
-
-/**
- * isCachable
- *
- * @description Check if the request is cacheable,
- *   aka responded with 2xx or 304 (see RFC 2616 section 14.2{5,6})
- *
- * @return {Boolean}
- * @private
- */
-FileSend.prototype.isCachable = function() {
-  var statusCode = this.statusCode;
-
-  return statusCode === 304 || (statusCode >= 200 && statusCode < 300);
-};
-
-/**
- * isFresh
- * @description Check if the cache is fresh
- *
- * @return {Boolean}
- * @private
- */
-FileSend.prototype.isFresh = function() {
-  var context = this;
-
-  return fresh(context.request.headers, {
-    'etag': context.getHeader('ETag'),
-    'last-modified': context.getHeader('Last-Modified')
-  });
-};
-
-/**
- * isRangeFresh
- * @description Check if the range is fresh
- *
- * @return {Boolean}
- * @private
- */
-FileSend.prototype.isRangeFresh = function() {
-  var context = this;
-  var ifRange = context.request.headers['if-range'];
-
-  if (!ifRange) {
-    return true;
-  }
-
-  // if-range as etag
-  if (ifRange.indexOf('"') !== -1) {
-    var etag = context.getHeader('ETag');
-
-    return Boolean(etag && ifRange.indexOf(etag) !== -1);
-  }
-
-  // if-range as modified date
-  var lastModified = context.getHeader('Last-Modified');
-
-  return util.parseHttpDate(lastModified) <= util.parseHttpDate(ifRange);
-};
-
-/**
- * Is ignore path and files
- *
- * @param path
- * @returns {*|String}
- * @private
- */
-FileSend.prototype.isIgnore = function(path) {
-  var context = this;
-
-  return context.ignore.length && micromatch(path, context.ignore, context.glob).length;
-};
-
-/**
- * Set header
- *
- * @param name
- * @param value
- */
-FileSend.prototype.setHeader = function(name, value) {
-  var context = this;
-
-  if (name && util.typeIs(name, 'string')) {
-    var key = name.toLowerCase();
-
-    if (this.headerNames.hasOwnProperty(key)) {
-      delete context.headers[context.headerNames[key]];
-    }
-
-    context.headers[name] = value;
-    context.headerNames[key] = name;
-  }
-};
-
-/**
- * Get header
- *
- * @param name
- */
-FileSend.prototype.getHeader = function(name) {
-  var context = this;
-
-  if (name && util.typeIs(name, 'string')) {
-    var key = name.toLowerCase();
-
-    if (context.headerNames.hasOwnProperty(key)) {
-      return context.headers[context.headerNames[key]];
+      // Set headers
+      this.setHeader('Cache-Control', 'private');
+      this.setHeader('Content-Type', 'text/html; charset=UTF-8');
+      this.setHeader('Content-Length', Buffer.byteLength(document));
+      this.setHeader('Content-Security-Policy', `default-src 'self' 'unsafe-inline'`);
+      this.setHeader('X-Content-Type-Options', 'nosniff');
+      this[symbol.responseEnd](document);
     }
   }
-};
 
-/**
- * Remove header
- *
- * @param name
- */
-FileSend.prototype.removeHeader = function(name) {
-  var context = this;
+  /**
+   * @method statError
+   * @param {Error} error
+   * @private
+   */
+  [symbol.statError](error) {
+    // 404 error
+    if (NOT_FOUND.indexOf(error.code) !== -1) {
+      return this[symbol.error](404);
+    }
 
-  if (name && util.typeIs(name, 'string')) {
-    var key = name.toLowerCase();
-
-    delete context.headers[name];
-    delete context.headerNames[key];
+    this[symbol.error](500, error.message);
   }
-};
 
-// Array slice
-var slice = Array.prototype.slice;
-// Origin emit method
-var emit = FileSend.prototype.emit;
+  /**
+   * @method hasTrailingSlash
+   * @private
+   */
+  [symbol.hasTrailingSlash]() {
+    return this.path[this.path.length - 1] === '/';
+  }
 
-/**
- * Emit event
- *
- * @param event
- * @returns {boolean}
- */
-FileSend.prototype.emit = function(event) {
-  var context = this;
+  /**
+   * @method isConditionalGET
+   * @private
+   */
+  [symbol.isConditionalGET]() {
+    const headers = this.request.headers;
 
-  // Emit event
-  if (listenerCount(context, event) > 0) {
-    util.apply(emit, context, slice.call(arguments));
+    return headers['if-match']
+      || headers['if-unmodified-since']
+      || headers['if-none-match']
+      || headers['if-modified-since'];
+  }
 
-    return true;
-  } else {
+  /**
+   * @method isPreconditionFailure
+   * @private
+   */
+  [symbol.isPreconditionFailure]() {
+    const request = this.request;
+    // if-match
+    const match = request.headers['if-match'];
+
+    if (match) {
+      const etag = this.getHeader('ETag');
+
+      return !etag || (match !== '*' && utils.parseTokenList(match).every((match) => {
+        return match !== etag && match !== 'W/' + etag && 'W/' + match !== etag;
+      }));
+    }
+
+    // if-unmodified-since
+    const unmodifiedSince = utils.parseHttpDate(request.headers['if-unmodified-since']);
+
+    if (!isNaN(unmodifiedSince)) {
+      const lastModified = utils.parseHttpDate(this.getHeader('Last-Modified'));
+
+      return isNaN(lastModified) || lastModified > unmodifiedSince;
+    }
+
     return false;
   }
-};
 
-/**
- * end
- *
- * @param response
- * @param message
- * @private
- */
-FileSend.prototype.end = function(response, message) {
-  // Unpipe
-  this._stream.unpipe(response);
+  /**
+   * @method isCachable
+   * @private
+   */
+  [symbol.isCachable]() {
+    const statusCode = this.statusCode;
 
-  // Write message
-  message && response.write(message);
+    return statusCode === 304 || (statusCode >= 200 && statusCode < 300);
+  }
 
-  // End response
-  response.end();
-};
+  /**
+   * @method isFresh
+   * @private
+   */
+  [symbol.isFresh]() {
+    return fresh(this.request.headers, {
+      'etag': this.getHeader('ETag'),
+      'last-modified': this.getHeader('Last-Modified')
+    });
+  }
 
-/**
- * Set init headers
- *
- * @param response
- * @param stats
- * @private
- */
-FileSend.prototype.initHeaders = function(response, stats) {
-  var type;
-  var context = this;
-  var charset = context.charset;
-  var eTag = response.getHeader('ETag');
-  var contentType = response.getHeader('Content-Type');
-  var cacheControl = response.getHeader('Cache-Control');
-  var lastModified = response.getHeader('Last-Modified');
+  /**
+   * @method isRangeFresh
+   * @private
+   */
+  [symbol.isRangeFresh]() {
+    const ifRange = this.request.headers['if-range'];
 
-  // Set accept-ranges
-  context.setHeader('Accept-Ranges', 'bytes');
-
-  // Not override custom set
-  if (contentType) {
-    context.setHeader('Content-Type', contentType);
-  } else {
-    // Get type
-    type = mime.lookup(context.path);
-
-    if (type) {
-      // Get charset
-      charset = charset ? '; charset=' + charset : '';
-
-      // Set content-type
-      context.setHeader('Content-Type', type + charset);
+    if (!ifRange) {
+      return true;
     }
-  }
 
-  // Set cache-control
-  if (cacheControl && util.typeIs(cacheControl, 'string')) {
-    context.setHeader('Cache-Control', cacheControl);
-  } else if (context.maxAge > 0) {
-    context.setHeader('Cache-Control', 'max-age=' + context.maxAge);
-  }
+    // If-Range as etag
+    if (ifRange.indexOf('"') !== -1) {
+      const etag = this.getHeader('ETag');
 
-  // Set last-modified
-  if (context.lastModified) {
-    if (lastModified) {
-      // Get mtime utc string
-      context.setHeader('Last-Modified', lastModified);
-    } else {
-      // Get mtime utc string
-      context.setHeader('Last-Modified', stats.mtime.toUTCString());
+      return Boolean(etag && ifRange.indexOf(etag) !== -1);
     }
+
+    // If-Range as modified date
+    const lastModified = this.getHeader('Last-Modified');
+
+    return utils.parseHttpDate(lastModified) <= utils.parseHttpDate(ifRange);
   }
 
-  // Set etag
-  if (context.etag) {
-    if (eTag) {
-      context.setHeader('ETag', eTag);
-    } else {
-      context.setHeader('ETag', etag(stats));
-    }
+  /**
+   * @method isIgnore
+   * @param {string} path
+   * @private
+   */
+  [symbol.isIgnore](path) {
+    return this.ignore.length && micromatch(path, this.ignore, this[symbol.glob]).length;
   }
-};
 
-/**
- * Parse range
- *
- * @param {Object} response
- * @param {Object} stats
- * @private
- */
-FileSend.prototype.parseRange = function(response, stats) {
-  var context = this;
-  var size = stats.size;
-  var contentLength = size;
-  var ranges = context.request.headers['range'];
+  /**
+   * @method parseRange
+   * @param {Stats} stats
+   * @private
+   */
+  [symbol.parseRange](stats) {
+    const result = [];
+    const size = stats.size;
+    let contentLength = size;
 
-  // Reset ranges
-  context.ranges = [];
+    // Range support
+    if (this.acceptRanges) {
+      let ranges = this.request.headers['range'];
 
-  // Range support
-  if (ranges) {
-    // Range fresh
-    var rangeFresh = context.isRangeFresh();
+      // Range fresh
+      if (ranges && this[symbol.isRangeFresh]()) {
+        // Parse range -1 -2 or []
+        ranges = parseRange(size, ranges, { combine: true });
 
-    // Range fresh
-    if (rangeFresh) {
-      // Parse range
-      ranges = parseRange(size, ranges, { combine: true });
+        // Valid ranges, support multiple ranges
+        if (Array.isArray(ranges) && ranges.type === 'bytes') {
+          this.status(206);
 
-      // Valid ranges, support multiple ranges
-      if (util.typeIs(ranges, 'array') && ranges.type === 'bytes') {
-        context.status(response, 206);
+          // Multiple ranges
+          if (ranges.length > 1) {
+            // Range boundary
+            let boundary = `<${ utils.boundaryGenerator() }>`;
+            // If user set content-type use user define
+            const contentType = this.getHeader('Content-Type') || 'application/octet-stream';
 
-        // Multiple ranges
-        if (ranges.length > 1) {
-          // Range boundary
-          var boundary = '<' + util.boundaryGenerator() + '>';
-          // If user set content-type use user define
-          var contentType = context.getHeader('Content-Type') || 'application/octet-stream';
+            // Set multipart/byteranges
+            this.setHeader('Content-Type', `multipart/byteranges; boundary=${ boundary }`);
 
-          // Set multipart/byteranges
-          context.setHeader('Content-Type', 'multipart/byteranges; boundary=' + boundary);
+            // Create boundary and end boundary
+            boundary = `\r\n--${ boundary }`;
 
-          // Create boundary and end boundary
-          boundary = '\r\n--' + boundary;
+            // Closed boundary
+            const close = `${ boundary }--\r\n`;
 
-          // Closed boundary
-          var close = boundary + '--\r\n';
+            // Common boundary
+            boundary += `\r\nContent-Type: ${ contentType }`;
 
-          // Common boundary
-          boundary += '\r\nContent-Type: ' + contentType;
+            // Reset content-length
+            contentLength = 0;
 
-          // Reset content-length
-          contentLength = 0;
+            // Map ranges
+            ranges.forEach((range) => {
+              // Range start and end
+              const start = range.start;
+              const end = range.end;
+              // Set fields
+              const open = `${ boundary }\r\nContent-Range: bytes ${ start }-${ end }/${ size }\r\n\r\n`;
 
-          // Loop ranges
-          ranges.forEach(function(range) {
-            var open;
-            // Range start and end
-            var start = range.start;
-            var end = range.end;
+              // Set property
+              range.open = open;
+              // Compute content-length
+              contentLength += end - start + Buffer.byteLength(open) + 1;
 
-            // Set fields
-            open = boundary + '\r\nContent-Range: ' + 'bytes ' + start + '-' + end + '/' + size + '\r\n\r\n';
+              // Cache range
+              result.push(range);
+            });
 
-            // Set property
-            range.open = open;
+            // The first open boundary remove \r\n
+            result[0].open = result[0].open.replace(/^\r\n/, '');
+            // The last add closed boundary
+            result[result.length - 1].close = close;
+
             // Compute content-length
-            contentLength += end - start + Buffer.byteLength(open) + 1;
+            contentLength += Buffer.byteLength(close);
+          } else {
+            const range = ranges[0];
+            const start = range.start;
+            const end = range.end;
+
+            // Set content-range
+            this.setHeader('Content-Range', `bytes ${ start }-${ end }/${ size }`);
 
             // Cache range
-            this.ranges.push(range);
-          }, context);
+            result.push(range);
 
-          // The first open boundary remove \r\n
-          var open = context.ranges[0].open;
-
-          context.ranges[0].open = open.replace(/^\r\n/, '');
-          // The last add closed boundary
-          context.ranges[context.ranges.length - 1].close = close;
-          // Compute content-length
-          contentLength += Buffer.byteLength(close);
-        } else {
-          var range = ranges[0];
-          var start = range.start;
-          var end = range.end;
-
-          // Set content-range
-          context.setHeader('Content-Range', 'bytes ' + start + '-' + end + '/' + size);
-
-          // Cache reange
-          context.ranges.push(range);
-
-          // Compute content-length
-          contentLength = end - start + 1;
+            // Compute content-length
+            contentLength = end - start + 1;
+          }
+        } else if (ranges === -1) {
+          return ranges;
         }
-      } else if (ranges === -1) {
-        // Set content-range
-        context.setHeader('Content-Range', 'bytes */' + size);
-
-        // Unsatisfiable 416
-        context.error(response, 416);
-
-        return false;
       }
     }
+
+    // Set content-length
+    this.setHeader('Content-Length', contentLength);
+
+    // If non range return all file
+    if (!result.length) {
+      result.push({});
+    }
+
+    // Return result
+    return result;
   }
 
-  // Set content-length
-  context.setHeader('Content-Length', contentLength);
+  /**
+   * @method dir
+   * @private
+   */
+  [symbol.dir]() {
+    // If have event directory listener, use user define
+    // emit event directory
+    if (this.hasListeners('dir')) {
+      this.emit('dir', this.realpath, (chunk) => {
+        if (this.response.headersSent) {
+          return this[symbol.headersSent]();
+        }
 
-  return true;
-};
-
-/**
- * Set response status
- *
- * @param response
- * @param statusCode
- * @param statusMessage
- * @private
- */
-FileSend.prototype.status = function(response, statusCode, statusMessage) {
-  var context = this;
-
-  context.statusCode = statusCode;
-  context.statusMessage = statusMessage || http.STATUS_CODES[statusCode];
-
-  response.statusCode = context.statusCode;
-  response.statusMessage = context.statusMessage;
-};
-
-/**
- * error
- *
- * @param response
- * @param statusCode
- * @param statusMessage
- * @private
- */
-FileSend.prototype.error = function(response, statusCode, statusMessage) {
-  var context = this;
-
-  context.status(response, statusCode, statusMessage);
-
-  statusCode = context.statusCode;
-  statusMessage = context.statusMessage;
-
-  var error = new Error(statusMessage);
-
-  error.statusCode = statusCode;
-
-  // Next method
-  var next = function(message) {
-    var context = this;
-
-    if (response.headersSent) {
-      return context.headersSent(response);
-    }
-
-    context.end(response, message);
-  }.bind(context);
-
-  // Emit if listeners instead of responding
-  if (context.emit('error', error, next)) return;
-
-  // Set headers
-  context.setHeader('Cache-Control', 'private');
-  context.setHeader('Content-Type', 'text/html; charset=UTF-8');
-  context.setHeader('Content-Length', Buffer.byteLength(statusMessage));
-  context.setHeader('Content-Security-Policy', "default-src 'self'");
-  context.setHeader('X-Content-Type-Options', 'nosniff');
-
-  // Next
-  next(statusMessage);
-};
-
-/**
- * Stat error
- *
- * @param response
- * @param error
- * @private
- */
-FileSend.prototype.statError = function(response, error) {
-  var context = this;
-
-  // 404 error
-  if (NOTFOUND.indexOf(error.code) !== -1) {
-    return context.error(response, 404);
-  }
-
-  context.error(response, 500, error.message);
-};
-
-/**
- * dir
- *
- * @param response
- * @param realpath
- * @param stats
- * @private
- */
-FileSend.prototype.dir = function(response, realpath, stats) {
-  var context = this;
-
-  // If have event directory listener, use user define
-  // emit event directory
-  if (
-    context.emit('dir', realpath, stats, function(message) {
-      var context = this;
-
-      if (response.headersSent) {
-        return context.headersSent(response);
-      }
-
-      context.end(response, message);
-    }.bind(context))
-  ) return;
-
-  context.error(response, 403);
-};
-
-/**
- * redirect
- *
- * @param response
- * @param location
- * @private
- */
-FileSend.prototype.redirect = function(response, location) {
-  var context = this;
-
-  location = location + (context._url.search || '') + (context._url.hash || '');
-
-  var html = escapeHtml(location);
-
-  location = encodeUrl(location);
-
-  var message = 'Redirecting to <a href="' + location + '">' + html + '</a>';
-
-  context.status(response, 301);
-
-  context.setHeader('Cache-Control', 'no-cache');
-  context.setHeader('Content-Type', 'text/html; charset=UTF-8');
-  context.setHeader('Content-Length', Buffer.byteLength(message));
-  context.setHeader('Content-Security-Policy', "default-src 'self'");
-  context.setHeader('X-Content-Type-Options', 'nosniff');
-  context.setHeader('Location', location);
-
-  context.end(response, message);
-};
-
-/**
- * Headers already sent
- *
- * @param response
- * @private
- */
-FileSend.prototype.headersSent = function(response) {
-  this.end(response, 'Can\'t set headers after they are sent.');
-};
-
-/**
- * Write response headers
- * @param response
- * @private
- */
-FileSend.prototype.writeHead = function(response) {
-  var context = this;
-
-  // Emit headers event
-  context.emit('headers', context.headers);
-
-  // The headers
-  var headers = context.headers;
-
-  // Set headers
-  Object.keys(headers).forEach(function(name) {
-    response.setHeader(name, headers[name]);
-  });
-};
-
-/**
- * Create file stream
- *
- * @param response
- * @private
- */
-FileSend.prototype.createReadStream = function(response) {
-  var context = this;
-  var ranges = context.ranges;
-  var stream = context.stream;
-
-  // Stream error
-  var onerror = function(error) {
-    // Request already finished
-    if (onFinished.isFinished(response)) return;
-
-    // Stat error
-    this.statError(response, error);
-  }.bind(context);
-
-  // Error handling code-smell
-  stream.on('error', onerror);
-
-  // Format ranges
-  ranges = ranges.length ? ranges : [{}];
-
-  // Contat range
-  async.series(ranges, function(range, next) {
-    // Request already finished
-    if (onFinished.isFinished(response)) return;
-
-    // Create file stream
-    var file = fs.createReadStream(this.realpath, range);
-
-    // Push open boundary
-    range.open && stream.write(range.open);
-
-    // Error handling code-smell
-    file.on('error', function(error) {
-      // Call onerror
-      onerror(error);
-      // Destroy file stream
-      destroy(file);
-    });
-
-    // File stream end
-    file.on('end', function() {
-      // Stop pipe stream
-      file.unpipe(stream);
-
-      // Push close boundary
-      range.close && stream.write(range.close);
-
-      // Destroy file stream
-      destroy(file);
-    });
-
-    // Next
-    file.on('close', next);
-
-    // Pipe stream
-    file.pipe(stream, { end: false });
-  }, function() {
-    // End stream
-    stream.end();
-  }, context);
-
-  // Pipe to response
-  context._stream.pipe(response);
-};
-
-/**
- * Redirect to default document
- *
- * @param response
- * @param stats
- * @private
- */
-FileSend.prototype.readIndex = function(response, stats) {
-  var context = this;
-  var path = context.hasTrailingSlash ? context.path : context.path + '/';
-
-  async.series(context.index.map(function(index) {
-    return path + index;
-  }), function(path, next) {
-    var context = this;
-
-    if (context.isIgnore(path)) {
-      return next();
-    }
-
-    fs.stat(join(context.root, path), function(error, stats) {
-      if (error || !stats.isFile()) {
-        next();
-      } else {
-        this.redirect(response, util.posixURI(path));
-      }
-    }.bind(context));
-  }, function() {
-    var context = this;
-
-    if (context.hasTrailingSlash) {
-      context.dir(response, context.realpath, stats);
+        this[symbol.responseEnd](chunk);
+      });
     } else {
-      context.redirect(response, path);
-    }
-  }, context);
-};
-
-/**
- * read
- *
- * @param response
- * @private
- */
-FileSend.prototype.read = function(response) {
-  var context = this;
-
-  // Headers sent
-  if (response.headersSent) {
-    return process.nextTick(function() {
-      this.headersSent(response);
-    }.bind(context));
-  }
-
-  // Set status
-  context.status(response, response.statusCode || 200);
-
-  // Path -1 or null byte(s)
-  if (context.realpath === -1 || context.realpath.indexOf('\0') !== -1) {
-    return process.nextTick(function() {
-      this.error(response, 400);
-    }.bind(context));
-  }
-
-  // Malicious path
-  if (util.isOutBound(context.realpath, context.root)) {
-    return process.nextTick(function() {
-      this.error(response, 403);
-    }.bind(context));
-  }
-
-  // Is ignore path or file
-  if (context.isIgnore(context.path)) {
-    switch (context.ignoreAccess) {
-      case 'deny':
-        return process.nextTick(function() {
-          this.error(response, 403);
-        }.bind(context));
-      case 'ignore':
-        return process.nextTick(function() {
-          this.error(response, 404);
-        }.bind(context));
+      this[symbol.error](403);
     }
   }
 
-  // Read file
-  fs.stat(context.realpath, function(error, stats) {
-    var context = this;
+  /**
+   * @method initHeaders
+   * @param {Stats} stats
+   * @private
+   */
+  [symbol.initHeaders](stats) {
+    const response = this.response;
 
-    // Stat error
-    if (error) {
-      return context.statError(response, error);
+    // Accept-Ranges
+    if (this.acceptRanges) {
+      // Set Accept-Ranges
+      this.setHeader('Accept-Ranges', 'bytes');
     }
 
-    // Is directory
-    if (stats.isDirectory()) {
-      return context.readIndex(response, stats);
-    } else if (context.hasTrailingSlash) {
-      // Not a directory but has trailing slash
-      return context.error(response, 404);
-    }
+    // Content-Type
+    if (!(this.hasHeader('Content-Type'))) {
+      // Get type
+      let type = mime.lookup(this.path);
 
-    // Set headers and parse range
-    context.initHeaders(response, stats);
+      if (type) {
+        let charset = this.charset;
 
-    // Conditional get support
-    if (context.isConditionalGET()) {
-      var end = function() {
-        // Remove content-type
-        context.removeHeader('Content-Type');
-        // End with empty content
-        context.end(response);
-      };
+        // Get charset
+        charset = charset ? `; charset=${ charset }` : '';
 
-      if (context.isPreconditionFailure()) {
-        context.status(response, 412);
-
-        return end();
-      } else if (context.isCachable() && context.isFresh()) {
-        context.status(response, 304);
-
-        return end();
+        // Set Content-Type
+        this.setHeader('Content-Type', type + charset);
       }
     }
 
-    // Head request
-    if (context.request.method === 'HEAD') {
-      // Set content-length
-      context.setHeader('Content-Length', stats.size);
+    // Cache-Control
+    if (this.cacheControl && !(this.hasHeader('Cache-Control'))) {
+      let cacheControl = `public, max-age=${ this.maxAge }`;
 
-      // End with empty content
-      return context.end(response);
+      if (this.immutable) {
+        cacheControl += ', immutable';
+      }
+
+      // Set Cache-Control
+      this.setHeader('Cache-Control', cacheControl);
     }
 
-    // Parse range
-    if (context.parseRange(response, stats)) {
-      // Read file
-      context.createReadStream(response);
+    // Last-Modified
+    if (this.lastModified && !(this.hasHeader('Last-Modified'))) {
+      // Get mtime utc string
+      this.setHeader('Last-Modified', stats.mtime.toUTCString());
     }
-  }.bind(context));
-};
 
-/**
- * pipe
- *
- * @param response
- * @returns {FileSend}
- */
-FileSend.prototype.pipe = function(response) {
-  var context = this;
-
-  if (response instanceof http.ServerResponse) {
-    // Bind error event
-    context._stream.on('error', function(error) {
-      this.statError(response, error);
-    }.bind(context));
-
-    // Bind headers event
-    response.on('headers', function() {
-      this.writeHead(response);
-    }.bind(context));
-
-    // Response finished
-    onFinished(response, function() {
-      // Emit finish event
-      this.emit('finish');
-    }.bind(context));
-
-    // Read
-    context.read(response);
-  } else {
-    context._stream.on('error', function(error) {
-      response.emit('error', error);
-    }.bind(context));
-
-    // Pipe
-    context._stream = context._stream.pipe(response);
+    if (this.etag && !(this.hasHeader('ETag'))) {
+      // Set ETag
+      this.setHeader('ETag', etag(stats));
+    }
   }
 
-  return context;
-};
+  /**
+   * @method responseEnd
+   * @param {string} chunk
+   * @param {string} chunk
+   * @param {Function} chunk
+   * @private
+   */
+  [symbol.responseEnd](chunk, encoding, callback) {
+    const response = this.response;
 
-module.exports = FileSend;
+    if (response) {
+      if (chunk) {
+        response.end(chunk, encoding, callback);
+      } else {
+        response.end();
+      }
+    }
+
+    // Destroy stdin stream
+    destroy(this[symbol.stdin]);
+  }
+
+  /**
+   * @method sendIndex
+   * @private
+   */
+  [symbol.sendIndex]() {
+    const hasTrailingSlash = this[symbol.hasTrailingSlash]();
+    const path = hasTrailingSlash ? this.path : `${ this.path }/`;
+
+    // Iterator index
+    series(this.index.map((index) => {
+      return path + index;
+    }), (path, next) => {
+      if (this[symbol.isIgnore](path)) {
+        return next();
+      }
+
+      fs.stat(this.root + path, (error, stats) => {
+        if (error || !stats.isFile()) {
+          return next();
+        }
+
+        this.redirect(utils.posixURI(path));
+      });
+    }, () => {
+      if (hasTrailingSlash) {
+        return this[symbol.dir]();
+      }
+
+      this.redirect(path);
+    });
+  }
+
+  /**
+   * @method sendFile
+   * @private
+   */
+  [symbol.sendFile](ranges) {
+    const response = this.response;
+    const realpath = this.realpath;
+    const stdin = this[symbol.stdin];
+
+    // Iterator ranges
+    series(ranges, (range, next) => {
+      // Push open boundary
+      range.open && stdin.write(range.open);
+
+      // Create file stream
+      const file = fs.createReadStream(realpath, range);
+
+      // Error handling code-smell
+      file.on('error', (error) => {
+        // Destroy file stream
+        destroy(file);
+
+        // Emit stdin error
+        stdin.emit('error', error);
+      });
+
+      // File stream end
+      file.on('end', () => {
+        // Stop pipe stdin
+        file.unpipe(stdin);
+
+        // Push close boundary
+        range.close && stdin.write(range.close);
+
+        // Destroy file stream
+        destroy(file);
+      });
+
+      // Next
+      file.on('close', next);
+
+      // Pipe stdin
+      file.pipe(stdin, { end: false });
+    }, () => {
+      // End stdin
+      this.end();
+    });
+  }
+
+  /**
+   * @method bootstrap
+   * @private
+   */
+  [symbol.bootstrap]() {
+    const method = this.method;
+    const response = this.response;
+    const realpath = this.realpath;
+
+    // Only support GET and HEAD
+    if (method !== 'GET' && method !== 'HEAD') {
+      // End with empty content
+      return this[symbol.error](405);
+    }
+
+    // Set status
+    this.status(response.statusCode || 200);
+
+    // Path -1 or null byte(s)
+    if (this.path === -1 || this.path.indexOf('\0') !== -1) {
+      return this[symbol.error](400);
+    }
+
+    // Malicious path
+    if (utils.isOutBound(realpath, this.root)) {
+      return this[symbol.error](403);
+    }
+
+    // Is ignore path or file
+    if (this[symbol.isIgnore](this.path)) {
+      switch (this.ignoreAccess) {
+        case 'deny':
+          return this[symbol.error](403);
+        case 'ignore':
+          return this[symbol.error](404);
+      }
+    }
+
+    // Read file
+    fs.stat(realpath, (error, stats) => {
+      // Stat error
+      if (error) {
+        return this[symbol.statError](error);
+      }
+
+      // Is directory
+      if (stats.isDirectory()) {
+        return this[symbol.sendIndex]();
+      } else if (this[symbol.hasTrailingSlash]()) {
+        // Not a directory but has trailing slash
+        return this[symbol.error](404);
+      }
+
+      // Set headers and parse range
+      this[symbol.initHeaders](stats);
+
+      // Conditional get support
+      if (this[symbol.isConditionalGET]()) {
+        const responseEnd = () => {
+          // Remove content-type
+          this.removeHeader('Content-Type');
+
+          // End with empty content
+          this[symbol.responseEnd]();
+        }
+
+        if (this[symbol.isPreconditionFailure]()) {
+          this.status(412);
+
+          return responseEnd();
+
+        } else if (this[symbol.isCachable] && this[symbol.isFresh]()) {
+          this.status(304);
+
+          return responseEnd();
+        }
+      }
+
+      // Head request
+      if (method === 'HEAD') {
+        // Set content-length
+        this.setHeader('Content-Length', stats.size);
+
+        // End with empty content
+        return this[symbol.responseEnd]();
+      }
+
+      // Parse ranges
+      const ranges = this[symbol.parseRange](stats);
+
+      // 416
+      if (ranges === -1) {
+        // Set content-range
+        this.setHeader('Content-Range', `bytes */${ stats.size }`);
+        // Unsatisfiable 416
+        this[symbol.error](416);
+      } else {
+        // Emit file event
+        if (this.hasListeners('file')) {
+          this.emit('file', realpath, stats);
+        }
+
+        // Read file
+        this[symbol.sendFile](ranges);
+      }
+    });
+  }
+}
+
+// Exports mime
+FileSend.mime = mime;

@@ -3,8 +3,8 @@
 const url = require('url');
 const http = require('http');
 const cluster = require('cluster');
-const NUMCPUS = require('os').cpus().length;
 const FileSend = require('./dist/index.min');
+const NUMCPUS = require('os').cpus().length;
 
 // create server
 function createServer(root, port) {
@@ -35,9 +35,13 @@ if (cluster.isMaster) {
         );
       });
     }
+
+    worker.on('message', function(message) {
+      console.log(message);
+    });
   }
 } else {
   // workers can share any tcp connection
   // in this case it is an http server
-  createServer();
+  createServer('F://电影文件');
 }

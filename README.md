@@ -19,14 +19,15 @@ $ npm install file-send
 ## API
 
 ```js
-var http = require('http');
-var FileSend = require('file-send');
-var through2 = require('through2');
+const url = require('url');
+const http = require('http');
+const through2 = require('through2');
+const FileSend = require('file-send');
 
-http.createServer(function(request, response) {
-  FileSend(request, {
+http.createServer((request, response) => {
+  new FileSend(request, url.parse(request.url).pathname, {
     root: '/',
-    etag: false,
+    etag: true,
     maxAge: '30d'
   }) // Create a new file send stream
   .on('headers', function(headers) {
@@ -38,17 +39,15 @@ http.createServer(function(request, response) {
   .on('error', function(error, next) {
     // error events
   })
-  .on('finish', function(headers) {
-    // finish events
-  })
-  .pipe(through2()) // Send file to custom stream
+  .use(through2()) // Set middleware
   .pipe(response); // Send file to response
 });
 ```
 
-### FileSend(request, [options])
+### FileSend(request, path, [options])
 
-  Create a new `FileSend` for the given options to initialize.
+  Create a new `FileSend` for the given path and options to initialize.
+  The `request` is the Node.js HTTP request and the `path` is a urlencoded path to send (urlencoded, not the actual file-system path).
 
 #### Options
 
@@ -60,10 +59,6 @@ http.createServer(function(request, response) {
 
   Set ignore rules, support glob string.  see: [micromatch](https://github.com/jonschlinkert/micromatch)
 
-##### *glob* - ```Object```
-
-  Set micromatch options.  see: [micromatch](https://github.com/jonschlinkert/micromatch#options)
-
 ##### *ignoreAccess* - ```String```
 
   Set how "ignore" are treated when encountered.
@@ -73,17 +68,21 @@ http.createServer(function(request, response) {
   - `'deny'` Send a 403 for any request for ignore matched.
   - `'ignore'` Pretend like the ignore matched does not exist and 404.
 
+##### *glob* - ```Object```
+
+  Set micromatch options.  see: [micromatch](https://github.com/jonschlinkert/micromatch#options)
+
+#### *acceptRanges* - ```Boolean```
+
+  Enable or disable accepting ranged requests, defaults to true. Disabling this will not send Accept-Ranges and ignore the contents of the Range request header.
+
 ##### *charset* - ```String```
 
   Set Content-Type charset.
 
-##### *parseQueryString* - ```String```
+##### *cacheControl* - ```Boolean```
 
-  Set url.parse options. see node url module.
-
-##### *slashesDenoteHost* - ```String```
-
-  Set url.parse options. see node url module.
+  Enable or disable setting `Cache-Control` response header, defaults to true. Disabling this will ignore the `immutable` and `maxAge` options.
 
 ##### *etag* - ```Boolean```
 
@@ -93,26 +92,33 @@ http.createServer(function(request, response) {
 
   By default send supports "index.html" files, to disable this set `false` or to supply a new index pass a string or an array in preferred order.
 
-##### *lastModified*
+##### *lastModified* - ```Boolean```
 
   Enable or disable `Last-Modified` header, defaults to true. Uses the file system's last modified value.
 
-##### *maxAge*
+##### *maxAge* - ```String|Number```
 
   Provide a max-age in milliseconds for http caching, defaults to 0.
   This can also be a string accepted by the [ms](https://www.npmjs.org/package/ms#readme) module.
 
-### FileSend(request, [options]).pipe(response)
+##### *immutable* - ```Boolean```
 
- The `pipe` method is like stream.pipe, but only hava one param.
+Enable or diable the immutable directive in the Cache-Control response header, defaults to false. If set to true, the maxAge option should also be specified to enable caching. The immutable directive will prevent supported clients from making conditional requests during the life of the maxAge option to check if the file has changed.
+
+### FileSend(request, path, [options]).pipe(response)
+
+  The `pipe` method is used to pipe the response into the Node.js HTTP response object, typically `FileSend(request, path, [options]).pipe(response)`.
+
+### FileSend.mime
+
+  The mime export is the global instance of of the `mime-types` npm module.
 
 ### Events
   The `FileSend` is an event emitter and will emit the following events:
 
-  - `headers` the headers are about to be set on a file `(headers)`
-  - `dir` a directory was requested`(realpath, stats, next)`
+  - `dir` a directory was requested`(realpath, next)`
+  - `file` a file was requested `(realpath, stats)`
   - `error` an error occurred `(error, next)`
-  - `finish` streaming has completed
 
 ## Error-handling
 
@@ -134,55 +140,42 @@ $ npm test
 ```js
 'use strict';
 
-var http = require('http');
-var FileSend = require('../index');
-var chalk = require('chalk');
-var cluster = require('cluster');
-var NUMCPUS = require('os').cpus().length;
+const url = require('url');
+const http = require('http');
+const chalk = require('chalk');
+const cluster = require('cluster');
+const FileSend = require('file-send');
+const NUMCPUS = require('os').cpus().length;
 
 // create server
 function createServer(root, port) {
   http.createServer(function(request, response) {
-    var send = new FileSend(request, {
-      root: root || '../',
+    const send = new FileSend(request, url.parse(request.url).pathname, {
+      root: root || process.cwd(),
       maxAge: '3day',
-      ignore: ['/**/.*?(/*.*|/)'],
-      index: ['index.html']
+      index: ['index.html'],
+      ignore: ['/**/.*?(/*.*|/)']      
     });
 
-    send.pipe(response).on('headers', function(headers) {
-      var message = 'URL      : ' + chalk.green.bold(send.url) +
-        '\r\nPATH     : ' + chalk.yellow.bold(send.path) +
-        '\r\nROOT     : ' + chalk.magenta.bold(send.root) +
-        '\r\nREALPATH : ' + chalk.magenta.bold(send.realpath) +
-        '\r\nSTATUS   : ' + chalk.cyan.bold(send.statusCode) +
-        '\r\nHEADERS  : ' + chalk.cyan.bold(JSON.stringify(headers, null, 2)) +
-        '\r\n-----------------------------------------------------------------------------------------';
-
-      process.send(message);
-    });
-  }).listen(port || 8080, '127.0.0.1');
+    send.pipe(response);
+  }).listen(port || 8080);
 }
 
 if (cluster.isMaster) {
   // fork workers
-  for (var i = 0; i < NUMCPUS; i++) {
-    var worker = cluster.fork().on('listening', (function(i) {
-      return function(address) {
-        // worker is listening
-        if (i === NUMCPUS - 1) {
-          console.log(
-            chalk.green.bold('Server run at:'),
-            chalk.cyan.bold(address.address + ':' + address.port),
-            '\r\n-----------------------------------------------------------------------------------------'
-          );
-        }
-      };
-    }(i)));
-
-    worker.on('message', function(message) {
-      console.log(message);
-    });
+  for (let i = 0; i < NUMCPUS; i++) {
+    const worker = cluster.fork();
+    
+    // worker is listening
+    if (i === NUMCPUS - 1) {
+      worker.on('listening', (address) => {
+        console.log(
+          chalk.green.bold('Server run at:'),
+          chalk.cyan.bold((address.address || '127.0.0.1') + ':' + address.port),
+          '\r\n-----------------------------------------------------------------------------------------'
+        );      
+      });
+    }
   }
 } else {
   // workers can share any tcp connection

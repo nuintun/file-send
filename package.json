@@ -1,11 +1,12 @@
 {
   "name": "file-send",
-  "version": "2.2.2",
+  "version": "3.0.0",
   "description": "A http file send",
   "author": {
     "name": "nuintun",
     "email": "nuintun@qq.com"
   },
+  "main": "dist/index.min.js",
   "homepage": "https://nuintun.github.io/file-send",
   "repository": {
     "type": "git",
@@ -17,7 +18,7 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=0.10.0"
+    "node": ">=0.4.0"
   },
   "keywords": [
     "http",
@@ -32,18 +33,18 @@
     "ms": "^2.0.0",
     "etag": "^1.8.1",
     "fresh": "^0.5.2",
-    "mime-types": "^2.1.17",
     "destroy": "^1.0.4",
-    "micromatch": "^3.1.4",
     "encodeurl": "^1.0.1",
+    "micromatch": "^3.1.4",
     "escape-html": "^1.0.3",
-    "on-finished": "^2.3.0",
-    "range-parser": "^1.2.0",
-    "readable-stream": "^2.3.3"
+    "mime-types": "^2.1.17",
+    "range-parser": "^1.2.0"
   },
   "devDependencies": {
-    "after": "^0.8.2",
     "chai": "^4.1.2",
+    "holding": "^1.0.6",
+    "rollup": "^0.50.0",
+    "uglify-es": "^3.1.6",
     "superagent": "^3.8.0"
   },
   "readmeFilename": "README.md",
