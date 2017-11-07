@@ -30,7 +30,7 @@ http.createServer((request, response) => {
     etag: true,
     maxAge: '30d'
   })
-  .on('dir', function(realpath, stats, next) {
+  .on('dir', function(realpath, next) {
     // dir events
   })
   .on('error', function(error, next) {
