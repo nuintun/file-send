@@ -500,7 +500,6 @@ function series(array, iterator, done) {
  * @class DestroyableTransform
  */
 class DestroyableTransform extends Stream.Transform {
-
   /**
    * @constructor
    * @param {Object} options
