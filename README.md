@@ -29,9 +29,6 @@ http.createServer((request, response) => {
     root: '/',
     etag: true,
     maxAge: '30d'
-  }) // Create a new file send stream
-  .on('headers', function(headers) {
-    // headers events
   })
   .on('dir', function(realpath, stats, next) {
     // dir events
