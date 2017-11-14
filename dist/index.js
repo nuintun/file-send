@@ -289,7 +289,12 @@ function createErrorDocument(statusCode, statusMessage) {
     + '</html>\n';
 }
 
-// Key symbol
+/**
+ * @module symbol
+ * @license MIT
+ * @version 2017/11/02
+ */
+
 const dir = Symbol('dir');
 const etag$1 = Symbol('etag');
 const path$1 = Symbol('path');
@@ -340,6 +345,7 @@ const MAX_MAX_AGE = 60 * 60 * 24 * 365;
 /**
  * @function normalizeCharset
  * @param {string} charset
+ * @returns {string|null}
  */
 function normalizeCharset(charset) {
   return charset && typeIs(charset, 'string') ? charset : null;
@@ -348,6 +354,7 @@ function normalizeCharset(charset) {
 /**
  * @function normalizeRoot
  * @param {string} root
+ * @returns {string}
  */
 function normalizeRoot(root) {
   return posixURI(typeIs(root, 'string') ? path.resolve(root) : CWD);
@@ -356,6 +363,7 @@ function normalizeRoot(root) {
 /**
  * @function normalizePath
  * @param {string} path
+ * @returns {string|-1}
  */
 function normalizePath(path$$1) {
   path$$1 = decodeURI(path$$1);
@@ -367,6 +375,7 @@ function normalizePath(path$$1) {
  * @function normalizeRealpath
  * @param {string} root
  * @param {string} path
+ * @returns {string|-1}
  */
 function normalizeRealpath(root, path$$1) {
   return path$$1 === -1 ? path$$1 : posixURI(path.join(root, path$$1));
@@ -375,18 +384,20 @@ function normalizeRealpath(root, path$$1) {
 /**
  * @function normalizeList
  * @param {Array} list
+ * @returns {Array}
  */
 function normalizeList(list) {
   list = Array.isArray(list) ? list : [list];
 
   return list.filter((item) => {
     return item && typeIs(item, 'string');
-  })
+  });
 }
 
 /**
  * @function normalizeAccess
  * @param {string} access
+ * @returns {string}
  */
 function normalizeAccess(access) {
   return access === 'ignore' ? access : 'deny';
@@ -395,6 +406,7 @@ function normalizeAccess(access) {
 /**
  * @function normalizeMaxAge
  * @param {string|number} maxAge
+ * @returns {number}
  */
 function normalizeMaxAge(maxAge) {
   maxAge = typeIs(maxAge, 'string') ? ms(maxAge) / 1000 : Number(maxAge);
@@ -407,6 +419,7 @@ function normalizeMaxAge(maxAge) {
  * @function normalizeBoolean
  * @param {boolean} boolean
  * @param {boolean} def
+ * @returns {boolean}
  */
 function normalizeBoolean(boolean, def) {
   return isUndefined(boolean) ? def : Boolean(boolean);
@@ -415,6 +428,7 @@ function normalizeBoolean(boolean, def) {
 /**
  * @function normalizeGlob
  * @param {Object} glob
+ * @returns {string}
  */
 function normalizeGlob(glob) {
   glob = glob || {};
@@ -1338,6 +1352,9 @@ class FileSend extends Events {
    * @private
    */
   [initHeaders](stats) {
+    const response$$1 = this.response;
+
+    // Accept-Ranges
     if (this.acceptRanges) {
       // Set Accept-Ranges
       this.setHeader('Accept-Ranges', 'bytes');
@@ -1442,6 +1459,7 @@ class FileSend extends Events {
    * @private
    */
   [sendFile](ranges) {
+    const response$$1 = this.response;
     const realpath$$1 = this.realpath;
     const stdin$$1 = this[stdin];
 
