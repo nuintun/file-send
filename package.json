@@ -1,6 +1,6 @@
 {
   "name": "file-send",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "A http file send",
   "author": {
     "name": "nuintun",
@@ -18,7 +18,7 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=0.4.0"
+    "node": ">=4.0.0"
   },
   "keywords": [
     "http",
