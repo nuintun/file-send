@@ -2,7 +2,7 @@
  * @module file-send
  * @author nuintun
  * @license MIT
- * @version 3.0.0
+ * @version 3.0.3
  * @description A http file send
  * @see https://nuintun.github.io/file-send
  */
@@ -33,7 +33,7 @@ var parseRange = require('range-parser');
 const toString = Object.prototype.toString;
 const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 
-const undef = void(0);
+const undef = void 0;
 
 /**
  * @function typeIs
@@ -97,9 +97,9 @@ function normalize(path$$1) {
   path$$1 = path$$1.replace(/\/\.\//g, '/');
 
   // a//b/c ==> a/b/c
-  // //a//b/c ==> a/b/c
+  // //a/b/c ==> /a/b/c
   // a///b/////c ==> a/b/c
-  path$$1 = path$$1.replace(/\/{2,}/g, '/');
+  path$$1 = path$$1.replace(/(^|[^:])\/{2,}/g, '$1/');
 
   // Transfer path
   let src = path$$1;
@@ -210,7 +210,7 @@ function pipeline(streams) {
     let dest = streams[index++];
 
     // Listening error event
-    src.once('error', (error) => {
+    src.once('error', error => {
       dest.emit('error', error);
     });
 
@@ -263,30 +263,32 @@ function parseTokenList(value) {
  * @returns {string}
  */
 function createErrorDocument(statusCode, statusMessage) {
-  return '<!DOCTYPE html>\n'
-    + '<html>\n'
-    + '  <head>\n'
-    + '    <meta name="renderer" content="webkit" />\n'
-    + '    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />\n'
-    + '    <meta content="text/html; charset=utf-8" http-equiv="content-type" />\n'
-    + `    <title>${ statusCode }</title>\n`
-    + '    <style>\n'
-    + '      html, body, div, p {\n'
-    + '        text-align: center;\n'
-    + '        margin: 0; padding: 0;\n'
-    + '        font-family: Calibri, "Lucida Console", Consolas, "Liberation Mono", Menlo, Courier, monospace;\n'
-    + '      }\n'
-    + '      body { padding-top: 88px; }\n'
-    + '      p { color: #0e90d2; line-height: 100%; }\n'
-    + '      .ui-code { font-size: 200px; font-weight: bold; }\n'
-    + '      .ui-message { font-size: 80px; }\n'
-    + '    </style>\n'
-    + '  </head>\n'
-    + '  <body>\n'
-    + `    <p class="ui-code">${ statusCode }</p>\n`
-    + `    <p class="ui-message">${ statusMessage }</p>\n`
-    + '  </body>\n'
-    + '</html>\n';
+  return (
+    '<!DOCTYPE html>\n' +
+    '<html>\n' +
+    '  <head>\n' +
+    '    <meta name="renderer" content="webkit" />\n' +
+    '    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />\n' +
+    '    <meta content="text/html; charset=utf-8" http-equiv="content-type" />\n' +
+    `    <title>${statusCode}</title>\n` +
+    '    <style>\n' +
+    '      html, body, div, p {\n' +
+    '        text-align: center;\n' +
+    '        margin: 0; padding: 0;\n' +
+    '        font-family: Calibri, "Lucida Console", Consolas, "Liberation Mono", Menlo, Courier, monospace;\n' +
+    '      }\n' +
+    '      body { padding-top: 88px; }\n' +
+    '      p { color: #0e90d2; line-height: 100%; }\n' +
+    '      .ui-code { font-size: 200px; font-weight: bold; }\n' +
+    '      .ui-message { font-size: 80px; }\n' +
+    '    </style>\n' +
+    '  </head>\n' +
+    '  <body>\n' +
+    `    <p class="ui-code">${statusCode}</p>\n` +
+    `    <p class="ui-message">${statusMessage}</p>\n` +
+    '  </body>\n' +
+    '</html>\n'
+  );
 }
 
 /**
@@ -389,7 +391,7 @@ function normalizeRealpath(root, path$$1) {
 function normalizeList(list) {
   list = Array.isArray(list) ? list : [list];
 
-  return list.filter((item) => {
+  return list.filter(item => {
     return item && typeIs(item, 'string');
   });
 }
@@ -494,9 +496,13 @@ function series(array, iterator, done) {
     if (item.done) {
       done();
     } else {
-      iterator(item.value, () => {
-        walk(it);
-      }, it.index);
+      iterator(
+        item.value,
+        () => {
+          walk(it);
+        },
+        it.index
+      );
     }
   }
 
@@ -648,7 +654,7 @@ class FileSend extends Events {
     const response$$1 = this[response];
 
     if (!response$$1) {
-      throw new ReferenceError('Can\'t get http response before called pipe method.');
+      throw new ReferenceError("Can't get http response before called pipe method.");
     }
 
     return response$$1;
@@ -986,7 +992,7 @@ class FileSend extends Events {
    */
   redirect(location) {
     const href = encodeUrl(location);
-    const html = `Redirecting to <a href="${ href }">${ escapeHtml(location) }</a>`;
+    const html = `Redirecting to <a href="${href}">${escapeHtml(location)}</a>`;
 
     this.status(301);
     this.setHeader('Cache-Control', 'no-cache');
@@ -1024,7 +1030,7 @@ class FileSend extends Events {
     }
 
     // Listening error event
-    response$$1.once('error', (error$$1) => {
+    response$$1.once('error', error$$1 => {
       this[statError](error$$1);
     });
 
@@ -1059,7 +1065,7 @@ class FileSend extends Events {
    * @private
    */
   [headersSent]() {
-    this[responseEnd]('Can\'t set headers after they are sent.');
+    this[responseEnd]("Can't set headers after they are sent.");
   }
 
   /**
@@ -1082,7 +1088,7 @@ class FileSend extends Events {
 
     // Emit if listeners instead of responding
     if (this.hasListeners('error')) {
-      this.emit('error', error$$1, (chunk) => {
+      this.emit('error', error$$1, chunk => {
         if (response$$1.headersSent) {
           return this[headersSent]();
         }
@@ -1136,10 +1142,9 @@ class FileSend extends Events {
   [isConditionalGET]() {
     const headers = this.request.headers;
 
-    return headers['if-match']
-      || headers['if-unmodified-since']
-      || headers['if-none-match']
-      || headers['if-modified-since'];
+    return (
+      headers['if-match'] || headers['if-unmodified-since'] || headers['if-none-match'] || headers['if-modified-since']
+    );
   }
 
   /**
@@ -1154,9 +1159,13 @@ class FileSend extends Events {
     if (match) {
       const etag$$1 = this.getHeader('ETag');
 
-      return !etag$$1 || (match !== '*' && parseTokenList(match).every((match) => {
-        return match !== etag$$1 && match !== 'W/' + etag$$1 && 'W/' + match !== etag$$1;
-      }));
+      return (
+        !etag$$1 ||
+        (match !== '*' &&
+          parseTokenList(match).every(match => {
+            return match !== etag$$1 && match !== 'W/' + etag$$1 && 'W/' + match !== etag$$1;
+          }))
+      );
     }
 
     // if-unmodified-since
@@ -1187,7 +1196,7 @@ class FileSend extends Events {
    */
   [isFresh]() {
     return fresh(this.request.headers, {
-      'etag': this.getHeader('ETag'),
+      etag: this.getHeader('ETag'),
       'last-modified': this.getHeader('Last-Modified')
     });
   }
@@ -1251,32 +1260,32 @@ class FileSend extends Events {
           // Multiple ranges
           if (ranges.length > 1) {
             // Range boundary
-            let boundary = `<${ boundaryGenerator() }>`;
+            let boundary = `<${boundaryGenerator()}>`;
             // If user set content-type use user define
             const contentType = this.getHeader('Content-Type') || 'application/octet-stream';
 
             // Set multipart/byteranges
-            this.setHeader('Content-Type', `multipart/byteranges; boundary=${ boundary }`);
+            this.setHeader('Content-Type', `multipart/byteranges; boundary=${boundary}`);
 
             // Create boundary and end boundary
-            boundary = `\r\n--${ boundary }`;
+            boundary = `\r\n--${boundary}`;
 
             // Closed boundary
-            const close = `${ boundary }--\r\n`;
+            const close = `${boundary}--\r\n`;
 
             // Common boundary
-            boundary += `\r\nContent-Type: ${ contentType }`;
+            boundary += `\r\nContent-Type: ${contentType}`;
 
             // Reset content-length
             contentLength = 0;
 
             // Map ranges
-            ranges.forEach((range) => {
+            ranges.forEach(range => {
               // Range start and end
               const start = range.start;
               const end = range.end;
               // Set fields
-              const open = `${ boundary }\r\nContent-Range: bytes ${ start }-${ end }/${ size }\r\n\r\n`;
+              const open = `${boundary}\r\nContent-Range: bytes ${start}-${end}/${size}\r\n\r\n`;
 
               // Set property
               range.open = open;
@@ -1300,7 +1309,7 @@ class FileSend extends Events {
             const end = range.end;
 
             // Set content-range
-            this.setHeader('Content-Range', `bytes ${ start }-${ end }/${ size }`);
+            this.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
 
             // Cache range
             result.push(range);
@@ -1334,7 +1343,7 @@ class FileSend extends Events {
     // If have event directory listener, use user define
     // emit event directory
     if (this.hasListeners('dir')) {
-      this.emit('dir', this.realpath, (chunk) => {
+      this.emit('dir', this.realpath, chunk => {
         if (this.response.headersSent) {
           return this[headersSent]();
         }
@@ -1361,7 +1370,7 @@ class FileSend extends Events {
     }
 
     // Content-Type
-    if (!(this.hasHeader('Content-Type'))) {
+    if (!this.hasHeader('Content-Type')) {
       // Get type
       let type = mime.lookup(this.path);
 
@@ -1369,7 +1378,7 @@ class FileSend extends Events {
         let charset$$1 = this.charset;
 
         // Get charset
-        charset$$1 = charset$$1 ? `; charset=${ charset$$1 }` : '';
+        charset$$1 = charset$$1 ? `; charset=${charset$$1}` : '';
 
         // Set Content-Type
         this.setHeader('Content-Type', type + charset$$1);
@@ -1377,8 +1386,8 @@ class FileSend extends Events {
     }
 
     // Cache-Control
-    if (this.cacheControl && !(this.hasHeader('Cache-Control'))) {
-      let cacheControl$$1 = `public, max-age=${ this.maxAge }`;
+    if (this.cacheControl && !this.hasHeader('Cache-Control')) {
+      let cacheControl$$1 = `public, max-age=${this.maxAge}`;
 
       if (this.immutable) {
         cacheControl$$1 += ', immutable';
@@ -1389,12 +1398,12 @@ class FileSend extends Events {
     }
 
     // Last-Modified
-    if (this.lastModified && !(this.hasHeader('Last-Modified'))) {
+    if (this.lastModified && !this.hasHeader('Last-Modified')) {
       // Get mtime utc string
       this.setHeader('Last-Modified', stats.mtime.toUTCString());
     }
 
-    if (this.etag && !(this.hasHeader('ETag'))) {
+    if (this.etag && !this.hasHeader('ETag')) {
       // Set ETag
       this.setHeader('ETag', etag(stats));
     }
@@ -1428,30 +1437,34 @@ class FileSend extends Events {
    */
   [sendIndex]() {
     const hasTrailingSlash$$1 = this[hasTrailingSlash]();
-    const path$$1 = hasTrailingSlash$$1 ? this.path : `${ this.path }/`;
+    const path$$1 = hasTrailingSlash$$1 ? this.path : `${this.path}/`;
 
     // Iterator index
-    series(this.index.map((index$$1) => {
-      return path$$1 + index$$1;
-    }), (path$$1, next) => {
-      if (this[isIgnore](path$$1)) {
-        return next();
-      }
-
-      fs.stat(this.root + path$$1, (error$$1, stats) => {
-        if (error$$1 || !stats.isFile()) {
+    series(
+      this.index.map(index$$1 => {
+        return path$$1 + index$$1;
+      }),
+      (path$$1, next) => {
+        if (this[isIgnore](path$$1)) {
           return next();
         }
 
-        this.redirect(posixURI(path$$1));
-      });
-    }, () => {
-      if (hasTrailingSlash$$1) {
-        return this[dir]();
-      }
+        fs.stat(this.root + path$$1, (error$$1, stats) => {
+          if (error$$1 || !stats.isFile()) {
+            return next();
+          }
 
-      this.redirect(path$$1);
-    });
+          this.redirect(posixURI(path$$1));
+        });
+      },
+      () => {
+        if (hasTrailingSlash$$1) {
+          return this[dir]();
+        }
+
+        this.redirect(path$$1);
+      }
+    );
   }
 
   /**
@@ -1464,43 +1477,47 @@ class FileSend extends Events {
     const stdin$$1 = this[stdin];
 
     // Iterator ranges
-    series(ranges, (range, next) => {
-      // Push open boundary
-      range.open && stdin$$1.write(range.open);
+    series(
+      ranges,
+      (range, next) => {
+        // Push open boundary
+        range.open && stdin$$1.write(range.open);
 
-      // Create file stream
-      const file = fs.createReadStream(realpath$$1, range);
+        // Create file stream
+        const file = fs.createReadStream(realpath$$1, range);
 
-      // Error handling code-smell
-      file.on('error', (error$$1) => {
-        // Emit stdin error
-        stdin$$1.emit('error', error$$1);
+        // Error handling code-smell
+        file.on('error', error$$1 => {
+          // Emit stdin error
+          stdin$$1.emit('error', error$$1);
 
-        // Destroy file stream
-        destroy(file);
-      });
+          // Destroy file stream
+          destroy(file);
+        });
 
-      // File stream end
-      file.on('end', () => {
-        // Stop pipe stdin
-        file.unpipe(stdin$$1);
+        // File stream end
+        file.on('end', () => {
+          // Stop pipe stdin
+          file.unpipe(stdin$$1);
 
-        // Push close boundary
-        range.close && stdin$$1.write(range.close);
+          // Push close boundary
+          range.close && stdin$$1.write(range.close);
 
-        // Destroy file stream
-        destroy(file);
-      });
+          // Destroy file stream
+          destroy(file);
+        });
 
-      // Next
-      file.on('close', next);
+        // Next
+        file.on('close', next);
 
-      // Pipe stdin
-      file.pipe(stdin$$1, { end: false });
-    }, () => {
-      // End stdin
-      this.end();
-    });
+        // Pipe stdin
+        file.pipe(stdin$$1, { end: false });
+      },
+      () => {
+        // End stdin
+        this.end();
+      }
+    );
   }
 
   /**
@@ -1573,7 +1590,6 @@ class FileSend extends Events {
           this.status(412);
 
           return responseEnd$$1();
-
         } else if (this[isCachable] && this[isFresh]()) {
           this.status(304);
 
@@ -1596,7 +1612,7 @@ class FileSend extends Events {
       // 416
       if (ranges === -1) {
         // Set content-range
-        this.setHeader('Content-Range', `bytes */${ stats.size }`);
+        this.setHeader('Content-Range', `bytes */${stats.size}`);
         // Unsatisfiable 416
         this[error](416);
       } else {
