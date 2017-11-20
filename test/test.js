@@ -18,9 +18,11 @@ function pathname(url) {
 // test server
 const dateRegExp = /^\w{3}, \d+ \w+ \d+ \d+:\d+:\d+ \w+$/;
 const fixtures = path.join(__dirname, 'fixtures');
-const server = http.createServer((req, res) => {
-  new FileSend(req, pathname(req.url), { root: fixtures }).pipe(res);
-}).listen();
+const server = http
+  .createServer((req, res) => {
+    new FileSend(req, pathname(req.url), { root: fixtures }).pipe(res);
+  })
+  .listen();
 
 function url(server, url) {
   let address = server.address();
@@ -38,85 +40,71 @@ function url(server, url) {
 }
 
 describe('FileSend(req, path, options)', () => {
-  it('should stream the file contents', (done) => {
-    request
-      .get(url(server, '/name.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.text).to.equal('tobi');
-        expect(res.headers).to.have.ownProperty('content-length', '4');
+  it('should stream the file contents', done => {
+    request.get(url(server, '/name.txt')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.text).to.equal('tobi');
+      expect(res.headers).to.have.ownProperty('content-length', '4');
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should stream a zero-length file', (done) => {
-    request
-      .get(url(server, '/empty.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.text).to.equal('');
-        expect(res.headers).to.have.ownProperty('content-length', '0');
+  it('should stream a zero-length file', done => {
+    request.get(url(server, '/empty.txt')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.text).to.equal('');
+      expect(res.headers).to.have.ownProperty('content-length', '0');
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should decode the given path as a URI', (done) => {
-    request
-      .get(url(server, '/some%20thing.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.text).to.equal('hey');
+  it('should decode the given path as a URI', done => {
+    request.get(url(server, '/some%20thing.txt')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.text).to.equal('hey');
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should serve files with dots in name', (done) => {
-    request
-      .get(url(server, '/do..ts.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.text).to.equal('...');
+  it('should serve files with dots in name', done => {
+    request.get(url(server, '/do..ts.txt')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.text).to.equal('...');
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should treat a malformed URI as a bad request', (done) => {
-    request
-      .get(url(server, '/some%99thing.txt'))
-      .end((err, res) => {
-        expect(res.badRequest).to.be.true;
+  it('should treat a malformed URI as a bad request', done => {
+    request.get(url(server, '/some%99thing.txt')).end((err, res) => {
+      expect(res.badRequest).to.be.true;
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should 400 on NULL bytes', (done) => {
-    request
-      .get(url(server, '/some%00thing.txt'))
-      .end((err, res) => {
-        expect(res.badRequest).to.be.true;
+  it('should 400 on NULL bytes', done => {
+    request.get(url(server, '/some%00thing.txt')).end((err, res) => {
+      expect(res.badRequest).to.be.true;
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should treat an ENAMETOOLONG as a 404', (done) => {
+  it('should treat an ENAMETOOLONG as a 404', done => {
     const path = '/' + new Array(100).join('foobar');
 
-    request
-      .get(url(server, path))
-      .end((err, res) => {
-        expect(res.notFound).to.be.true;
+    request.get(url(server, path)).end((err, res) => {
+      expect(res.notFound).to.be.true;
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should handle headers already sent error', (done) => {
+  it('should handle headers already sent error', done => {
     const cb = holding(2, done);
 
     let server = http.createServer((req, res) => {
@@ -124,14 +112,12 @@ describe('FileSend(req, path, options)', () => {
       new FileSend(req, pathname(req.url), { root: fixtures }).pipe(res);
     });
 
-    request
-      .get(url(server, '/nums'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.text).to.equal('0Can\'t set headers after they are sent.');
+    request.get(url(server, '/nums')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.text).to.equal("0Can't set headers after they are sent.");
 
-        cb();
-      });
+      cb();
+    });
 
     server = http.createServer((req, res) => {
       new FileSend(req, pathname(req.url), { root: fixtures })
@@ -143,14 +129,12 @@ describe('FileSend(req, path, options)', () => {
         .pipe(res);
     });
 
-    request
-      .get(url(server, '/nums__xxx_no_exist'))
-      .end((err, res) => {
-        expect(res.notFound).to.be.true;
-        expect(res.text).to.equal('0Can\'t set headers after they are sent.');
+    request.get(url(server, '/nums__xxx_no_exist')).end((err, res) => {
+      expect(res.notFound).to.be.true;
+      expect(res.text).to.equal("0Can't set headers after they are sent.");
 
-        cb();
-      });
+      cb();
+    });
 
     server = http.createServer((req, res) => {
       new FileSend(req, pathname(req.url), { root: fixtures })
@@ -163,123 +147,103 @@ describe('FileSend(req, path, options)', () => {
         .pipe(res);
     });
 
-    request
-      .get(url(server, '/pets/'))
-      .end((err, res) => {
-        expect(res.forbidden).to.be.true;
-        expect(res.text).to.equal('0Can\'t set headers after they are sent.');
+    request.get(url(server, '/pets/')).end((err, res) => {
+      expect(res.forbidden).to.be.true;
+      expect(res.text).to.equal("0Can't set headers after they are sent.");
+
+      cb();
+    });
+  });
+
+  it('should support HEAD', done => {
+    request.head(url(server, '/name.txt')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.headers).to.have.ownProperty('content-length', '4');
+      expect(res.text).to.be.undefined;
+
+      done();
+    });
+  });
+
+  it('should respond with 405 on an unsupport http method', done => {
+    const methods = ['post', 'put', 'del'];
+    const cb = holding(methods.length - 1, done);
+
+    methods.forEach(method => {
+      request[method](url(server, '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(405);
 
         cb();
       });
-  });
-
-  it('should support HEAD', (done) => {
-    request
-      .head(url(server, '/name.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.headers).to.have.ownProperty('content-length', '4');
-        expect(res.text).to.be.undefined;
-
-        done();
-      });
-  });
-
-  it('should respond with 405 on an unsupport http method', (done) => {
-    const methods = ['post', 'put', 'del'];
-    const cb = holding(methods.length - 1, done);
-
-    methods.forEach((method) => {
-      request
-        [method](url(server, '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(405);
-
-          cb();
-        });
     });
   });
 
-  it('should respond with 405 on an unsupport http method', (done) => {
+  it('should respond with 405 on an unsupport http method', done => {
     const methods = ['post', 'put', 'del'];
     const cb = holding(methods.length - 1, done);
 
-    methods.forEach((method) => {
-      request
-        [method](url(server, '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(405);
+    methods.forEach(method => {
+      request[method](url(server, '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(405);
 
-          cb();
-        });
+        cb();
+      });
     });
   });
 
-  it('should add an ETag header field', (done) => {
-    request
-      .get(url(server, '/name.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.headers).to.have.ownProperty('etag');
+  it('should add an ETag header field', done => {
+    request.get(url(server, '/name.txt')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.headers).to.have.ownProperty('etag');
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should add a Date header field', (done) => {
-    request
-      .get(url(server, '/name.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.headers['date']).to.match(dateRegExp);
+  it('should add a Date header field', done => {
+    request.get(url(server, '/name.txt')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.headers['date']).to.match(dateRegExp);
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should add a Last-Modified header field', (done) => {
-    request
-      .get(url(server, '/name.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.headers['last-modified']).to.match(dateRegExp);
+  it('should add a Last-Modified header field', done => {
+    request.get(url(server, '/name.txt')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.headers['last-modified']).to.match(dateRegExp);
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should add a Accept-Ranges header field', (done) => {
-    request
-      .get(url(server, '/name.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.headers).to.have.ownProperty('accept-ranges', 'bytes');
+  it('should add a Accept-Ranges header field', done => {
+    request.get(url(server, '/name.txt')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.headers).to.have.ownProperty('accept-ranges', 'bytes');
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should 404 if the file does not exist', (done) => {
-    request
-      .get(url(server, '/meow'))
-      .end((err, res) => {
-        expect(res.notFound).to.be.true;
+  it('should 404 if the file does not exist', done => {
+    request.get(url(server, '/meow')).end((err, res) => {
+      expect(res.notFound).to.be.true;
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should 404 if the file with trailing slash', (done) => {
-    request
-      .get(url(server, '/nums/'))
-      .end((err, res) => {
-        expect(res.notFound).to.be.true;
+  it('should 404 if the file with trailing slash', done => {
+    request.get(url(server, '/nums/')).end((err, res) => {
+      expect(res.notFound).to.be.true;
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should 301 if the directory exists', (done) => {
+  it('should 301 if the directory exists', done => {
     request
       .get(url(server, '/pets'))
       .redirects(0)
@@ -291,65 +255,55 @@ describe('FileSend(req, path, options)', () => {
       });
   });
 
-  it('should not override content-type', (done) => {
+  it('should not override content-type', done => {
     const server = http.createServer((req, res) => {
       res.setHeader('Content-Type', 'application/x-custom');
       new FileSend(req, pathname(req.url), { root: fixtures }).pipe(res);
     });
 
-    request
-      .get(url(server, '/nums'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.headers).to.have.ownProperty('content-type', 'application/x-custom');
+    request.get(url(server, '/nums')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.headers).to.have.ownProperty('content-type', 'application/x-custom');
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should set Content-Type via mime map', (done) => {
+  it('should set Content-Type via mime map', done => {
     const cb = holding(1, done);
 
-    request
-      .get(url(server, '/name.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.headers).to.have.ownProperty('content-type', 'text/plain');
+    request.get(url(server, '/name.txt')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.headers).to.have.ownProperty('content-type', 'text/plain');
 
-        cb();
-      });
+      cb();
+    });
 
-    request
-      .get(url(server, '/zip.zip'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.headers).to.have.ownProperty('content-type', 'application/zip');
+    request.get(url(server, '/zip.zip')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.headers).to.have.ownProperty('content-type', 'application/zip');
 
-        cb();
-      });
+      cb();
+    });
   });
 
-  it('should 404 if the directory not exists', (done) => {
-    request
-      .get(url(server, '/what/'))
-      .end((err, res) => {
-        expect(res.notFound).to.be.true;
+  it('should 404 if the directory not exists', done => {
+    request.get(url(server, '/what/')).end((err, res) => {
+      expect(res.notFound).to.be.true;
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should 403 if the directory exists', (done) => {
-    request
-      .get(url(server, '/name.d/'))
-      .end((err, res) => {
-        expect(res.forbidden).to.be.true;
+  it('should 403 if the directory exists', done => {
+    request.get(url(server, '/name.d/')).end((err, res) => {
+      expect(res.forbidden).to.be.true;
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should 404 if file disappears after stat, before open', (done) => {
+  it('should 404 if file disappears after stat, before open', done => {
     const server = http.createServer((req, res) => {
       const send = new FileSend(req, pathname(req.url), { root: fixtures });
 
@@ -360,85 +314,79 @@ describe('FileSend(req, path, options)', () => {
       send.pipe(res);
     });
 
-    request
-      .get(url(server, '/name.txt'))
-      .end((err, res) => {
-        expect(res.notFound).to.be.true;
+    request.get(url(server, '/name.txt')).end((err, res) => {
+      expect(res.notFound).to.be.true;
 
-        done();
-      });
+      done();
+    });
   });
 
-  it('should 500 on file stream error', (done) => {
+  it('should 500 on file stream error', done => {
     const cb = holding(1, done);
 
     let server = http.createServer((req, res) => {
       new FileSend(req, pathname(req.url), { root: fixtures })
-        .use(through((chunk, enc, next) => {
-          // simulate file error
-          process.nextTick(() => {
-            next(new Error('boom!'));
-          });
-        }))
+        .use(
+          through((chunk, enc, next) => {
+            // simulate file error
+            process.nextTick(() => {
+              next(new Error('boom!'));
+            });
+          })
+        )
         .pipe(res);
     });
 
-    request
-      .get(url(server, '/name.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(500);
+    request.get(url(server, '/name.txt')).end((err, res) => {
+      expect(res.status).to.equal(500);
 
-        cb();
-      });
+      cb();
+    });
 
     server = http.createServer((req, res) => {
       new FileSend(req, pathname(req.url), { root: fixtures })
-        .use(through((chunk, enc, next) => {
-          // simulate file error
-          next(new Error());
-        }))
+        .use(
+          through((chunk, enc, next) => {
+            // simulate file error
+            next(new Error());
+          })
+        )
         .pipe(res);
     });
 
-    request
-      .get(url(server, '/name.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(500);
+    request.get(url(server, '/name.txt')).end((err, res) => {
+      expect(res.status).to.equal(500);
 
-        cb();
-      });
+      cb();
+    });
   });
 
-  it('should not overwrite custom Cache-Control', (done) => {
+  it('should not overwrite custom Cache-Control', done => {
     const server = http.createServer((req, res) => {
       res.setHeader('Cache-Control', 'no-store');
 
       new FileSend(req, pathname(req.url), { root: fixtures }).pipe(res);
     });
 
-    request
-      .get(url(server, '/name.txt'))
-      .end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.text).to.equal('tobi');
-        expect(res.headers).to.have.ownProperty('cache-control', 'no-store');
+    request.get(url(server, '/name.txt')).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.text).to.equal('tobi');
+      expect(res.headers).to.have.ownProperty('cache-control', 'no-store');
 
-        done();
-      });
+      done();
+    });
   });
 
   describe('when no "dir" listeners are present', () => {
-    it('should default with 403', (done) => {
-      request
-        .get(url(server, '/pets/'))
-        .end((err, res) => {
-          expect(res.forbidden).to.be.true;
+    it('should default with 403', done => {
+      request.get(url(server, '/pets/')).end((err, res) => {
+        expect(res.forbidden).to.be.true;
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should not redirect to protocol-relative locations', (done) => {
+    it('should not redirect to protocol-relative locations', done => {
       request
         .get(url(server, '//pets'))
         .redirects(0)
@@ -452,7 +400,7 @@ describe('FileSend(req, path, options)', () => {
         });
     });
 
-    it('should respond with an HTML redirect', (done) => {
+    it('should respond with an HTML redirect', done => {
       request
         .get(url(server, '/snow%20%E2%98%83'))
         .redirects(0)
@@ -468,7 +416,7 @@ describe('FileSend(req, path, options)', () => {
   });
 
   describe('dir event', () => {
-    it('should fire when request a dir without non match index', (done) => {
+    it('should fire when request a dir without non match index', done => {
       const cb = holding(2, done);
       const server = http.createServer((req, res) => {
         new FileSend(req, pathname(req.url), { root: fixtures })
@@ -480,26 +428,22 @@ describe('FileSend(req, path, options)', () => {
           .pipe(res);
       });
 
-      request
-        .get(url(server, '/pets'))
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
+      request.get(url(server, '/pets')).end((err, res) => {
+        expect(res.status).to.equal(403);
 
-          cb();
-        });
+        cb();
+      });
 
-      request
-        .get(url(server, '/pets/'))
-        .end((err, res) => {
-          expect(res.status).to.equal(403);
+      request.get(url(server, '/pets/')).end((err, res) => {
+        expect(res.status).to.equal(403);
 
-          cb();
-        });
+        cb();
+      });
     });
   });
 
   describe('file event', () => {
-    it('should fire when sending file', (done) => {
+    it('should fire when sending file', done => {
       const cb = holding(1, done);
       const server = http.createServer((req, res) => {
         new FileSend(req, pathname(req.url), { root: fixtures })
@@ -509,19 +453,17 @@ describe('FileSend(req, path, options)', () => {
           .pipe(res);
       });
 
-      request
-        .get(url(server, '/nums'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('123456789');
+      request.get(url(server, '/nums')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('123456789');
 
-          cb();
-        });
+        cb();
+      });
     });
   });
 
   describe('error event', () => {
-    it('should fire when on error', (done) => {
+    it('should fire when on error', done => {
       const cb = holding(1, done);
       const server = http.createServer((req, res) => {
         new FileSend(req, pathname(req.url), { root: fixtures })
@@ -532,37 +474,33 @@ describe('FileSend(req, path, options)', () => {
           .pipe(res);
       });
 
-      request
-        .get(url(server, '/nums-non-exists'))
-        .end((err, res) => {
-          expect(res.status).to.equal(404);
+      request.get(url(server, '/nums-non-exists')).end((err, res) => {
+        expect(res.status).to.equal(404);
 
-          cb();
-        });
+        cb();
+      });
     });
   });
 
   describe('with conditional-GET', () => {
-    it('should respond with 304 on a match', (done) => {
-      request
-        .get(url(server, '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
+    it('should respond with 304 on a match', done => {
+      request.get(url(server, '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
 
-          request
-            .get(url(server, '/name.txt'))
-            .set('If-None-Match', res.headers['etag'])
-            .set('If-Modified-Since', res.headers['last-modified'])
-            .end((err, res) => {
-              expect(res.status).to.equal(304);
+        request
+          .get(url(server, '/name.txt'))
+          .set('If-None-Match', res.headers['etag'])
+          .set('If-Modified-Since', res.headers['last-modified'])
+          .end((err, res) => {
+            expect(res.status).to.equal(304);
 
-              done();
-            });
-        });
+            done();
+          });
+      });
     });
 
     describe('where "If-Match" is set', () => {
-      it('should respond with 200 when "*"', (done) => {
+      it('should respond with 200 when "*"', done => {
         request
           .get(url(server, '/name.txt'))
           .set('If-Match', '*')
@@ -573,7 +511,7 @@ describe('FileSend(req, path, options)', () => {
           });
       });
 
-      it('should respond with 412 when ETag unmatched', (done) => {
+      it('should respond with 412 when ETag unmatched', done => {
         request
           .get(url(server, '/name.txt'))
           .set('If-Match', '"foo", "bar"')
@@ -584,138 +522,124 @@ describe('FileSend(req, path, options)', () => {
           });
       });
 
-      it('should respond with 200 when ETag matched', (done) => {
-        request
-          .get(url(server, '/name.txt'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
+      it('should respond with 200 when ETag matched', done => {
+        request.get(url(server, '/name.txt')).end((err, res) => {
+          expect(res.status).to.equal(200);
 
-            request
-              .get(url(server, '/name.txt'))
-              .set('If-Match', '"foo", "bar", ' + res.headers['etag'])
-              .end((err, res) => {
-                expect(res.status).to.equal(200);
+          request
+            .get(url(server, '/name.txt'))
+            .set('If-Match', '"foo", "bar", ' + res.headers['etag'])
+            .end((err, res) => {
+              expect(res.status).to.equal(200);
 
-                done();
-              });
-          });
+              done();
+            });
+        });
       });
     });
 
     describe('where "If-Modified-Since" is set', () => {
-      it('should respond with 304 when unmodified', (done) => {
-        request
-          .get(url(server, '/name.txt'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
+      it('should respond with 304 when unmodified', done => {
+        request.get(url(server, '/name.txt')).end((err, res) => {
+          expect(res.status).to.equal(200);
 
-            request
-              .get(url(server, '/name.txt'))
-              .set('If-Modified-Since', res.headers['last-modified'])
-              .end((err, res) => {
-                expect(res.status).to.equal(304);
+          request
+            .get(url(server, '/name.txt'))
+            .set('If-Modified-Since', res.headers['last-modified'])
+            .end((err, res) => {
+              expect(res.status).to.equal(304);
 
-                done();
-              });
-          });
+              done();
+            });
+        });
       });
 
-      it('should respond with 200 when modified', (done) => {
-        request
-          .get(url(server, '/name.txt'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
+      it('should respond with 200 when modified', done => {
+        request.get(url(server, '/name.txt')).end((err, res) => {
+          expect(res.status).to.equal(200);
 
-            const lmod = new Date(res.headers['last-modified']);
-            const date = new Date(lmod - 60000);
+          const lmod = new Date(res.headers['last-modified']);
+          const date = new Date(lmod - 60000);
 
-            request
-              .get(url(server, '/name.txt'))
-              .set('If-Modified-Since', date.toUTCString())
-              .end((err, res) => {
-                expect(res.status).to.equal(200);
+          request
+            .get(url(server, '/name.txt'))
+            .set('If-Modified-Since', date.toUTCString())
+            .end((err, res) => {
+              expect(res.status).to.equal(200);
 
-                done();
-              });
-          });
+              done();
+            });
+        });
       });
     });
 
     describe('where "If-None-Match" is set', () => {
-      it('should respond with 304 when ETag matched', (done) => {
-        request
-          .get(url(server, '/name.txt'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
+      it('should respond with 304 when ETag matched', done => {
+        request.get(url(server, '/name.txt')).end((err, res) => {
+          expect(res.status).to.equal(200);
 
-            request
-              .get(url(server, '/name.txt'))
-              .set('If-None-Match', res.headers.etag)
-              .end((err, res) => {
-                expect(res.status).to.equal(304);
+          request
+            .get(url(server, '/name.txt'))
+            .set('If-None-Match', res.headers.etag)
+            .end((err, res) => {
+              expect(res.status).to.equal(304);
 
-                done();
-              });
-          });
+              done();
+            });
+        });
       });
 
-      it('should respond with 200 when ETag unmatched', (done) => {
-        request
-          .get(url(server, '/name.txt'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
+      it('should respond with 200 when ETag unmatched', done => {
+        request.get(url(server, '/name.txt')).end((err, res) => {
+          expect(res.status).to.equal(200);
 
-            request
-              .get(url(server, '/name.txt'))
-              .set('If-None-Match', '"123"')
-              .end((err, res) => {
-                expect(res.status).to.equal(200);
+          request
+            .get(url(server, '/name.txt'))
+            .set('If-None-Match', '"123"')
+            .end((err, res) => {
+              expect(res.status).to.equal(200);
 
-                done();
-              });
-          });
+              done();
+            });
+        });
       });
     });
 
     describe('where "If-Unmodified-Since" is set', () => {
-      it('should respond with 200 when unmodified', (done) => {
-        request
-          .get(url(server, '/name.txt'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
+      it('should respond with 200 when unmodified', done => {
+        request.get(url(server, '/name.txt')).end((err, res) => {
+          expect(res.status).to.equal(200);
 
-            request
-              .get(url(server, '/name.txt'))
-              .set('If-Unmodified-Since', res.headers['last-modified'])
-              .end((err, res) => {
-                expect(res.status).to.equal(200);
+          request
+            .get(url(server, '/name.txt'))
+            .set('If-Unmodified-Since', res.headers['last-modified'])
+            .end((err, res) => {
+              expect(res.status).to.equal(200);
 
-                done();
-              });
-          });
+              done();
+            });
+        });
       });
 
-      it('should respond with 412 when modified', (done) => {
-        request
-          .get(url(server, '/name.txt'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
+      it('should respond with 412 when modified', done => {
+        request.get(url(server, '/name.txt')).end((err, res) => {
+          expect(res.status).to.equal(200);
 
-            const lmod = new Date(res.headers['last-modified']);
-            const date = new Date(lmod - 60000).toUTCString();
+          const lmod = new Date(res.headers['last-modified']);
+          const date = new Date(lmod - 60000).toUTCString();
 
-            request
-              .get(url(server, '/name.txt'))
-              .set('If-Unmodified-Since', date)
-              .end((err, res) => {
-                expect(res.status).to.equal(412);
+          request
+            .get(url(server, '/name.txt'))
+            .set('If-Unmodified-Since', date)
+            .end((err, res) => {
+              expect(res.status).to.equal(412);
 
-                done();
-              });
-          });
+              done();
+            });
+        });
       });
 
-      it('should respond with 200 when invalid date', (done) => {
+      it('should respond with 200 when invalid date', done => {
         request
           .get(url(server, '/name.txt'))
           .set('If-Unmodified-Since', 'foo')
@@ -729,7 +653,7 @@ describe('FileSend(req, path, options)', () => {
   });
 
   describe('with range request', () => {
-    it('should support byte ranges', (done) => {
+    it('should support byte ranges', done => {
       request
         .get(url(server, '/nums'))
         .set('Range', 'bytes=0-4')
@@ -742,7 +666,7 @@ describe('FileSend(req, path, options)', () => {
         });
     });
 
-    it('should be inclusive', (done) => {
+    it('should be inclusive', done => {
       request
         .get(url(server, '/nums'))
         .set('Range', 'bytes=0-0')
@@ -755,7 +679,7 @@ describe('FileSend(req, path, options)', () => {
         });
     });
 
-    it('should set Content-Range', (done) => {
+    it('should set Content-Range', done => {
       request
         .get(url(server, '/nums'))
         .set('Range', 'bytes=2-5')
@@ -768,7 +692,7 @@ describe('FileSend(req, path, options)', () => {
         });
     });
 
-    it('should support -n', (done) => {
+    it('should support -n', done => {
       request
         .get(url(server, '/nums'))
         .set('Range', 'bytes=-3')
@@ -781,7 +705,7 @@ describe('FileSend(req, path, options)', () => {
         });
     });
 
-    it('should support n-', (done) => {
+    it('should support n-', done => {
       request
         .get(url(server, '/nums'))
         .set('Range', 'bytes=3-')
@@ -794,7 +718,7 @@ describe('FileSend(req, path, options)', () => {
         });
     });
 
-    it('should respond with 206 "Partial Content"', (done) => {
+    it('should respond with 206 "Partial Content"', done => {
       request
         .get(url(server, '/nums'))
         .set('Range', 'bytes=0-4')
@@ -807,7 +731,7 @@ describe('FileSend(req, path, options)', () => {
         });
     });
 
-    it('should set Content-Length to the # of octets transferred', (done) => {
+    it('should set Content-Length to the # of octets transferred', done => {
       request
         .get(url(server, '/nums'))
         .set('Range', 'bytes=2-3')
@@ -822,7 +746,7 @@ describe('FileSend(req, path, options)', () => {
     });
 
     describe('when last-byte-pos of the range is greater the length', () => {
-      it('is taken to be equal to one less than the length', (done) => {
+      it('is taken to be equal to one less than the length', done => {
         request
           .get(url(server, '/nums'))
           .set('Range', 'bytes=2-50')
@@ -835,7 +759,7 @@ describe('FileSend(req, path, options)', () => {
           });
       });
 
-      it('should adapt the Content-Length accordingly', (done) => {
+      it('should adapt the Content-Length accordingly', done => {
         request
           .get(url(server, '/nums'))
           .set('Range', 'bytes=2-50')
@@ -851,7 +775,7 @@ describe('FileSend(req, path, options)', () => {
     });
 
     describe('when the first- byte-pos of the range is greater length', () => {
-      it('should respond with 416', (done) => {
+      it('should respond with 416', done => {
         request
           .get(url(server, '/nums'))
           .set('Range', 'bytes=9-50')
@@ -865,7 +789,7 @@ describe('FileSend(req, path, options)', () => {
     });
 
     describe('when syntactically invalid', () => {
-      it('should respond with 200 and the entire contents', (done) => {
+      it('should respond with 200 and the entire contents', done => {
         request
           .get(url(server, '/nums'))
           .set('Range', 'asdf')
@@ -879,7 +803,7 @@ describe('FileSend(req, path, options)', () => {
     });
 
     describe('when multiple ranges', () => {
-      it('should respond with 206 and the range contents', (done) => {
+      it('should respond with 206 and the range contents', done => {
         let address = server.address();
 
         if (!address) {
@@ -895,15 +819,15 @@ describe('FileSend(req, path, options)', () => {
           method: 'GET',
           keepAlive: true,
           headers: {
-            'Range': 'bytes=1-1,3-',
+            Range: 'bytes=1-1,3-',
             'Cache-Control': 'no-cache'
           }
         };
 
-        const req = http.request(options, (res) => {
+        const req = http.request(options, res => {
           let data;
 
-          res.on('data', (chunk) => {
+          res.on('data', chunk => {
             if (!data) {
               data = chunk;
             } else {
@@ -923,7 +847,7 @@ describe('FileSend(req, path, options)', () => {
           });
         });
 
-        req.on('error', (err) => {
+        req.on('error', err => {
           done(err);
         });
 
@@ -932,88 +856,80 @@ describe('FileSend(req, path, options)', () => {
     });
 
     describe('when if-range present', () => {
-      it('should respond with parts when etag unchanged', (done) => {
-        request
-          .get(url(server, '/nums'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
+      it('should respond with parts when etag unchanged', done => {
+        request.get(url(server, '/nums')).end((err, res) => {
+          expect(res.status).to.equal(200);
 
-            const etag = res.headers['etag'];
+          const etag = res.headers['etag'];
 
-            request
-              .get(url(server, '/nums'))
-              .set('If-Range', etag)
-              .set('Range', 'bytes=0-0')
-              .end((err, res) => {
-                expect(res.status).to.equal(206);
-                expect(res.text).to.equal('1');
+          request
+            .get(url(server, '/nums'))
+            .set('If-Range', etag)
+            .set('Range', 'bytes=0-0')
+            .end((err, res) => {
+              expect(res.status).to.equal(206);
+              expect(res.text).to.equal('1');
 
-                done();
-              });
-          });
+              done();
+            });
+        });
       });
 
-      it('should respond with 200 when etag changed', (done) => {
-        request
-          .get(url(server, '/nums'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
+      it('should respond with 200 when etag changed', done => {
+        request.get(url(server, '/nums')).end((err, res) => {
+          expect(res.status).to.equal(200);
 
-            const etag = res.headers['etag'].replace(/"(.)/, '"0$1');
+          const etag = res.headers['etag'].replace(/"(.)/, '"0$1');
 
-            request
-              .get(url(server, '/nums'))
-              .set('If-Range', etag)
-              .set('Range', 'bytes=0-0')
-              .end((err, res) => {
-                expect(res.status).to.equal(200);
-                expect(res.text).to.equal('123456789');
+          request
+            .get(url(server, '/nums'))
+            .set('If-Range', etag)
+            .set('Range', 'bytes=0-0')
+            .end((err, res) => {
+              expect(res.status).to.equal(200);
+              expect(res.text).to.equal('123456789');
 
-                done();
-              });
-          });
+              done();
+            });
+        });
       });
 
-      it('should respond with parts when modified unchanged', (done) => {
-        request
-          .get(url(server, '/nums'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
+      it('should respond with parts when modified unchanged', done => {
+        request.get(url(server, '/nums')).end((err, res) => {
+          expect(res.status).to.equal(200);
 
-            const modified = res.headers['last-modified'];
+          const modified = res.headers['last-modified'];
 
-            request
-              .get(url(server, '/nums'))
-              .set('If-Range', modified)
-              .set('Range', 'bytes=0-0')
-              .end((err, res) => {
-                expect(res.status).to.equal(206);
-                expect(res.text).to.equal('1');
+          request
+            .get(url(server, '/nums'))
+            .set('If-Range', modified)
+            .set('Range', 'bytes=0-0')
+            .end((err, res) => {
+              expect(res.status).to.equal(206);
+              expect(res.text).to.equal('1');
 
-                done();
-              });
-          });
+              done();
+            });
+        });
       });
 
-      it('should respond with 200 when modified changed', (done) => {
-        request
-          .get(url(server, '/nums'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
+      it('should respond with 200 when modified changed', done => {
+        request.get(url(server, '/nums')).end((err, res) => {
+          expect(res.status).to.equal(200);
 
-            const modified = Date.parse(res.headers['last-modified']) - 20000;
+          const modified = Date.parse(res.headers['last-modified']) - 20000;
 
-            request
-              .get(url(server, '/nums'))
-              .set('If-Range', new Date(modified).toUTCString())
-              .set('Range', 'bytes=0-0')
-              .end((err, res) => {
-                expect(res.status).to.equal(200);
-                expect(res.text).to.equal('123456789');
+          request
+            .get(url(server, '/nums'))
+            .set('If-Range', new Date(modified).toUTCString())
+            .set('Range', 'bytes=0-0')
+            .end((err, res) => {
+              expect(res.status).to.equal(200);
+              expect(res.text).to.equal('123456789');
 
-                done();
-              });
-          });
+              done();
+            });
+        });
       });
     });
   });
@@ -1021,19 +937,17 @@ describe('FileSend(req, path, options)', () => {
 
 describe('Options', () => {
   describe('acceptRanges', () => {
-    it('should support disabling accept-ranges', (done) => {
-      request
-        .get(url(createServer({ acceptRanges: false, root: fixtures }), '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.headers).to.not.have.ownProperty('accept-ranges');
-          expect(res.headers).to.not.have.ownProperty('content-range');
+    it('should support disabling accept-ranges', done => {
+      request.get(url(createServer({ acceptRanges: false, root: fixtures }), '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.headers).to.not.have.ownProperty('accept-ranges');
+        expect(res.headers).to.not.have.ownProperty('content-range');
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should ignore requested range', (done) => {
+    it('should ignore requested range', done => {
       request
         .get(url(createServer({ acceptRanges: false, root: fixtures }), '/nums'))
         .set('Range', 'bytes=0-2')
@@ -1045,170 +959,142 @@ describe('Options', () => {
 
           done();
         });
-    })
+    });
   });
 
   describe('root', () => {
-    it('should join root', (done) => {
-      request
-        .get(url(createServer({ root: fixtures }), '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('tobi');
+    it('should join root', done => {
+      request.get(url(createServer({ root: fixtures }), '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('tobi');
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should work with trailing slash', (done) => {
-      request
-        .get(url(createServer({ root: fixtures + '/' }), '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('tobi');
+    it('should work with trailing slash', done => {
+      request.get(url(createServer({ root: fixtures + '/' }), '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('tobi');
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should restrict paths to within root', (done) => {
-      request
-        .get(url(createServer({ root: fixtures }), '/pets/../../index.js'))
-        .end((err, res) => {
-          expect(res.forbidden).to.be.true;
+    it('should restrict paths to within root', done => {
+      request.get(url(createServer({ root: fixtures }), '/pets/../../index.js')).end((err, res) => {
+        expect(res.forbidden).to.be.true;
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should allow .. in root', (done) => {
-      request
-        .get(url(createServer({ root: __dirname + '/fixtures/../fixtures' }), '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('tobi');
+    it('should allow .. in root', done => {
+      request.get(url(createServer({ root: __dirname + '/fixtures/../fixtures' }), '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('tobi');
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should not allow root transversal', (done) => {
-      request
-        .get(url(createServer({ root: fixtures + '/name.d' }), '/../name.dir/name.txt'))
-        .end((err, res) => {
-          expect(res.forbidden).to.be.true;
+    it('should not allow root transversal', done => {
+      request.get(url(createServer({ root: fixtures + '/name.d' }), '/../name.dir/name.txt')).end((err, res) => {
+        expect(res.forbidden).to.be.true;
 
-          done();
-        });
+        done();
+      });
     });
   });
 
   describe('cacheControl', () => {
-    it('should support disabling cache-control', (done) => {
-      request
-        .get(url(createServer({ cacheControl: false, root: fixtures }), '/nums'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.headers).to.not.have.ownProperty('cache-control');
+    it('should support disabling cache-control', done => {
+      request.get(url(createServer({ cacheControl: false, root: fixtures }), '/nums')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.headers).to.not.have.ownProperty('cache-control');
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should ignore maxAge option', (done) => {
-      request
-        .get(url(createServer({ cacheControl: false, maxAge: 1000, root: fixtures }), '/nums'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.headers).to.not.have.ownProperty('cache-control');
+    it('should ignore maxAge option', done => {
+      request.get(url(createServer({ cacheControl: false, maxAge: 1000, root: fixtures }), '/nums')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.headers).to.not.have.ownProperty('cache-control');
 
-          done();
-        });
+        done();
+      });
     });
   });
 
   describe('etag', () => {
-    it('should support disabling etags', (done) => {
-      request
-        .get(url(createServer({ root: fixtures, 'etag': false }), '/nums'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('123456789');
-          expect(res.headers).to.not.have.ownProperty('etag');
+    it('should support disabling etags', done => {
+      request.get(url(createServer({ root: fixtures, etag: false }), '/nums')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('123456789');
+        expect(res.headers).to.not.have.ownProperty('etag');
 
-          done();
-        });
+        done();
+      });
     });
   });
 
   describe('charset', () => {
-    it('should default no charset', (done) => {
-      request
-        .get(url(server, '/tobi.html'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('<p>tobi</p>');
-          expect(res.headers['content-type']).to.not.include('charset');
+    it('should default no charset', done => {
+      request.get(url(server, '/tobi.html')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('<p>tobi</p>');
+        expect(res.headers['content-type']).to.not.include('charset');
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should can set charset', (done) => {
-      request
-        .get(url(createServer({ charset: 'utf-8', root: fixtures }), '/tobi.html'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('<p>tobi</p>');
-          expect(res.headers['content-type']).to.include('charset=utf-8');
+    it('should can set charset', done => {
+      request.get(url(createServer({ charset: 'utf-8', root: fixtures }), '/tobi.html')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('<p>tobi</p>');
+        expect(res.headers['content-type']).to.include('charset=utf-8');
 
-          done();
-        });
+        done();
+      });
     });
   });
 
   describe('ignore', () => {
-    it('should default no ignore', (done) => {
+    it('should default no ignore', done => {
       const cb = holding(1, done);
 
-      request
-        .get(url(server, '/.hidden'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('secret\n');
+      request.get(url(server, '/.hidden')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('secret\n');
 
-          cb();
-        });
+        cb();
+      });
 
-      request
-        .get(url(server, '/.mine/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('tobi');
+      request.get(url(server, '/.mine/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('tobi');
 
-          cb();
-        });
+        cb();
+      });
     });
 
-    it('should can ignore match', (done) => {
+    it('should can ignore match', done => {
       const cb = holding(1, done);
       const server = createServer({ root: fixtures, ignore: ['**/.*?(/*)'] });
 
-      request
-        .get(url(server, '/.hidden'))
-        .end((err, res) => {
-          expect(res.forbidden).to.be.true;
+      request.get(url(server, '/.hidden')).end((err, res) => {
+        expect(res.forbidden).to.be.true;
 
-          cb();
-        });
+        cb();
+      });
 
-      request
-        .get(url(server, '/.mine/name.txt'))
-        .end((err, res) => {
-          expect(res.forbidden).to.be.true;
+      request.get(url(server, '/.mine/name.txt')).end((err, res) => {
+        expect(res.forbidden).to.be.true;
 
-          cb();
-        });
+        cb();
+      });
     });
   });
 
@@ -1216,84 +1102,70 @@ describe('Options', () => {
     describe('should default to "deny"', () => {
       const server = createServer({ root: fixtures, ignore: ['**/.*?(/*)'] });
 
-      it('should 403 for ignore', (done) => {
-        request
-          .get(url(server, '/.hidden'))
-          .end((err, res) => {
-            expect(res.forbidden).to.be.true;
+      it('should 403 for ignore', done => {
+        request.get(url(server, '/.hidden')).end((err, res) => {
+          expect(res.forbidden).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should 403 for ignore directory', (done) => {
-        request
-          .get(url(server, '/.mine'))
-          .end((err, res) => {
-            expect(res.forbidden).to.be.true;
+      it('should 403 for ignore directory', done => {
+        request.get(url(server, '/.mine')).end((err, res) => {
+          expect(res.forbidden).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should 403 for ignore directory with trailing slash', (done) => {
-        request
-          .get(url(server, '/.mine/'))
-          .end((err, res) => {
-            expect(res.forbidden).to.be.true;
+      it('should 403 for ignore directory with trailing slash', done => {
+        request.get(url(server, '/.mine/')).end((err, res) => {
+          expect(res.forbidden).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should 403 for file within ignore directory', (done) => {
-        request
-          .get(url(server, '/.mine/name.txt'))
-          .end((err, res) => {
-            expect(res.forbidden).to.be.true;
+      it('should 403 for file within ignore directory', done => {
+        request.get(url(server, '/.mine/name.txt')).end((err, res) => {
+          expect(res.forbidden).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should 403 for non-existent ignore', (done) => {
-        request
-          .get(url(server, '/.nothere'))
-          .end((err, res) => {
-            expect(res.forbidden).to.be.true;
+      it('should 403 for non-existent ignore', done => {
+        request.get(url(server, '/.nothere')).end((err, res) => {
+          expect(res.forbidden).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should 403 for non-existent ignore directory', (done) => {
-        request
-          .get(url(server, '/.what/name.txt'))
-          .end((err, res) => {
-            expect(res.forbidden).to.be.true;
+      it('should 403 for non-existent ignore directory', done => {
+        request.get(url(server, '/.what/name.txt')).end((err, res) => {
+          expect(res.forbidden).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should skip ignore index', (done) => {
+      it('should skip ignore index', done => {
         const server = createServer({
           root: fixtures,
           index: ['name.txt', 'name.html'],
           ignore: ['/**/name.txt']
         });
 
-        request
-          .get(url(server, '/'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
-            expect(res.text).to.equal('<p>tobi</p>');
+        request.get(url(server, '/')).end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('<p>tobi</p>');
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should send files in root ignore directory', (done) => {
+      it('should send files in root ignore directory', done => {
         request
           .get(url(createServer({ root: fixtures + '/.mine', ignore: ['**/.*?(/*)'] }), '/name.txt'))
           .end((err, res) => {
@@ -1308,114 +1180,94 @@ describe('Options', () => {
     describe('when "ignore"', () => {
       const server = createServer({ root: fixtures, ignore: ['**/.*?(/*)'], ignoreAccess: 'ignore' });
 
-      it('should 404 for ignore', (done) => {
-        request
-          .get(url(server, '/.hidden'))
-          .end((err, res) => {
-            expect(res.notFound).to.be.true;
+      it('should 404 for ignore', done => {
+        request.get(url(server, '/.hidden')).end((err, res) => {
+          expect(res.notFound).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should 404 for ignore directory', (done) => {
-        request
-          .get(url(server, '/.mine'))
-          .end((err, res) => {
-            expect(res.notFound).to.be.true;
+      it('should 404 for ignore directory', done => {
+        request.get(url(server, '/.mine')).end((err, res) => {
+          expect(res.notFound).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should 404 for ignore directory with trailing slash', (done) => {
-        request
-          .get(url(server, '/.mine/'))
-          .end((err, res) => {
-            expect(res.notFound).to.be.true;
+      it('should 404 for ignore directory with trailing slash', done => {
+        request.get(url(server, '/.mine/')).end((err, res) => {
+          expect(res.notFound).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should 404 for file within ignore directory', (done) => {
-        request
-          .get(url(server, '/.mine/name.txt'))
-          .end((err, res) => {
-            expect(res.notFound).to.be.true;
+      it('should 404 for file within ignore directory', done => {
+        request.get(url(server, '/.mine/name.txt')).end((err, res) => {
+          expect(res.notFound).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should 404 for non-existent ignore', (done) => {
-        request
-          .get(url(server, '/.nothere'))
-          .end((err, res) => {
-            expect(res.notFound).to.be.true;
+      it('should 404 for non-existent ignore', done => {
+        request.get(url(server, '/.nothere')).end((err, res) => {
+          expect(res.notFound).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should 404 for non-existent ignore directory', (done) => {
-        request
-          .get(url(server, '/.what/name.txt'))
-          .end((err, res) => {
-            expect(res.notFound).to.be.true;
+      it('should 404 for non-existent ignore directory', done => {
+        request.get(url(server, '/.what/name.txt')).end((err, res) => {
+          expect(res.notFound).to.be.true;
 
-            done();
-          });
+          done();
+        });
       });
 
-      it('should send files in root ignore directory', (done) => {
+      it('should send files in root ignore directory', done => {
         const server = createServer({ root: fixtures + '/.mine', ignore: ['**/.*?(/*)'], ignoreAccess: 'ignore' });
 
-        request
-          .get(url(server, '/name.txt'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
-            expect(res.text).to.equal('tobi');
+        request.get(url(server, '/name.txt')).end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
 
-            done();
-          });
+          done();
+        });
       });
     });
   });
 
   describe('index', () => {
-    it('should default no index', (done) => {
-      request
-        .get(url(server, '/pets/'))
-        .end((err, res) => {
-          expect(res.forbidden).to.be.true;
+    it('should default no index', done => {
+      request.get(url(server, '/pets/')).end((err, res) => {
+        expect(res.forbidden).to.be.true;
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should be configurable', (done) => {
-      request
-        .get(url(createServer({ root: fixtures, index: 'tobi.html' }), '/'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('<p>tobi</p>');
+    it('should be configurable', done => {
+      request.get(url(createServer({ root: fixtures, index: 'tobi.html' }), '/')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('<p>tobi</p>');
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should support disabling', (done) => {
-      request
-        .get(url(createServer({ root: fixtures, index: false }), '/pets/'))
-        .end((err, res) => {
-          expect(res.forbidden).to.be.true;
+    it('should support disabling', done => {
+      request.get(url(createServer({ root: fixtures, index: false }), '/pets/')).end((err, res) => {
+        expect(res.forbidden).to.be.true;
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should support fallbacks', (done) => {
+    it('should support fallbacks', done => {
       request
         .get(url(createServer({ root: fixtures, index: ['default.htm', 'index.html'] }), '/pets/'))
         .end((err, res) => {
@@ -1426,109 +1278,93 @@ describe('Options', () => {
         });
     });
 
-    it('should not follow directories', (done) => {
-      request
-        .get(url(createServer({ root: fixtures, index: ['pets', 'name.txt'] }), '/'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.include('tobi');
+    it('should not follow directories', done => {
+      request.get(url(createServer({ root: fixtures, index: ['pets', 'name.txt'] }), '/')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.include('tobi');
 
-          done();
-        });
+        done();
+      });
     });
   });
 
   describe('lastModified', () => {
-    it('should support disabling last-modified', (done) => {
+    it('should support disabling last-modified', done => {
       const server = createServer({ root: fixtures, lastModified: false });
 
-      request
-        .get(url(server, '/nums'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('123456789');
-          expect(res.headers).to.not.have.ownProperty('last-modified');
+      request.get(url(server, '/nums')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('123456789');
+        expect(res.headers).to.not.have.ownProperty('last-modified');
 
-          done();
-        });
-    })
+        done();
+      });
+    });
   });
 
   describe('maxAge', () => {
-    it('should default to 0', (done) => {
-      request
-        .get(url(server, '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=0');
+    it('should default to 0', done => {
+      request.get(url(server, '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('tobi');
+        expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=0');
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should floor to integer', (done) => {
-      request
-        .get(url(createServer({ root: fixtures, maxAge: 123.956 }), '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=123');
+    it('should floor to integer', done => {
+      request.get(url(createServer({ root: fixtures, maxAge: 123.956 }), '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('tobi');
+        expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=123');
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should accept string', (done) => {
-      request
-        .get(url(createServer({ root: fixtures, maxAge: '30d' }), '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=2592000');
+    it('should accept string', done => {
+      request.get(url(createServer({ root: fixtures, maxAge: '30d' }), '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('tobi');
+        expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=2592000');
 
-          done();
-        });
+        done();
+      });
     });
 
-    it('should max at 1 year', (done) => {
-      request
-        .get(url(createServer({ root: fixtures, maxAge: Infinity }), '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=31536000');
+    it('should max at 1 year', done => {
+      request.get(url(createServer({ root: fixtures, maxAge: Infinity }), '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('tobi');
+        expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=31536000');
 
-          done();
-        });
+        done();
+      });
     });
   });
 
   describe('immutable', () => {
-    it('should default to false', (done) => {
-      request
-        .get(url(server, '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=0');
+    it('should default to false', done => {
+      request.get(url(server, '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('tobi');
+        expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=0');
 
-          done();
-        });
-    })
+        done();
+      });
+    });
 
-    it('should set immutable directive in Cache-Control', (done) => {
-      request
-        .get(url(createServer({ immutable: true, maxAge: '1h', root: fixtures }), '/name.txt'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.equal('tobi');
-          expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=3600, immutable');
+    it('should set immutable directive in Cache-Control', done => {
+      request.get(url(createServer({ immutable: true, maxAge: '1h', root: fixtures }), '/name.txt')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.equal('tobi');
+        expect(res.headers).to.have.ownProperty('cache-control', 'public, max-age=3600, immutable');
 
-          done();
-        });
-    })
-  })
+        done();
+      });
+    });
+  });
 });
 
 describe('FileSend.mime', () => {

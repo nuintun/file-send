@@ -12,7 +12,6 @@ const Transform = require('stream').Transform;
  * @class DestroyableTransform
  */
 class DestroyableTransform extends Transform {
-
   /**
    * @constructor
    * @param {Object} options
@@ -82,4 +81,4 @@ module.exports = function through(options, transform, flush) {
   if (flush) stream._flush = flush;
 
   return stream;
-}
+};

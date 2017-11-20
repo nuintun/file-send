@@ -8,16 +8,18 @@ const FileSend = require('./dist/index.min');
 
 // create server
 function createServer(root, port) {
-  http.createServer(function(request, response) {
-    const send = new FileSend(request, url.parse(request.url).pathname, {
-      root: root || process.cwd(),
-      maxAge: '3day',
-      index: ['index.html'],
-      ignore: ['/**/.*?(/*.*|/)']
-    });
+  http
+    .createServer(function(request, response) {
+      const send = new FileSend(request, url.parse(request.url).pathname, {
+        root: root || process.cwd(),
+        maxAge: '3day',
+        index: ['index.html'],
+        ignore: ['/**/.*?(/*.*|/)']
+      });
 
-    send.pipe(response);
-  }).listen(port || 8080);
+      send.pipe(response);
+    })
+    .listen(port || 8080);
 }
 
 if (cluster.isMaster) {
@@ -27,7 +29,7 @@ if (cluster.isMaster) {
 
     // worker is listening
     if (i === NUMCPUS - 1) {
-      worker.on('listening', (address) => {
+      worker.on('listening', address => {
         console.log(
           'Server run at:',
           (address.address || '127.0.0.1') + ':' + address.port,
