@@ -30,16 +30,16 @@ http.createServer((request, response) => {
     etag: true,
     maxAge: '30d'
   })
-  .on('dir', function(realpath, next) {
-    // dir events
-    next('dir');
-  })
-  .on('error', function(error, next) {
-    // error events
-    next('error');
-  })
-  .use(through2()) // Set middleware
-  .pipe(response); // Send file to response
+    .on('dir', function(realpath, next) {
+      // dir events
+      next('dir');
+    })
+    .on('error', function(error, next) {
+      // error events
+      next('error');
+    })
+    .use(through2()) // Set middleware
+    .pipe(response); // Send file to response
 });
 ```
 
@@ -148,31 +148,33 @@ const NUMCPUS = require('os').cpus().length;
 
 // create server
 function createServer(root, port) {
-  http.createServer(function(request, response) {
-    const send = new FileSend(request, url.parse(request.url).pathname, {
-      root: root || process.cwd(),
-      maxAge: '3day',
-      index: ['index.html'],
-      ignore: ['/**/.*?(/*.*|/)']      
-    });
+  http
+    .createServer(function(request, response) {
+      const send = new FileSend(request, url.parse(request.url).pathname, {
+        root: root || process.cwd(),
+        maxAge: '3day',
+        index: ['index.html'],
+        ignore: ['/**/.*?(/*.*|/)']
+      });
 
-    send.pipe(response);
-  }).listen(port || 8080);
+      send.pipe(response);
+    })
+    .listen(port || 8080);
 }
 
 if (cluster.isMaster) {
   // fork workers
   for (let i = 0; i < NUMCPUS; i++) {
     const worker = cluster.fork();
-    
+
     // worker is listening
     if (i === NUMCPUS - 1) {
-      worker.on('listening', (address) => {
+      worker.on('listening', address => {
         console.log(
           chalk.green.bold('Server run at:'),
           chalk.cyan.bold((address.address || '127.0.0.1') + ':' + address.port),
           '\r\n-----------------------------------------------------------------------------------------'
-        );      
+        );
       });
     }
   }
