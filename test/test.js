@@ -3,12 +3,12 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-const holding = require('holding');
 const destroy = require('destroy');
 const through = require('./through');
 const parseURL = require('url').parse;
 const expect = require('chai').expect;
 const request = require('superagent');
+const holding = require('holding').assert;
 const FileSend = require('../dist/index');
 
 function pathname(url) {
@@ -417,7 +417,7 @@ describe('FileSend(req, path, options)', () => {
 
   describe('dir event', () => {
     it('should fire when request a dir without non match index', done => {
-      const cb = holding(2, done);
+      const cb = holding(3, done);
       const server = http.createServer((req, res) => {
         new FileSend(req, pathname(req.url), { root: fixtures })
           .on('dir', function(realpath, next) {

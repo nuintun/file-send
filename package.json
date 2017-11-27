@@ -20,15 +20,7 @@
   "engines": {
     "node": ">=4.0.0"
   },
-  "keywords": [
-    "http",
-    "https",
-    "server",
-    "http send",
-    "https send",
-    "file send",
-    "file stream"
-  ],
+  "keywords": ["http", "https", "server", "http send", "https send", "file send", "file stream"],
   "dependencies": {
     "ms": "^2.0.0",
     "etag": "^1.8.1",
@@ -42,15 +34,16 @@
   },
   "devDependencies": {
     "chai": "^4.1.2",
-    "holding": "^1.0.6",
-    "rollup": "^0.51.8",
-    "uglify-es": "^3.1.10",
+    "holding": "^2.0.1",
+    "rollup": "^0.52.0",
+    "uglify-es": "^3.2.0",
     "superagent": "^3.8.1"
   },
   "readmeFilename": "README.md",
   "scripts": {
     "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit",
-    "test-ci": "istanbul cover node_modules/mocha/bin/_mocha --report lcovonly -- --timeout 6000 --check-leaks --reporter spec --exit",
+    "test-ci":
+      "istanbul cover node_modules/mocha/bin/_mocha --report lcovonly -- --timeout 6000 --check-leaks --reporter spec --exit",
     "test-cov": "istanbul cover node_modules/mocha/bin/_mocha -- --timeout 6000 --check-leaks --reporter dot --exit"
   }
 }
