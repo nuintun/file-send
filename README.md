@@ -1,14 +1,14 @@
 # file-send
 
->A http/https file send
+> A http/https file send
 >
->[![NPM Version][npm-image]][npm-url]
->[![Download Status][download-image]][npm-url]
->[![Linux Status][travis-image]][travis-url]
->[![Windows Status][appveyor-image]][appveyor-url]
->[![Test Coverage][coveralls-image]][coveralls-url]
->![Node Version][node-image]
->[![Dependencies][david-image]][david-url]
+> [![NPM Version][npm-image]][npm-url]
+> [![Download Status][download-image]][npm-url]
+> [![Linux Status][travis-image]][travis-url]
+> [![Windows Status][appveyor-image]][appveyor-url]
+> [![Test Coverage][coveralls-image]][coveralls-url]
+> ![Node Version][node-image]
+> [![Dependencies][david-image]][david-url]
 
 ## Installation
 
@@ -45,87 +45,88 @@ http.createServer((request, response) => {
 
 ### FileSend(request, path, [options])
 
-  Create a new `FileSend` for the given path and options to initialize.
-  The `request` is the Node.js HTTP request and the `path` is a urlencoded path to send (urlencoded, not the actual file-system path).
+Create a new `FileSend` for the given path and options to initialize.
+The `request` is the Node.js HTTP request and the `path` is a urlencoded path to send (urlencoded, not the actual file-system path).
 
 #### Options
 
-##### *root* - ```String```
+##### _root_ - `String`
 
-  Set server root.
+Set server root.
 
-##### *ignore* - ```String|Array```
+##### _ignore_ - `String|Array`
 
-  Set ignore rules, support glob string.  see: [micromatch](https://github.com/jonschlinkert/micromatch)
+Set ignore rules, support glob string. see: [micromatch](https://github.com/jonschlinkert/micromatch)
 
-##### *ignoreAccess* - ```String```
+##### _ignoreAccess_ - `String`
 
-  Set how "ignore" are treated when encountered.
+Set how "ignore" are treated when encountered.
 
-  The default value is `'deny'`.
+The default value is `'deny'`.
 
-  - `'deny'` Send a 403 for any request for ignore matched.
-  - `'ignore'` Pretend like the ignore matched does not exist and 404.
+* `'deny'` Send a 403 for any request for ignore matched.
+* `'ignore'` Pretend like the ignore matched does not exist and 404.
 
-##### *glob* - ```Object```
+##### _glob_ - `Object`
 
-  Set micromatch options.  see: [micromatch](https://github.com/jonschlinkert/micromatch#options)
+Set micromatch options. see: [micromatch](https://github.com/jonschlinkert/micromatch#options)
 
-#### *acceptRanges* - ```Boolean```
+#### _acceptRanges_ - `Boolean`
 
-  Enable or disable accepting ranged requests, defaults to true. Disabling this will not send Accept-Ranges and ignore the contents of the Range request header.
+Enable or disable accepting ranged requests, defaults to true. Disabling this will not send Accept-Ranges and ignore the contents of the Range request header.
 
-##### *charset* - ```String```
+##### _charset_ - `String`
 
-  Set Content-Type charset.
+Set Content-Type charset.
 
-##### *cacheControl* - ```Boolean```
+##### _cacheControl_ - `Boolean`
 
-  Enable or disable setting `Cache-Control` response header, defaults to true. Disabling this will ignore the `immutable` and `maxAge` options.
+Enable or disable setting `Cache-Control` response header, defaults to true. Disabling this will ignore the `immutable` and `maxAge` options.
 
-##### *etag* - ```Boolean```
+##### _etag_ - `Boolean`
 
-  Enable or disable etag generation, defaults to true.
+Enable or disable etag generation, defaults to true.
 
-##### *index* - ```String|Array|Boolean```
+##### _index_ - `String|Array|Boolean`
 
-  By default send supports "index.html" files, to disable this set `false` or to supply a new index pass a string or an array in preferred order.
+By default send supports "index.html" files, to disable this set `false` or to supply a new index pass a string or an array in preferred order.
 
-##### *lastModified* - ```Boolean```
+##### _lastModified_ - `Boolean`
 
-  Enable or disable `Last-Modified` header, defaults to true. Uses the file system's last modified value.
+Enable or disable `Last-Modified` header, defaults to true. Uses the file system's last modified value.
 
-##### *maxAge* - ```String|Number```
+##### _maxAge_ - `String|Number`
 
-  Provide a max-age in milliseconds for http caching, defaults to 0.
-  This can also be a string accepted by the [ms](https://www.npmjs.org/package/ms#readme) module.
+Provide a max-age in milliseconds for http caching, defaults to 0.
+This can also be a string accepted by the [ms](https://www.npmjs.org/package/ms#readme) module.
 
-##### *immutable* - ```Boolean```
+##### _immutable_ - `Boolean`
 
 Enable or diable the immutable directive in the Cache-Control response header, defaults to false. If set to true, the maxAge option should also be specified to enable caching. The immutable directive will prevent supported clients from making conditional requests during the life of the maxAge option to check if the file has changed.
 
 ### FileSend(request, path, [options]).pipe(response)
 
-  The `pipe` method is used to pipe the response into the Node.js HTTP response object, typically `FileSend(request, path, [options]).pipe(response)`.
+The `pipe` method is used to pipe the response into the Node.js HTTP response object, typically `FileSend(request, path, [options]).pipe(response)`.
 
 ### FileSend.mime
 
-  The mime export is the global instance of of the `mime-types` npm module.
+The mime export is the global instance of of the `mime-types` npm module.
 
 ### Events
-  The `FileSend` is an event emitter and will emit the following events:
 
-  - `dir` a directory was requested`(realpath, next)`
-  - `file` a file was requested `(realpath, stats)`
-  - `error` an error occurred `(error, next)`
+The `FileSend` is an event emitter and will emit the following events:
+
+* `dir` a directory was requested`(realpath, next)`
+* `file` a file was requested `(realpath, stats)`
+* `error` an error occurred `(error, next)`
 
 ## Error-handling
 
-  By default when no `error` listeners are present an automatic response will be made, otherwise you have full control over the response, aka you may show a 5xx page etc.
+By default when no `error` listeners are present an automatic response will be made, otherwise you have full control over the response, aka you may show a 5xx page etc.
 
 ## Caching
 
-  It does _not_ perform internal caching, you should use a reverse proxy cache such as Varnish for this, or those fancy things called CDNs. If your application is small enough that it would benefit from single-node memory caching, it's small enough that it does not need caching at all ;).
+It does _not_ perform internal caching, you should use a reverse proxy cache such as Varnish for this, or those fancy things called CDNs. If your application is small enough that it would benefit from single-node memory caching, it's small enough that it does not need caching at all ;).
 
 ## Running tests
 

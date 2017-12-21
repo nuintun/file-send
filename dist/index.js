@@ -2,7 +2,7 @@
  * @module file-send
  * @author nuintun
  * @license MIT
- * @version 3.0.3
+ * @version 3.0.4
  * @description A http file send
  * @see https://nuintun.github.io/file-send
  */
@@ -475,8 +475,7 @@ class Iterator {
 }
 
 /**
- * series
- *
+ * @function series
  * @param {Array} array
  * @param {Function} iterator
  * @param {Function} done

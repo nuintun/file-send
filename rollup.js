@@ -1,3 +1,9 @@
+/**
+ * @module rollup
+ * @license MIT
+ * @version 2017/10/24
+ */
+
 'use strict';
 
 const fs = require('fs');
