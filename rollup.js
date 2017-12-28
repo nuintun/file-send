@@ -68,7 +68,7 @@ rollup
 
         result = uglify.minify(result.code, { ecma: 6 });
 
-        fs.writeFileSync(min, result.code);
+        fs.writeFileSync(min, banner + result.code);
         console.log(`  Build ${min} success!`);
       })
       .catch(function(error) {
