@@ -2,7 +2,7 @@
  * @module file-send
  * @author nuintun
  * @license MIT
- * @version 3.0.5
+ * @version 3.0.6
  * @description A http file send
  * @see https://nuintun.github.io/file-send
  */
