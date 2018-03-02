@@ -9,13 +9,13 @@
 
 'use strict';
 
-var fs = require('fs');
-var http = require('http');
-var Stream = require('stream');
-var Events = require('events');
-var mime = require('mime-types');
 var path = require('path');
 var ms = require('ms');
+var Stream = require('stream');
+var fs = require('fs');
+var http = require('http');
+var Events = require('events');
+var mime = require('mime-types');
 var etag = require('etag');
 var fresh = require('fresh');
 var destroy = require('destroy');
@@ -176,17 +176,6 @@ function parseHttpDate(date) {
 
   return typeIs(timestamp, 'number') ? timestamp : NaN;
 }
-
-/**
- * @function Faster apply
- * @description Call is faster than apply, optimize less than 6 args
- * @param  {Function} fn
- * @param  {any} context
- * @param  {Array} args
- * @see https://github.com/micro-js/apply
- * @see http://blog.csdn.net/zhengyinhui100/article/details/7837127
- */
-
 
 /**
  * @function isUndefined

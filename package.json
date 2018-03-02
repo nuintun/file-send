@@ -1,6 +1,6 @@
 {
   "name": "file-send",
-  "version": "3.0.5",
+  "version": "3.0.6",
   "description": "A http file send",
   "author": {
     "name": "nuintun",
@@ -26,17 +26,17 @@
     "etag": "^1.8.1",
     "fresh": "^0.5.2",
     "destroy": "^1.0.4",
-    "encodeurl": "^1.0.1",
-    "micromatch": "^3.1.5",
+    "encodeurl": "^1.0.2",
+    "micromatch": "^3.1.9",
     "escape-html": "^1.0.3",
-    "mime-types": "^2.1.17",
+    "mime-types": "^2.1.18",
     "range-parser": "^1.2.0"
   },
   "devDependencies": {
     "chai": "^4.1.2",
     "holding": "^2.0.1",
-    "rollup": "^0.54.0",
-    "uglify-es": "^3.3.7",
+    "rollup": "^0.56.3",
+    "uglify-es": "^3.3.9",
     "superagent": "^3.8.2"
   },
   "readmeFilename": "README.md",
