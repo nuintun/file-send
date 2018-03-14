@@ -36,4 +36,4 @@ logs
 package-lock.json
 
 # dist dev file
-dist/index.js
+dist/index.src.js

@@ -24,6 +24,7 @@ const banner = `/**
 rollup
   .rollup({
     input: 'index.js',
+    preferConst: true,
     external: [
       'fs',
       'path',
@@ -60,8 +61,8 @@ rollup
         banner: banner
       })
       .then(function(result) {
-        const src = 'dist/index.js';
-        const min = 'dist/index.min.js';
+        const src = 'dist/index.src.js';
+        const min = 'dist/index.js';
 
         fs.writeFileSync(src, result.code);
         console.log(`  Build ${src} success!`);
