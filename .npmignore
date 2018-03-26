@@ -35,5 +35,5 @@ logs
 # npm lock file
 package-lock.json
 
-# dist dev file
-dist/index.src.js
+# rollup configure
+rollup.js
