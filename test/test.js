@@ -9,7 +9,7 @@ const parseURL = require('url').parse;
 const expect = require('chai').expect;
 const request = require('superagent');
 const holding = require('holding').assert;
-const FileSend = require('../dist/index.src');
+const FileSend = require('../dist/index');
 
 function pathname(url) {
   return parseURL(url).pathname;

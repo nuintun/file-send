@@ -42,7 +42,7 @@ export default class FileSend extends Events {
       throw new TypeError('The param request must be a http request.');
     }
 
-    if (!utils.typeIs(path, 'string')) {
+    if (!utils.typeOf(path, 'string')) {
       throw new TypeError('The param path must be a string.');
     }
 
@@ -883,7 +883,7 @@ export default class FileSend extends Events {
             return next();
           }
 
-          this.redirect(utils.posixURI(path));
+          this.redirect(utils.unixify(path));
         });
       },
       () => {
