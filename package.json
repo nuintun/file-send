@@ -6,7 +6,7 @@
     "name": "nuintun",
     "email": "nuintun@qq.com"
   },
-  "main": "dist/index.js",
+  "main": "dist/index",
   "homepage": "https://nuintun.github.io/file-send",
   "repository": {
     "type": "git",
