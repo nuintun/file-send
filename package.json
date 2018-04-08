@@ -1,20 +1,19 @@
 {
   "name": "file-send",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "A http file send",
   "author": {
     "name": "nuintun",
     "email": "nuintun@qq.com"
   },
-  "main": "dist/index",
+  "main": "dist/index.js",
   "homepage": "https://nuintun.github.io/file-send",
   "repository": {
     "type": "git",
     "url": "git://github.com/nuintun/file-send.git"
   },
   "bugs": {
-    "url": "https://github.com/nuintun/file-send/issues",
-    "email": "nuintun@qq.com"
+    "url": "https://github.com/nuintun/file-send/issues"
   },
   "license": "MIT",
   "engines": {
@@ -41,7 +40,7 @@
   },
   "readmeFilename": "README.md",
   "scripts": {
-    "prepublish": "node rollup.js",
+    "prepublishOnly": "node rollup.js",
     "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit",
     "test-ci":
       "istanbul cover node_modules/mocha/bin/_mocha --report lcovonly -- --timeout 6000 --check-leaks --reporter spec --exit",
