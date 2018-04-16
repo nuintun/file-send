@@ -1,28 +1,609 @@
 /**
  * @module file-send
+ * @author nuintun
  * @license MIT
- * @version 2017/10/25
+ * @version 3.1.2
+ * @description A http file send.
+ * @see https://github.com/nuintun/file-send#readme
  */
 
-import * as fs from 'fs';
-import * as http from 'http';
-import * as Stream from 'stream';
-import * as Events from 'events';
-import * as mime from 'mime-types';
-import * as utils from './lib/utils';
-import * as symbol from './lib/symbol';
-import * as normalize from './lib/normalize';
+'use strict';
 
-import etag from 'etag';
-import fresh from 'fresh';
-import destroy from 'destroy';
-import encodeUrl from 'encodeurl';
-import micromatch from 'micromatch';
-import escapeHtml from 'escape-html';
-import parseRange from 'range-parser';
+const path = require('path');
+const Stream = require('stream');
+const ms = require('ms');
+const etag = require('etag');
+const fs = require('fs');
+const fresh = require('fresh');
+const http = require('http');
+const destroy = require('destroy');
+const Events = require('events');
+const encodeUrl = require('encodeurl');
+const mime = require('mime-types');
+const micromatch = require('micromatch');
+const escapeHtml = require('escape-html');
+const parseRange = require('range-parser');
 
-import { series } from './lib/async';
-import { through } from './lib/through';
+/**
+ * @module utils
+ * @license MIT
+ * @version 2018/04/16
+ */
+
+const toString = Object.prototype.toString;
+const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+
+const undef = void 0;
+
+/**
+ * @function typeOf
+ * @description The data type judgment
+ * @param {any} value
+ * @param {string} type
+ * @returns {boolean}
+ */
+function typeOf(value, type) {
+  // Format type
+  type = String(type).toLowerCase();
+
+  // Switch
+  switch (type) {
+    case 'nan':
+      return Number.isNaN(value);
+    case 'null':
+      return value === null;
+    case 'array':
+      return Array.isArray(value);
+    case 'function':
+      return typeof value === 'function';
+    case 'undefined':
+      return value === undef;
+    default:
+      // Get real type
+      const realType = toString.call(value).toLowerCase();
+
+      // Is other
+      return realType === '[object ' + type + ']';
+  }
+}
+
+/**
+ * @function isOutBound
+ * @description Test path is out of bound of base
+ * @param {string} path
+ * @param {string} root
+ * @returns {boolean}
+ */
+function isOutBound(path$$1, root) {
+  path$$1 = path.relative(root, path$$1);
+
+  if (/\.\.(?:[\\/]|$)/.test(path$$1)) return true;
+
+  return false;
+}
+
+/**
+ * @function unixify
+ * @description Convert path separators to posix/unix-style forward slashes
+ * @param {string} path
+ * @returns {string}
+ */
+function unixify(path$$1) {
+  return path$$1.replace(/\\/g, '/');
+}
+
+/**
+ * @function normalize
+ * @description Normalize path
+ * @param {string} path
+ * @returns {string}
+ */
+function normalize(path$$1) {
+  // \a\b\.\c\.\d ==> /a/b/./c/./d
+  path$$1 = unixify(path$$1);
+
+  // :///a/b/c ==> ://a/b/c
+  path$$1 = path$$1.replace(/:\/{3,}/, '://');
+
+  // /a/b/./c/./d ==> /a/b/c/d
+  path$$1 = path$$1.replace(/\/\.\//g, '/');
+
+  // a//b/c ==> a/b/c
+  // //a/b/c ==> /a/b/c
+  // a///b/////c ==> a/b/c
+  path$$1 = path$$1.replace(/(^|[^:])\/{2,}/g, '$1/');
+
+  // Transfer path
+  let src = path$$1;
+  // DOUBLE_DOT_RE matches a/b/c//../d path correctly only if replace // with / first
+  const DOUBLE_DOT_RE = /([^/]+)\/\.\.(?:\/|$)/g;
+
+  // a/b/c/../../d ==> a/b/../d ==> a/d
+  do {
+    src = src.replace(DOUBLE_DOT_RE, (matched, dirname) => {
+      return dirname === '..' ? matched : '';
+    });
+
+    // Break
+    if (path$$1 === src) {
+      break;
+    } else {
+      path$$1 = src;
+    }
+  } while (true);
+
+  // Get path
+  return path$$1;
+}
+
+/**
+ * @function decodeURI
+ * @description Decode URI component.
+ * @param {string} uri
+ * @returns {string|-1}
+ */
+function decodeURI(uri) {
+  try {
+    return decodeURIComponent(uri);
+  } catch (err) {
+    return -1;
+  }
+}
+
+/**
+ * @function boundaryGenerator
+ * @description Create boundary
+ * @returns {string}
+ */
+function boundaryGenerator() {
+  let boundary = '';
+
+  // Create boundary
+  for (let i = 0; i < 38; i++) {
+    boundary += CHARS[Math.floor(Math.random() * 62)];
+  }
+
+  // Return boundary
+  return boundary;
+}
+
+/**
+ * @function parseHttpDate
+ * @description Parse an HTTP Date into a number.
+ * @param {string} date
+ * @private
+ */
+function parseHttpDate(date) {
+  const timestamp = date && Date.parse(date);
+
+  return typeOf(timestamp, 'number') ? timestamp : NaN;
+}
+
+/**
+ * @function isUndefined
+ * @param {any} value
+ */
+function isUndefined(value) {
+  return value === undef;
+}
+
+/**
+ * @function pipeline
+ * @param {Stream} streams
+ * @return {Stream}
+ */
+function pipeline(streams) {
+  let index = 0;
+  let src = streams[index++];
+  const length = streams.length;
+
+  while (index < length) {
+    let dest = streams[index++];
+
+    // Listening error event
+    src.once('error', error => {
+      dest.emit('error', error);
+    });
+
+    src = src.pipe(dest);
+  }
+
+  return src;
+}
+
+/**
+ * @function parseTokenList
+ * @description Parse a HTTP token list.
+ * @param {string} value
+ */
+function parseTokenList(value) {
+  let end = 0;
+  let list = [];
+  let start = 0;
+
+  // gather tokens
+  for (let i = 0, length = value.length; i < length; i++) {
+    switch (value.charCodeAt(i)) {
+      case 0x20:
+        // ' '
+        if (start === end) {
+          start = end = i + 1;
+        }
+        break;
+      case 0x2c:
+        // ','
+        list.push(value.substring(start, end));
+        start = end = i + 1;
+        break;
+      default:
+        end = i + 1;
+        break;
+    }
+  }
+
+  // final token
+  list.push(value.substring(start, end));
+
+  return list;
+}
+
+/**
+ * @function createErrorDocument
+ * @param {number} statusCode
+ * @param {string} statusMessage
+ * @returns {string}
+ */
+function createErrorDocument(statusCode, statusMessage) {
+  return (
+    '<!DOCTYPE html>\n' +
+    '<html>\n' +
+    '  <head>\n' +
+    '    <meta name="renderer" content="webkit" />\n' +
+    '    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />\n' +
+    '    <meta content="text/html; charset=utf-8" http-equiv="content-type" />\n' +
+    `    <title>${statusCode}</title>\n` +
+    '    <style>\n' +
+    '      html, body, div, p {\n' +
+    '        text-align: center;\n' +
+    '        margin: 0; padding: 0;\n' +
+    '        font-family: Calibri, "Lucida Console", Consolas, "Liberation Mono", Menlo, Courier, monospace;\n' +
+    '      }\n' +
+    '      body { padding-top: 88px; }\n' +
+    '      p { color: #0e90d2; line-height: 100%; }\n' +
+    '      .ui-code { font-size: 200px; font-weight: bold; }\n' +
+    '      .ui-message { font-size: 80px; }\n' +
+    '    </style>\n' +
+    '  </head>\n' +
+    '  <body>\n' +
+    `    <p class="ui-code">${statusCode}</p>\n` +
+    `    <p class="ui-message">${statusMessage}</p>\n` +
+    '  </body>\n' +
+    '</html>\n'
+  );
+}
+
+/**
+ * @module async
+ * @license MIT
+ * @version 2018/04/16
+ */
+
+/**
+ * @class Iterator
+ */
+class Iterator {
+  /**
+   * @constructor
+   * @param {Array} array
+   */
+  constructor(array) {
+    this.index = 0;
+    this.array = Array.isArray(array) ? array : [];
+  }
+
+  /**
+   * @method next
+   * @description Create the next item.
+   * @returns {{done: boolean, value: undefined}}
+   */
+  next() {
+    const done = this.index >= this.array.length;
+    const value = !done ? this.array[this.index++] : undefined;
+
+    return {
+      done: done,
+      value: value
+    };
+  }
+}
+
+/**
+ * @function series
+ * @param {Array} array
+ * @param {Function} iterator
+ * @param {Function} done
+ * @param {any} context
+ */
+function series(array, iterator, done) {
+  // Create a new iterator
+  const it = new Iterator(array);
+
+  /**
+   * @function walk
+   * @param it
+   */
+  function walk(it) {
+    const item = it.next();
+
+    if (item.done) {
+      done();
+    } else {
+      iterator(item.value, () => walk(it), it.index);
+    }
+  }
+
+  // Run walk
+  walk(it);
+}
+
+/**
+ * @module symbol
+ * @license MIT
+ * @version 2018/04/16
+ */
+
+const dir = Symbol('dir');
+const etag$1 = Symbol('etag');
+const path$1 = Symbol('path');
+const root = Symbol('root');
+const glob = Symbol('glob');
+const stdin = Symbol('stdin');
+const error = Symbol('error');
+const index = Symbol('index');
+const ignore = Symbol('ignore');
+const maxAge = Symbol('maxAge');
+const charset = Symbol('charset');
+const request = Symbol('request');
+const isFresh = Symbol('isFresh');
+const realpath = Symbol('realpath');
+const response = Symbol('response');
+const isIgnore = Symbol('isIgnore');
+const sendFile = Symbol('sendFile');
+const immutable = Symbol('immutable');
+const sendIndex = Symbol('sendIndex');
+const bootstrap = Symbol('bootstrap');
+const statError = Symbol('statError');
+const isCachable = Symbol('isCachable');
+const parseRange$1 = Symbol('parseRange');
+const initHeaders = Symbol('initHeaders');
+const responseEnd = Symbol('responseEnd');
+const headersSent = Symbol('headersSent');
+const middlewares = Symbol('middlewares');
+const isRangeFresh = Symbol('isRangeFresh');
+const ignoreAccess = Symbol('ignoreAccess');
+const acceptRanges = Symbol('acceptRanges');
+const cacheControl = Symbol('cacheControl');
+const lastModified = Symbol('lastModified');
+const hasTrailingSlash = Symbol('hasTrailingSlash');
+const isConditionalGET = Symbol('isConditionalGET');
+const isPreconditionFailure = Symbol('isPreconditionFailure');
+
+/**
+ * @module through
+ * @license MIT
+ * @version 2018/04/16
+ */
+
+/**
+ * @function noop
+ * @description A noop _transform function
+ * @param {any} chunk
+ * @param {string} encoding
+ * @param {Function} next
+ */
+function noop(chunk, encoding, next) {
+  next(null, chunk);
+}
+
+const undef$1 = void 0;
+// Is destroyable Transform
+const destroyable = Stream.Transform.prototype.destroy;
+const DestroyableTransform = destroyable
+  ? Stream.Transform
+  : class extends Stream.Transform {
+      /**
+       * @constructor
+       * @param {Object} options
+       */
+      constructor(options) {
+        super(options);
+
+        this._destroyed = false;
+      }
+
+      /**
+       * @private
+       * @method _destroy
+       * @param {any} error
+       * @param {Function} callback
+       */
+      _destroy(error, callback) {
+        if (this._destroyed) return;
+
+        this._destroyed = true;
+
+        process.nextTick(() => {
+          if (error) {
+            if (callback) {
+              callback();
+            } else {
+              this.emit('error', error);
+            }
+          }
+
+          this.emit('close');
+        });
+      }
+
+      /**
+       * @function destroy
+       * @param {any} error
+       * @param {Function} callback
+       */
+      destroy(error, callback) {
+        this._destroy(error, callback);
+      }
+    };
+
+/**
+ * @function through
+ * @param {Object} options
+ * @param {Function} transform
+ * @param {Function} flush
+ * @returns {Transform}
+ */
+function through(options, transform, flush, destroy$$1) {
+  if (typeOf(options, 'function')) {
+    flush = transform;
+    transform = options;
+    options = {};
+  } else if (!typeOf(transform, 'function')) {
+    transform = noop;
+  }
+
+  if (!typeOf(flush, 'function')) flush = null;
+
+  if (!typeOf(destroy$$1, 'function')) destroy$$1 = null;
+
+  options = options || {};
+
+  if (options.objectMode === undef$1) {
+    options.objectMode = true;
+  }
+
+  if (options.highWaterMark === undef$1) {
+    options.highWaterMark = 16;
+  }
+
+  const stream = new DestroyableTransform(options);
+
+  stream._transform = transform;
+
+  if (flush) stream._flush = flush;
+  if (destroy$$1) stream._destroy = destroy$$1;
+
+  return stream;
+}
+
+/**
+ * @module normalize
+ * @license MIT
+ * @version 2018/04/16
+ */
+
+// Current working directory
+const CWD = process.cwd();
+// The max max-age set
+const MAX_MAX_AGE = 60 * 60 * 24 * 365;
+
+/**
+ * @function normalizeCharset
+ * @param {string} charset
+ * @returns {string|null}
+ */
+function normalizeCharset(charset) {
+  return charset && typeOf(charset, 'string') ? charset : null;
+}
+
+/**
+ * @function normalizeRoot
+ * @param {string} root
+ * @returns {string}
+ */
+function normalizeRoot(root) {
+  return unixify(typeOf(root, 'string') ? path.resolve(root) : CWD);
+}
+
+/**
+ * @function normalizePath
+ * @param {string} path
+ * @returns {string|-1}
+ */
+function normalizePath(path$$1) {
+  path$$1 = decodeURI(path$$1);
+
+  return path$$1 === -1 ? path$$1 : normalize(path$$1);
+}
+
+/**
+ * @function normalizeRealpath
+ * @param {string} root
+ * @param {string} path
+ * @returns {string|-1}
+ */
+function normalizeRealpath(root, path$$1) {
+  return path$$1 === -1 ? path$$1 : unixify(path.join(root, path$$1));
+}
+
+/**
+ * @function normalizeList
+ * @param {Array} list
+ * @returns {Array}
+ */
+function normalizeList(list) {
+  list = Array.isArray(list) ? list : [list];
+
+  return list.filter(item => item && typeOf(item, 'string'));
+}
+
+/**
+ * @function normalizeAccess
+ * @param {string} access
+ * @returns {string}
+ */
+function normalizeAccess(access) {
+  return access === 'ignore' ? access : 'deny';
+}
+
+/**
+ * @function normalizeMaxAge
+ * @param {string|number} maxAge
+ * @returns {number}
+ */
+function normalizeMaxAge(maxAge) {
+  maxAge = typeOf(maxAge, 'string') ? ms(maxAge) / 1000 : Number(maxAge);
+  maxAge = !isNaN(maxAge) ? Math.min(Math.max(0, maxAge), MAX_MAX_AGE) : 0;
+
+  return Math.floor(maxAge);
+}
+
+/**
+ * @function normalizeBoolean
+ * @param {boolean} boolean
+ * @param {boolean} def
+ * @returns {boolean}
+ */
+function normalizeBoolean(boolean, def) {
+  return isUndefined(boolean) ? def : Boolean(boolean);
+}
+
+/**
+ * @function normalizeGlob
+ * @param {Object} glob
+ * @returns {string}
+ */
+function normalizeGlob(glob) {
+  glob = glob || {};
+  glob.dot = normalizeBoolean(glob.dot, true);
+
+  return glob;
+}
+
+/**
+ * @module file-send
+ * @license MIT
+ * @version 2018/04/16
+ */
 
 // File not found status
 const NOT_FOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
@@ -30,25 +611,25 @@ const NOT_FOUND = ['ENOENT', 'ENAMETOOLONG', 'ENOTDIR'];
 /**
  * @class FileSend
  */
-export default class FileSend extends Events {
+class FileSend extends Events {
   /**
    * @constructor
    * @param {Request} request
    * @param {String} path
    * @param {Object} options
    */
-  constructor(request, path, options) {
-    if (!(request instanceof http.IncomingMessage)) {
+  constructor(request$$1, path$$1, options) {
+    if (!(request$$1 instanceof http.IncomingMessage)) {
       throw new TypeError('The param request must be a http request.');
     }
 
-    if (!utils.typeOf(path, 'string')) {
+    if (!typeOf(path$$1, 'string')) {
       throw new TypeError('The param path must be a string.');
     }
 
     super(options);
 
-    this.path = path;
+    this.path = path$$1;
     this.root = options.root;
     this.index = options.index;
     this.ignore = options.ignore;
@@ -61,10 +642,10 @@ export default class FileSend extends Events {
     this.cacheControl = options.cacheControl;
     this.lastModified = options.lastModified;
 
-    this[symbol.middlewares] = [];
-    this[symbol.request] = request;
-    this[symbol.stdin] = through();
-    this[symbol.glob] = normalize.normalizeGlob(options.glob);
+    this[middlewares] = [];
+    this[request] = request$$1;
+    this[stdin] = through();
+    this[glob] = normalizeGlob(options.glob);
   }
 
   /**
@@ -72,7 +653,7 @@ export default class FileSend extends Events {
    * @method get
    */
   get request() {
-    return this[symbol.request];
+    return this[request];
   }
 
   /**
@@ -80,13 +661,13 @@ export default class FileSend extends Events {
    * @method get
    */
   get response() {
-    const response = this[symbol.response];
+    const response$$1 = this[response];
 
-    if (!response) {
+    if (!response$$1) {
       throw new ReferenceError("Can't get http response before called pipe method.");
     }
 
-    return response;
+    return response$$1;
   }
 
   /**
@@ -101,13 +682,13 @@ export default class FileSend extends Events {
    * @property path
    * @method set
    */
-  set path(path) {
-    const root = this.root;
+  set path(path$$1) {
+    const root$$1 = this.root;
 
-    path = normalize.normalizePath(path);
+    path$$1 = normalizePath(path$$1);
 
-    this[symbol.path] = path;
-    this[symbol.realpath] = root ? normalize.normalizeRealpath(root, path) : path;
+    this[path$1] = path$$1;
+    this[realpath] = root$$1 ? normalizeRealpath(root$$1, path$$1) : path$$1;
   }
 
   /**
@@ -115,20 +696,20 @@ export default class FileSend extends Events {
    * @method get
    */
   get path() {
-    return this[symbol.path];
+    return this[path$1];
   }
 
   /**
    * @property root
    * @method set
    */
-  set root(root) {
-    const path = this.path;
+  set root(root$$1) {
+    const path$$1 = this.path;
 
-    root = normalize.normalizeRoot(root);
+    root$$1 = normalizeRoot(root$$1);
 
-    this[symbol.root] = root;
-    this[symbol.realpath] = path ? normalize.normalizeRealpath(root, path) : root;
+    this[root] = root$$1;
+    this[realpath] = path$$1 ? normalizeRealpath(root$$1, path$$1) : root$$1;
   }
 
   /**
@@ -136,7 +717,7 @@ export default class FileSend extends Events {
    * @method get
    */
   get root() {
-    return this[symbol.root];
+    return this[root];
   }
 
   /**
@@ -144,15 +725,15 @@ export default class FileSend extends Events {
    * @method get
    */
   get realpath() {
-    return this[symbol.realpath];
+    return this[realpath];
   }
 
   /**
    * @property index
    * @method set
    */
-  set index(index) {
-    this[symbol.index] = normalize.normalizeList(index);
+  set index(index$$1) {
+    this[index] = normalizeList(index$$1);
   }
 
   /**
@@ -160,15 +741,15 @@ export default class FileSend extends Events {
    * @method get
    */
   get index() {
-    return this[symbol.index];
+    return this[index];
   }
 
   /**
    * @property ignore
    * @method set
    */
-  set ignore(ignore) {
-    this[symbol.ignore] = normalize.normalizeList(ignore);
+  set ignore(ignore$$1) {
+    this[ignore] = normalizeList(ignore$$1);
   }
 
   /**
@@ -176,15 +757,15 @@ export default class FileSend extends Events {
    * @method get
    */
   get ignore() {
-    return this[symbol.ignore];
+    return this[ignore];
   }
 
   /**
    * @property ignoreAccess
    * @method set
    */
-  set ignoreAccess(ignoreAccess) {
-    this[symbol.ignoreAccess] = normalize.normalizeAccess(ignoreAccess);
+  set ignoreAccess(ignoreAccess$$1) {
+    this[ignoreAccess] = normalizeAccess(ignoreAccess$$1);
   }
 
   /**
@@ -192,15 +773,15 @@ export default class FileSend extends Events {
    * @method get
    */
   get ignoreAccess() {
-    return this[symbol.ignoreAccess];
+    return this[ignoreAccess];
   }
 
   /**
    * @property maxAge
    * @method set
    */
-  set maxAge(maxAge) {
-    this[symbol.maxAge] = normalize.normalizeMaxAge(maxAge);
+  set maxAge(maxAge$$1) {
+    this[maxAge] = normalizeMaxAge(maxAge$$1);
   }
 
   /**
@@ -208,15 +789,15 @@ export default class FileSend extends Events {
    * @method get
    */
   get maxAge() {
-    return this[symbol.maxAge];
+    return this[maxAge];
   }
 
   /**
    * @property charset
    * @method set
    */
-  set charset(charset) {
-    this[symbol.charset] = normalize.normalizeCharset(charset);
+  set charset(charset$$1) {
+    this[charset] = normalizeCharset(charset$$1);
   }
 
   /**
@@ -224,15 +805,15 @@ export default class FileSend extends Events {
    * @method get
    */
   get charset() {
-    return this[symbol.charset];
+    return this[charset];
   }
 
   /**
    * @property etag
    * @method set
    */
-  set etag(etag) {
-    this[symbol.etag] = normalize.normalizeBoolean(etag, true);
+  set etag(etag$$1) {
+    this[etag$1] = normalizeBoolean(etag$$1, true);
   }
 
   /**
@@ -240,15 +821,15 @@ export default class FileSend extends Events {
    * @method get
    */
   get etag() {
-    return this[symbol.etag];
+    return this[etag$1];
   }
 
   /**
    * @property immutable
    * @method set
    */
-  set immutable(immutable) {
-    this[symbol.immutable] = normalize.normalizeBoolean(immutable, false);
+  set immutable(immutable$$1) {
+    this[immutable] = normalizeBoolean(immutable$$1, false);
   }
 
   /**
@@ -256,15 +837,15 @@ export default class FileSend extends Events {
    * @method get
    */
   get immutable() {
-    return this[symbol.immutable];
+    return this[immutable];
   }
 
   /**
    * @property acceptRanges
    * @method set
    */
-  set acceptRanges(acceptRanges) {
-    this[symbol.acceptRanges] = normalize.normalizeBoolean(acceptRanges, true);
+  set acceptRanges(acceptRanges$$1) {
+    this[acceptRanges] = normalizeBoolean(acceptRanges$$1, true);
   }
 
   /**
@@ -272,15 +853,15 @@ export default class FileSend extends Events {
    * @method get
    */
   get acceptRanges() {
-    return this[symbol.acceptRanges];
+    return this[acceptRanges];
   }
 
   /**
    * @property cacheControl
    * @method set
    */
-  set cacheControl(cacheControl) {
-    this[symbol.cacheControl] = normalize.normalizeBoolean(cacheControl, true);
+  set cacheControl(cacheControl$$1) {
+    this[cacheControl] = normalizeBoolean(cacheControl$$1, true);
   }
 
   /**
@@ -288,15 +869,15 @@ export default class FileSend extends Events {
    * @method get
    */
   get cacheControl() {
-    return this[symbol.cacheControl];
+    return this[cacheControl];
   }
 
   /**
    * @property lastModified
    * @method set
    */
-  set lastModified(lastModified) {
-    this[symbol.lastModified] = normalize.normalizeBoolean(lastModified, true);
+  set lastModified(lastModified$$1) {
+    this[lastModified] = normalizeBoolean(lastModified$$1, true);
   }
 
   /**
@@ -304,7 +885,7 @@ export default class FileSend extends Events {
    * @method get
    */
   get lastModified() {
-    return this[symbol.lastModified];
+    return this[lastModified];
   }
 
   /**
@@ -346,7 +927,7 @@ export default class FileSend extends Events {
    */
   use(middleware) {
     if (middleware instanceof Stream) {
-      this[symbol.middlewares].push(middleware);
+      this[middlewares].push(middleware);
     }
 
     return this;
@@ -385,13 +966,13 @@ export default class FileSend extends Events {
    * @public
    */
   hasHeader(name) {
-    const response = this.response;
+    const response$$1 = this.response;
 
-    if (response.hasHeader) {
-      return response.hasHeader(name);
+    if (response$$1.hasHeader) {
+      return response$$1.hasHeader(name);
     }
 
-    return response.getHeader(name) !== utils.undef;
+    return response$$1.getHeader(name) !== undef;
   }
 
   /**
@@ -430,7 +1011,7 @@ export default class FileSend extends Events {
     this.setHeader('Content-Security-Policy', "default-src 'self'");
     this.setHeader('X-Content-Type-Options', 'nosniff');
     this.setHeader('Location', href);
-    this[symbol.responseEnd](html);
+    this[responseEnd](html);
   }
 
   /**
@@ -439,39 +1020,39 @@ export default class FileSend extends Events {
    * @param {Object} options
    * @public
    */
-  pipe(response, options) {
-    if (this[symbol.response]) {
+  pipe(response$$1, options) {
+    if (this[response]) {
       throw new RangeError('The pipe method has been called more than once.');
     }
 
-    if (!(response instanceof http.ServerResponse)) {
+    if (!(response$$1 instanceof http.ServerResponse)) {
       throw new TypeError('The response must be a http response.');
     }
 
     // Set response
-    this[symbol.response] = response;
+    this[response] = response$$1;
 
     // Headers already sent
-    if (response.headersSent) {
-      this[symbol.headersSent]();
+    if (response$$1.headersSent) {
+      this[headersSent]();
 
-      return response;
+      return response$$1;
     }
 
     // Listening error event
-    response.once('error', error => {
-      this[symbol.statError](error);
+    response$$1.once('error', error$$1 => {
+      this[statError](error$$1);
     });
 
     // Bootstrap
-    this[symbol.bootstrap]();
+    this[bootstrap]();
 
     // Pipeline
-    const streams = [this[symbol.stdin]].concat(this[symbol.middlewares]);
+    const streams = [this[stdin]].concat(this[middlewares]);
 
-    streams.push(response);
+    streams.push(response$$1);
 
-    return utils.pipeline(streams);
+    return pipeline(streams);
   }
 
   /**
@@ -483,9 +1064,9 @@ export default class FileSend extends Events {
    */
   end(chunk, encoding, callback) {
     if (chunk) {
-      this[symbol.stdin].end(chunk, encoding, callback);
+      this[stdin].end(chunk, encoding, callback);
     } else {
-      this[symbol.stdin].end();
+      this[stdin].end();
     }
   }
 
@@ -493,8 +1074,8 @@ export default class FileSend extends Events {
    * @method headersSent
    * @private
    */
-  [symbol.headersSent]() {
-    this[symbol.responseEnd]("Can't set headers after they are sent.");
+  [headersSent]() {
+    this[responseEnd]("Can't set headers after they are sent.");
   }
 
   /**
@@ -503,34 +1084,34 @@ export default class FileSend extends Events {
    * @param {string} statusMessage
    * @public
    */
-  [symbol.error](statusCode, statusMessage) {
-    const response = this.response;
+  [error](statusCode, statusMessage) {
+    const response$$1 = this.response;
 
     this.status(statusCode, statusMessage);
 
     statusCode = this.statusCode;
     statusMessage = this.statusMessage;
 
-    const error = new Error(statusMessage);
+    const error$$1 = new Error(statusMessage);
 
-    error.statusCode = statusCode;
+    error$$1.statusCode = statusCode;
 
     // Emit if listeners instead of responding
     if (this.hasListeners('error')) {
-      this.emit('error', error, chunk => {
-        if (response.headersSent) {
-          return this[symbol.headersSent]();
+      this.emit('error', error$$1, chunk => {
+        if (response$$1.headersSent) {
+          return this[headersSent]();
         }
 
-        this[symbol.responseEnd](chunk);
+        this[responseEnd](chunk);
       });
     } else {
-      if (response.headersSent) {
-        return this[symbol.headersSent]();
+      if (response$$1.headersSent) {
+        return this[headersSent]();
       }
 
       // Error document
-      const document = utils.createErrorDocument(statusCode, statusMessage);
+      const document = createErrorDocument(statusCode, statusMessage);
 
       // Set headers
       this.setHeader('Cache-Control', 'private');
@@ -538,7 +1119,7 @@ export default class FileSend extends Events {
       this.setHeader('Content-Length', Buffer.byteLength(document));
       this.setHeader('Content-Security-Policy', `default-src 'self' 'unsafe-inline'`);
       this.setHeader('X-Content-Type-Options', 'nosniff');
-      this[symbol.responseEnd](document);
+      this[responseEnd](document);
     }
   }
 
@@ -547,20 +1128,20 @@ export default class FileSend extends Events {
    * @param {Error} error
    * @private
    */
-  [symbol.statError](error) {
+  [statError](error$$1) {
     // 404 error
-    if (NOT_FOUND.indexOf(error.code) !== -1) {
-      return this[symbol.error](404);
+    if (NOT_FOUND.indexOf(error$$1.code) !== -1) {
+      return this[error](404);
     }
 
-    this[symbol.error](500, error.message);
+    this[error](500, error$$1.message);
   }
 
   /**
    * @method hasTrailingSlash
    * @private
    */
-  [symbol.hasTrailingSlash]() {
+  [hasTrailingSlash]() {
     return this.path[this.path.length - 1] === '/';
   }
 
@@ -568,7 +1149,7 @@ export default class FileSend extends Events {
    * @method isConditionalGET
    * @private
    */
-  [symbol.isConditionalGET]() {
+  [isConditionalGET]() {
     const headers = this.request.headers;
 
     return (
@@ -580,30 +1161,30 @@ export default class FileSend extends Events {
    * @method isPreconditionFailure
    * @private
    */
-  [symbol.isPreconditionFailure]() {
-    const request = this.request;
+  [isPreconditionFailure]() {
+    const request$$1 = this.request;
     // if-match
-    const match = request.headers['if-match'];
+    const match = request$$1.headers['if-match'];
 
     if (match) {
-      const etag = this.getHeader('ETag');
+      const etag$$1 = this.getHeader('ETag');
 
       return (
-        !etag ||
+        !etag$$1 ||
         (match !== '*' &&
-          utils.parseTokenList(match).every(match => {
-            return match !== etag && match !== 'W/' + etag && 'W/' + match !== etag;
+          parseTokenList(match).every(match => {
+            return match !== etag$$1 && match !== 'W/' + etag$$1 && 'W/' + match !== etag$$1;
           }))
       );
     }
 
     // if-unmodified-since
-    const unmodifiedSince = utils.parseHttpDate(request.headers['if-unmodified-since']);
+    const unmodifiedSince = parseHttpDate(request$$1.headers['if-unmodified-since']);
 
     if (!isNaN(unmodifiedSince)) {
-      const lastModified = utils.parseHttpDate(this.getHeader('Last-Modified'));
+      const lastModified$$1 = parseHttpDate(this.getHeader('Last-Modified'));
 
-      return isNaN(lastModified) || lastModified > unmodifiedSince;
+      return isNaN(lastModified$$1) || lastModified$$1 > unmodifiedSince;
     }
 
     return false;
@@ -613,7 +1194,7 @@ export default class FileSend extends Events {
    * @method isCachable
    * @private
    */
-  [symbol.isCachable]() {
+  [isCachable]() {
     const statusCode = this.statusCode;
 
     return statusCode === 304 || (statusCode >= 200 && statusCode < 300);
@@ -623,7 +1204,7 @@ export default class FileSend extends Events {
    * @method isFresh
    * @private
    */
-  [symbol.isFresh]() {
+  [isFresh]() {
     return fresh(this.request.headers, {
       etag: this.getHeader('ETag'),
       'last-modified': this.getHeader('Last-Modified')
@@ -634,7 +1215,7 @@ export default class FileSend extends Events {
    * @method isRangeFresh
    * @private
    */
-  [symbol.isRangeFresh]() {
+  [isRangeFresh]() {
     const ifRange = this.request.headers['if-range'];
 
     if (!ifRange) {
@@ -643,15 +1224,15 @@ export default class FileSend extends Events {
 
     // If-Range as etag
     if (ifRange.indexOf('"') !== -1) {
-      const etag = this.getHeader('ETag');
+      const etag$$1 = this.getHeader('ETag');
 
-      return Boolean(etag && ifRange.indexOf(etag) !== -1);
+      return Boolean(etag$$1 && ifRange.indexOf(etag$$1) !== -1);
     }
 
     // If-Range as modified date
-    const lastModified = this.getHeader('Last-Modified');
+    const lastModified$$1 = this.getHeader('Last-Modified');
 
-    return utils.parseHttpDate(lastModified) <= utils.parseHttpDate(ifRange);
+    return parseHttpDate(lastModified$$1) <= parseHttpDate(ifRange);
   }
 
   /**
@@ -659,8 +1240,8 @@ export default class FileSend extends Events {
    * @param {string} path
    * @private
    */
-  [symbol.isIgnore](path) {
-    return this.ignore.length && micromatch(path, this.ignore, this[symbol.glob]).length;
+  [isIgnore](path$$1) {
+    return this.ignore.length && micromatch(path$$1, this.ignore, this[glob]).length;
   }
 
   /**
@@ -668,7 +1249,7 @@ export default class FileSend extends Events {
    * @param {Stats} stats
    * @private
    */
-  [symbol.parseRange](stats) {
+  [parseRange$1](stats) {
     const result = [];
     const size = stats.size;
     let contentLength = size;
@@ -678,7 +1259,7 @@ export default class FileSend extends Events {
       let ranges = this.request.headers['range'];
 
       // Range fresh
-      if (ranges && this[symbol.isRangeFresh]()) {
+      if (ranges && this[isRangeFresh]()) {
         // Parse range -1 -2 or []
         ranges = parseRange(size, ranges, { combine: true });
 
@@ -689,7 +1270,7 @@ export default class FileSend extends Events {
           // Multiple ranges
           if (ranges.length > 1) {
             // Range boundary
-            let boundary = `<${utils.boundaryGenerator()}>`;
+            let boundary = `<${boundaryGenerator()}>`;
             // If user set content-type use user define
             const contentType = this.getHeader('Content-Type') || 'application/octet-stream';
 
@@ -768,19 +1349,19 @@ export default class FileSend extends Events {
    * @method dir
    * @private
    */
-  [symbol.dir]() {
+  [dir]() {
     // If have event directory listener, use user define
     // emit event directory
     if (this.hasListeners('dir')) {
       this.emit('dir', this.realpath, chunk => {
         if (this.response.headersSent) {
-          return this[symbol.headersSent]();
+          return this[headersSent]();
         }
 
-        this[symbol.responseEnd](chunk);
+        this[responseEnd](chunk);
       });
     } else {
-      this[symbol.error](403);
+      this[error](403);
     }
   }
 
@@ -789,8 +1370,8 @@ export default class FileSend extends Events {
    * @param {Stats} stats
    * @private
    */
-  [symbol.initHeaders](stats) {
-    const response = this.response;
+  [initHeaders](stats) {
+    const response$$1 = this.response;
 
     // Accept-Ranges
     if (this.acceptRanges) {
@@ -804,26 +1385,26 @@ export default class FileSend extends Events {
       let type = mime.lookup(this.path);
 
       if (type) {
-        let charset = this.charset;
+        let charset$$1 = this.charset;
 
         // Get charset
-        charset = charset ? `; charset=${charset}` : '';
+        charset$$1 = charset$$1 ? `; charset=${charset$$1}` : '';
 
         // Set Content-Type
-        this.setHeader('Content-Type', type + charset);
+        this.setHeader('Content-Type', type + charset$$1);
       }
     }
 
     // Cache-Control
     if (this.cacheControl && !this.hasHeader('Cache-Control')) {
-      let cacheControl = `public, max-age=${this.maxAge}`;
+      let cacheControl$$1 = `public, max-age=${this.maxAge}`;
 
       if (this.immutable) {
-        cacheControl += ', immutable';
+        cacheControl$$1 += ', immutable';
       }
 
       // Set Cache-Control
-      this.setHeader('Cache-Control', cacheControl);
+      this.setHeader('Cache-Control', cacheControl$$1);
     }
 
     // Last-Modified
@@ -845,53 +1426,51 @@ export default class FileSend extends Events {
    * @param {Function} chunk
    * @private
    */
-  [symbol.responseEnd](chunk, encoding, callback) {
-    const response = this.response;
+  [responseEnd](chunk, encoding, callback) {
+    const response$$1 = this.response;
 
-    if (response) {
+    if (response$$1) {
       if (chunk) {
-        response.end(chunk, encoding, callback);
+        response$$1.end(chunk, encoding, callback);
       } else {
-        response.end();
+        response$$1.end();
       }
     }
 
     // Destroy stdin stream
-    destroy(this[symbol.stdin]);
+    destroy(this[stdin]);
   }
 
   /**
    * @method sendIndex
    * @private
    */
-  [symbol.sendIndex]() {
-    const hasTrailingSlash = this[symbol.hasTrailingSlash]();
-    const path = hasTrailingSlash ? this.path : `${this.path}/`;
+  [sendIndex]() {
+    const hasTrailingSlash$$1 = this[hasTrailingSlash]();
+    const path$$1 = hasTrailingSlash$$1 ? this.path : `${this.path}/`;
 
     // Iterator index
     series(
-      this.index.map(index => {
-        return path + index;
-      }),
-      (path, next) => {
-        if (this[symbol.isIgnore](path)) {
+      this.index.map(index$$1 => path$$1 + index$$1),
+      (path$$1, next) => {
+        if (this[isIgnore](path$$1)) {
           return next();
         }
 
-        fs.stat(this.root + path, (error, stats) => {
-          if (error || !stats.isFile()) {
+        fs.stat(this.root + path$$1, (error$$1, stats) => {
+          if (error$$1 || !stats.isFile()) {
             return next();
           }
 
-          this.redirect(utils.unixify(path));
+          this.redirect(unixify(path$$1));
         });
       },
       () => {
-        if (hasTrailingSlash) {
-          return this[symbol.dir]();
+        if (hasTrailingSlash$$1) {
+          return this[dir]();
         }
 
-        this.redirect(path);
+        this.redirect(path$$1);
       }
     );
   }
@@ -900,25 +1479,25 @@ export default class FileSend extends Events {
    * @method sendFile
    * @private
    */
-  [symbol.sendFile](ranges) {
-    const response = this.response;
-    const realpath = this.realpath;
-    const stdin = this[symbol.stdin];
+  [sendFile](ranges) {
+    const response$$1 = this.response;
+    const realpath$$1 = this.realpath;
+    const stdin$$1 = this[stdin];
 
     // Iterator ranges
     series(
       ranges,
-      (range, next) => {
-        // Push open boundary
-        range.open && stdin.write(range.open);
+      (range, next, index$$1) => {
+        // Write open boundary
+        range.open && stdin$$1.write(range.open);
 
         // Create file stream
-        const file = fs.createReadStream(realpath, range);
+        const file = fs.createReadStream(realpath$$1, range);
 
         // Error handling code-smell
-        file.on('error', error => {
+        file.on('error', error$$1 => {
           // Emit stdin error
-          stdin.emit('error', error);
+          stdin$$1.emit('error', error$$1);
 
           // Destroy file stream
           destroy(file);
@@ -927,10 +1506,10 @@ export default class FileSend extends Events {
         // File stream end
         file.on('end', () => {
           // Stop pipe stdin
-          file.unpipe(stdin);
+          file.unpipe(stdin$$1);
 
           // Push close boundary
-          range.close && stdin.write(range.close);
+          range.close && stdin$$1.write(range.close);
 
           // Destroy file stream
           destroy(file);
@@ -940,12 +1519,10 @@ export default class FileSend extends Events {
         file.on('close', next);
 
         // Pipe stdin
-        file.pipe(stdin, { end: false });
+        file.pipe(stdin$$1, { end: false });
       },
-      () => {
-        // End stdin
-        this.end();
-      }
+      // End stdin
+      () => this.end()
     );
   }
 
@@ -953,76 +1530,76 @@ export default class FileSend extends Events {
    * @method bootstrap
    * @private
    */
-  [symbol.bootstrap]() {
+  [bootstrap]() {
     const method = this.method;
-    const response = this.response;
-    const realpath = this.realpath;
+    const response$$1 = this.response;
+    const realpath$$1 = this.realpath;
 
     // Only support GET and HEAD
     if (method !== 'GET' && method !== 'HEAD') {
       // End with empty content
-      return this[symbol.error](405);
+      return this[error](405);
     }
 
     // Set status
-    this.status(response.statusCode || 200);
+    this.status(response$$1.statusCode || 200);
 
     // Path -1 or null byte(s)
     if (this.path === -1 || this.path.indexOf('\0') !== -1) {
-      return this[symbol.error](400);
+      return this[error](400);
     }
 
     // Malicious path
-    if (utils.isOutBound(realpath, this.root)) {
-      return this[symbol.error](403);
+    if (isOutBound(realpath$$1, this.root)) {
+      return this[error](403);
     }
 
     // Is ignore path or file
-    if (this[symbol.isIgnore](this.path)) {
+    if (this[isIgnore](this.path)) {
       switch (this.ignoreAccess) {
         case 'deny':
-          return this[symbol.error](403);
+          return this[error](403);
         case 'ignore':
-          return this[symbol.error](404);
+          return this[error](404);
       }
     }
 
     // Read file
-    fs.stat(realpath, (error, stats) => {
+    fs.stat(realpath$$1, (error$$1, stats) => {
       // Stat error
-      if (error) {
-        return this[symbol.statError](error);
+      if (error$$1) {
+        return this[statError](error$$1);
       }
 
       // Is directory
       if (stats.isDirectory()) {
-        return this[symbol.sendIndex]();
-      } else if (this[symbol.hasTrailingSlash]()) {
+        return this[sendIndex]();
+      } else if (this[hasTrailingSlash]()) {
         // Not a directory but has trailing slash
-        return this[symbol.error](404);
+        return this[error](404);
       }
 
       // Set headers and parse range
-      this[symbol.initHeaders](stats);
+      this[initHeaders](stats);
 
       // Conditional get support
-      if (this[symbol.isConditionalGET]()) {
-        const responseEnd = () => {
+      if (this[isConditionalGET]()) {
+        const responseEnd$$1 = () => {
           // Remove content-type
           this.removeHeader('Content-Type');
 
           // End with empty content
-          this[symbol.responseEnd]();
+          this[responseEnd]();
         };
 
-        if (this[symbol.isPreconditionFailure]()) {
+        if (this[isPreconditionFailure]()) {
           this.status(412);
 
-          return responseEnd();
-        } else if (this[symbol.isCachable] && this[symbol.isFresh]()) {
+          return responseEnd$$1();
+        } else if (this[isCachable] && this[isFresh]()) {
           this.status(304);
 
-          return responseEnd();
+          return responseEnd$$1();
         }
       }
 
@@ -1032,26 +1609,26 @@ export default class FileSend extends Events {
         this.setHeader('Content-Length', stats.size);
 
         // End with empty content
-        return this[symbol.responseEnd]();
+        return this[responseEnd]();
       }
 
       // Parse ranges
-      const ranges = this[symbol.parseRange](stats);
+      const ranges = this[parseRange$1](stats);
 
       // 416
       if (ranges === -1) {
         // Set content-range
         this.setHeader('Content-Range', `bytes */${stats.size}`);
         // Unsatisfiable 416
-        this[symbol.error](416);
+        this[error](416);
       } else {
         // Emit file event
         if (this.hasListeners('file')) {
-          this.emit('file', realpath, stats);
+          this.emit('file', realpath$$1, stats);
         }
 
         // Read file
-        this[symbol.sendFile](ranges);
+        this[sendFile](ranges);
       }
     });
   }
@@ -1059,3 +1636,5 @@ export default class FileSend extends Events {
 
 // Exports mime
 FileSend.mime = mime;
+
+module.exports = FileSend;

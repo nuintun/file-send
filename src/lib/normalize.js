@@ -1,12 +1,12 @@
 /**
  * @module normalize
  * @license MIT
- * @version 2017/11/02
+ * @version 2018/04/16
  */
 
 import ms from 'ms';
-import { join, resolve } from 'path';
 import * as utils from './utils';
+import { join, resolve } from 'path';
 
 // Current working directory
 const CWD = process.cwd();
@@ -60,9 +60,7 @@ export function normalizeRealpath(root, path) {
 export function normalizeList(list) {
   list = Array.isArray(list) ? list : [list];
 
-  return list.filter(item => {
-    return item && utils.typeOf(item, 'string');
-  });
+  return list.filter(item => item && utils.typeOf(item, 'string'));
 }
 
 /**

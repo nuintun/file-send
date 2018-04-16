@@ -1,7 +1,7 @@
 /**
  * @module async
  * @license MIT
- * @version 2017/10/25
+ * @version 2018/04/16
  */
 
 /**
@@ -54,13 +54,7 @@ export function series(array, iterator, done) {
     if (item.done) {
       done();
     } else {
-      iterator(
-        item.value,
-        () => {
-          walk(it);
-        },
-        it.index
-      );
+      iterator(item.value, () => walk(it), it.index);
     }
   }
 

@@ -1,7 +1,7 @@
 /**
  * @module symbol
  * @license MIT
- * @version 2017/11/02
+ * @version 2018/04/16
  */
 
 export const dir = Symbol('dir');

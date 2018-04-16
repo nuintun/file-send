@@ -1,7 +1,7 @@
 /**
  * @module through
  * @license MIT
- * @version 2017/10/25
+ * @version 2018/04/16
  */
 
 import { typeOf } from './utils';

@@ -1,7 +1,7 @@
 /**
  * @module utils
  * @license MIT
- * @version 2017/10/24
+ * @version 2018/04/16
  */
 
 import { relative } from 'path';
@@ -59,6 +59,16 @@ export function isOutBound(path, root) {
 }
 
 /**
+ * @function unixify
+ * @description Convert path separators to posix/unix-style forward slashes
+ * @param {string} path
+ * @returns {string}
+ */
+export function unixify(path) {
+  return path.replace(/\\/g, '/');
+}
+
+/**
  * @function normalize
  * @description Normalize path
  * @param {string} path
@@ -66,7 +76,7 @@ export function isOutBound(path, root) {
  */
 export function normalize(path) {
   // \a\b\.\c\.\d ==> /a/b/./c/./d
-  path = path.replace(/\\/g, '/');
+  path = unixify(path);
 
   // :///a/b/c ==> ://a/b/c
   path = path.replace(/:\/{3,}/, '://');
@@ -100,16 +110,6 @@ export function normalize(path) {
 
   // Get path
   return path;
-}
-
-/**
- * @function unixify
- * @description Convert path separators to posix/unix-style forward slashes
- * @param {string} path
- * @returns {string}
- */
-export function unixify(path) {
-  return path.replace(/\\/g, '/');
 }
 
 /**

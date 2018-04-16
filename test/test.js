@@ -9,7 +9,7 @@ const parseURL = require('url').parse;
 const expect = require('chai').expect;
 const request = require('superagent');
 const holding = require('holding').assert;
-const FileSend = require('../dist/index');
+const FileSend = require('../index');
 
 function pathname(url) {
   return parseURL(url).pathname;
@@ -842,6 +842,8 @@ describe('FileSend(req, path, options)', () => {
             expect(res.statusCode).to.equal(206);
             expect(contentType).to.match(/^multipart\/byteranges; boundary=<[^<>]+>$/);
             expect(data.toString()).to.include(boundary);
+
+            console.log(data.toString())
 
             done();
           });
