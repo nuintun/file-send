@@ -18,7 +18,15 @@
   "engines": {
     "node": ">=4.0.0"
   },
-  "keywords": ["http", "https", "server", "http send", "https send", "file send", "file stream"],
+  "keywords": [
+    "http",
+    "https",
+    "server",
+    "http send",
+    "https send",
+    "file send",
+    "file stream"
+  ],
   "dependencies": {
     "ms": "^2.1.1",
     "etag": "^1.8.1",
@@ -27,22 +35,21 @@
     "encodeurl": "^1.0.2",
     "micromatch": "^3.1.10",
     "escape-html": "^1.0.3",
-    "mime-types": "^2.1.18",
+    "mime-types": "^2.1.19",
     "range-parser": "^1.2.0"
   },
   "devDependencies": {
     "chai": "^4.1.2",
-    "holding": "^3.0.2",
-    "rollup": "^0.62.0",
-    "fs-extra": "^6.0.1",
-    "superagent": "^3.8.2"
+    "holding": "^3.0.3",
+    "rollup": "^0.63.4",
+    "fs-extra": "^7.0.0",
+    "superagent": "^3.8.3"
   },
   "readmeFilename": "README.md",
   "scripts": {
     "prepublishOnly": "node rollup.js",
     "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit",
-    "test-ci":
-      "istanbul cover node_modules/mocha/bin/_mocha --report lcovonly -- --timeout 6000 --check-leaks --reporter spec --exit",
+    "test-ci": "istanbul cover node_modules/mocha/bin/_mocha --report lcovonly -- --timeout 6000 --check-leaks --reporter spec --exit",
     "test-cov": "istanbul cover node_modules/mocha/bin/_mocha -- --timeout 6000 --check-leaks --reporter dot --exit"
   },
   "homepage": "https://github.com/nuintun/file-send#readme"

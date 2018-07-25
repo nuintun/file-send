@@ -1519,7 +1519,10 @@ class FileSend extends Events {
         file.on('close', next);
 
         // Pipe stdin
-        file.pipe(stdin$$1, { end: false });
+        file.pipe(
+          stdin$$1,
+          { end: false }
+        );
       },
       // End stdin
       () => this.end()

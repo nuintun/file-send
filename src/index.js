@@ -936,7 +936,10 @@ export default class FileSend extends Events {
         file.on('close', next);
 
         // Pipe stdin
-        file.pipe(stdin, { end: false });
+        file.pipe(
+          stdin,
+          { end: false }
+        );
       },
       // End stdin
       () => this.end()
