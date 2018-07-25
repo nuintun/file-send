@@ -843,8 +843,6 @@ describe('FileSend(req, path, options)', () => {
             expect(contentType).to.match(/^multipart\/byteranges; boundary=<[^<>]+>$/);
             expect(data.toString()).to.include(boundary);
 
-            console.log(data.toString())
-
             done();
           });
         });
