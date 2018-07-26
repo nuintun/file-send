@@ -3,8 +3,8 @@
 const url = require('url');
 const http = require('http');
 const cluster = require('cluster');
+const FileSend = require('../index');
 const NUMCPUS = require('os').cpus().length;
-const FileSend = require('./dist/index.min');
 
 // create server
 function createServer(root, port) {
