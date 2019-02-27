@@ -1,15 +1,13 @@
 'use strict';
 
-const fs = require('fs');
 const path = require('path');
 const http = require('http');
-const destroy = require('destroy');
+const FileSend = require('../index');
 const through = require('./through');
+const request = require('superagent');
 const parseURL = require('url').parse;
 const expect = require('chai').expect;
-const request = require('superagent');
 const holding = require('holding').assert;
-const FileSend = require('../index');
 
 function pathname(url) {
   return parseURL(url).pathname;
@@ -1166,14 +1164,12 @@ describe('Options', () => {
       });
 
       it('should send files in root ignore directory', done => {
-        request
-          .get(url(createServer({ root: fixtures + '/.mine', ignore: ['**/.*?(/*)'] }), '/name.txt'))
-          .end((err, res) => {
-            expect(res.status).to.equal(200);
-            expect(res.text).to.equal('tobi');
+        request.get(url(createServer({ root: fixtures + '/.mine', ignore: ['**/.*?(/*)'] }), '/name.txt')).end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.text).to.equal('tobi');
 
-            done();
-          });
+          done();
+        });
       });
     });
 
@@ -1268,14 +1264,12 @@ describe('Options', () => {
     });
 
     it('should support fallbacks', done => {
-      request
-        .get(url(createServer({ root: fixtures, index: ['default.htm', 'index.html'] }), '/pets/'))
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.text).to.include('tobi');
+      request.get(url(createServer({ root: fixtures, index: ['default.htm', 'index.html'] }), '/pets/')).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.text).to.include('tobi');
 
-          done();
-        });
+        done();
+      });
     });
 
     it('should not follow directories', done => {
