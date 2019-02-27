@@ -36,7 +36,6 @@ const banner = `/**
 
 const inputOptions = {
   input: 'src/index.js',
-  preferConst: true,
   external: [
     'fs',
     'path',
@@ -59,12 +58,13 @@ const inputOptions = {
 
 const outputOptions = {
   banner,
-  format: 'cjs',
   strict: true,
   indent: true,
   legacy: true,
+  format: 'cjs',
   interop: false,
-  file: 'index.js'
+  file: 'index.js',
+  preferConst: true
 };
 
 build(inputOptions, outputOptions);

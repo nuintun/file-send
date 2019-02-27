@@ -2,27 +2,27 @@
  * @module file-send
  * @author nuintun
  * @license MIT
- * @version 3.1.2
+ * @version 3.1.3
  * @description A http file send.
  * @see https://github.com/nuintun/file-send#readme
  */
 
 'use strict';
 
-const path = require('path');
-const Stream = require('stream');
-const ms = require('ms');
-const etag = require('etag');
+const etag$1 = require('etag');
 const fs = require('fs');
 const fresh = require('fresh');
 const http = require('http');
 const destroy = require('destroy');
+const Stream = require('stream');
 const Events = require('events');
 const encodeUrl = require('encodeurl');
 const mime = require('mime-types');
 const micromatch = require('micromatch');
+const path$1 = require('path');
 const escapeHtml = require('escape-html');
-const parseRange = require('range-parser');
+const parseRange$1 = require('range-parser');
+const ms = require('ms');
 
 /**
  * @module utils
@@ -74,10 +74,10 @@ function typeOf(value, type) {
  * @param {string} root
  * @returns {boolean}
  */
-function isOutBound(path$$1, root) {
-  path$$1 = path.relative(root, path$$1);
+function isOutBound(path, root) {
+  path = path$1.relative(root, path);
 
-  if (/\.\.(?:[\\/]|$)/.test(path$$1)) return true;
+  if (/\.\.(?:[\\/]|$)/.test(path)) return true;
 
   return false;
 }
@@ -88,8 +88,8 @@ function isOutBound(path$$1, root) {
  * @param {string} path
  * @returns {string}
  */
-function unixify(path$$1) {
-  return path$$1.replace(/\\/g, '/');
+function unixify(path) {
+  return path.replace(/\\/g, '/');
 }
 
 /**
@@ -98,23 +98,23 @@ function unixify(path$$1) {
  * @param {string} path
  * @returns {string}
  */
-function normalize(path$$1) {
+function normalize(path) {
   // \a\b\.\c\.\d ==> /a/b/./c/./d
-  path$$1 = unixify(path$$1);
+  path = unixify(path);
 
   // :///a/b/c ==> ://a/b/c
-  path$$1 = path$$1.replace(/:\/{3,}/, '://');
+  path = path.replace(/:\/{3,}/, '://');
 
   // /a/b/./c/./d ==> /a/b/c/d
-  path$$1 = path$$1.replace(/\/\.\//g, '/');
+  path = path.replace(/\/\.\//g, '/');
 
   // a//b/c ==> a/b/c
   // //a/b/c ==> /a/b/c
   // a///b/////c ==> a/b/c
-  path$$1 = path$$1.replace(/(^|[^:])\/{2,}/g, '$1/');
+  path = path.replace(/(^|[^:])\/{2,}/g, '$1/');
 
   // Transfer path
-  let src = path$$1;
+  let src = path;
   // DOUBLE_DOT_RE matches a/b/c//../d path correctly only if replace // with / first
   const DOUBLE_DOT_RE = /([^/]+)\/\.\.(?:\/|$)/g;
 
@@ -125,15 +125,15 @@ function normalize(path$$1) {
     });
 
     // Break
-    if (path$$1 === src) {
+    if (path === src) {
       break;
     } else {
-      path$$1 = src;
+      path = src;
     }
   } while (true);
 
   // Get path
-  return path$$1;
+  return path;
 }
 
 /**
@@ -353,8 +353,8 @@ function series(array, iterator, done) {
  */
 
 const dir = Symbol('dir');
-const etag$1 = Symbol('etag');
-const path$1 = Symbol('path');
+const etag = Symbol('etag');
+const path = Symbol('path');
 const root = Symbol('root');
 const glob = Symbol('glob');
 const stdin = Symbol('stdin');
@@ -374,7 +374,7 @@ const sendIndex = Symbol('sendIndex');
 const bootstrap = Symbol('bootstrap');
 const statError = Symbol('statError');
 const isCachable = Symbol('isCachable');
-const parseRange$1 = Symbol('parseRange');
+const parseRange = Symbol('parseRange');
 const initHeaders = Symbol('initHeaders');
 const responseEnd = Symbol('responseEnd');
 const headersSent = Symbol('headersSent');
@@ -462,7 +462,7 @@ const DestroyableTransform = destroyable
  * @param {Function} flush
  * @returns {Transform}
  */
-function through(options, transform, flush, destroy$$1) {
+function through(options, transform, flush, destroy) {
   if (typeOf(options, 'function')) {
     flush = transform;
     transform = options;
@@ -473,7 +473,7 @@ function through(options, transform, flush, destroy$$1) {
 
   if (!typeOf(flush, 'function')) flush = null;
 
-  if (!typeOf(destroy$$1, 'function')) destroy$$1 = null;
+  if (!typeOf(destroy, 'function')) destroy = null;
 
   options = options || {};
 
@@ -490,7 +490,7 @@ function through(options, transform, flush, destroy$$1) {
   stream._transform = transform;
 
   if (flush) stream._flush = flush;
-  if (destroy$$1) stream._destroy = destroy$$1;
+  if (destroy) stream._destroy = destroy;
 
   return stream;
 }
@@ -521,7 +521,7 @@ function normalizeCharset(charset) {
  * @returns {string}
  */
 function normalizeRoot(root) {
-  return unixify(typeOf(root, 'string') ? path.resolve(root) : CWD);
+  return unixify(typeOf(root, 'string') ? path$1.resolve(root) : CWD);
 }
 
 /**
@@ -529,10 +529,10 @@ function normalizeRoot(root) {
  * @param {string} path
  * @returns {string|-1}
  */
-function normalizePath(path$$1) {
-  path$$1 = decodeURI(path$$1);
+function normalizePath(path) {
+  path = decodeURI(path);
 
-  return path$$1 === -1 ? path$$1 : normalize(path$$1);
+  return path === -1 ? path : normalize(path);
 }
 
 /**
@@ -541,8 +541,8 @@ function normalizePath(path$$1) {
  * @param {string} path
  * @returns {string|-1}
  */
-function normalizeRealpath(root, path$$1) {
-  return path$$1 === -1 ? path$$1 : unixify(path.join(root, path$$1));
+function normalizeRealpath(root, path) {
+  return path === -1 ? path : unixify(path$1.join(root, path));
 }
 
 /**
@@ -618,18 +618,18 @@ class FileSend extends Events {
    * @param {String} path
    * @param {Object} options
    */
-  constructor(request$$1, path$$1, options) {
-    if (!(request$$1 instanceof http.IncomingMessage)) {
+  constructor(request$1, path, options) {
+    if (!(request$1 instanceof http.IncomingMessage)) {
       throw new TypeError('The param request must be a http request.');
     }
 
-    if (!typeOf(path$$1, 'string')) {
+    if (!typeOf(path, 'string')) {
       throw new TypeError('The param path must be a string.');
     }
 
     super(options);
 
-    this.path = path$$1;
+    this.path = path;
     this.root = options.root;
     this.index = options.index;
     this.ignore = options.ignore;
@@ -643,7 +643,7 @@ class FileSend extends Events {
     this.lastModified = options.lastModified;
 
     this[middlewares] = [];
-    this[request] = request$$1;
+    this[request] = request$1;
     this[stdin] = through();
     this[glob] = normalizeGlob(options.glob);
   }
@@ -661,13 +661,13 @@ class FileSend extends Events {
    * @method get
    */
   get response() {
-    const response$$1 = this[response];
+    const response$1 = this[response];
 
-    if (!response$$1) {
+    if (!response$1) {
       throw new ReferenceError("Can't get http response before called pipe method.");
     }
 
-    return response$$1;
+    return response$1;
   }
 
   /**
@@ -682,13 +682,13 @@ class FileSend extends Events {
    * @property path
    * @method set
    */
-  set path(path$$1) {
-    const root$$1 = this.root;
+  set path(path$1) {
+    const root = this.root;
 
-    path$$1 = normalizePath(path$$1);
+    path$1 = normalizePath(path$1);
 
-    this[path$1] = path$$1;
-    this[realpath] = root$$1 ? normalizeRealpath(root$$1, path$$1) : path$$1;
+    this[path] = path$1;
+    this[realpath] = root ? normalizeRealpath(root, path$1) : path$1;
   }
 
   /**
@@ -696,20 +696,20 @@ class FileSend extends Events {
    * @method get
    */
   get path() {
-    return this[path$1];
+    return this[path];
   }
 
   /**
    * @property root
    * @method set
    */
-  set root(root$$1) {
-    const path$$1 = this.path;
+  set root(root$1) {
+    const path = this.path;
 
-    root$$1 = normalizeRoot(root$$1);
+    root$1 = normalizeRoot(root$1);
 
-    this[root] = root$$1;
-    this[realpath] = path$$1 ? normalizeRealpath(root$$1, path$$1) : root$$1;
+    this[root] = root$1;
+    this[realpath] = path ? normalizeRealpath(root$1, path) : root$1;
   }
 
   /**
@@ -732,8 +732,8 @@ class FileSend extends Events {
    * @property index
    * @method set
    */
-  set index(index$$1) {
-    this[index] = normalizeList(index$$1);
+  set index(index$1) {
+    this[index] = normalizeList(index$1);
   }
 
   /**
@@ -748,8 +748,8 @@ class FileSend extends Events {
    * @property ignore
    * @method set
    */
-  set ignore(ignore$$1) {
-    this[ignore] = normalizeList(ignore$$1);
+  set ignore(ignore$1) {
+    this[ignore] = normalizeList(ignore$1);
   }
 
   /**
@@ -764,8 +764,8 @@ class FileSend extends Events {
    * @property ignoreAccess
    * @method set
    */
-  set ignoreAccess(ignoreAccess$$1) {
-    this[ignoreAccess] = normalizeAccess(ignoreAccess$$1);
+  set ignoreAccess(ignoreAccess$1) {
+    this[ignoreAccess] = normalizeAccess(ignoreAccess$1);
   }
 
   /**
@@ -780,8 +780,8 @@ class FileSend extends Events {
    * @property maxAge
    * @method set
    */
-  set maxAge(maxAge$$1) {
-    this[maxAge] = normalizeMaxAge(maxAge$$1);
+  set maxAge(maxAge$1) {
+    this[maxAge] = normalizeMaxAge(maxAge$1);
   }
 
   /**
@@ -796,8 +796,8 @@ class FileSend extends Events {
    * @property charset
    * @method set
    */
-  set charset(charset$$1) {
-    this[charset] = normalizeCharset(charset$$1);
+  set charset(charset$1) {
+    this[charset] = normalizeCharset(charset$1);
   }
 
   /**
@@ -812,8 +812,8 @@ class FileSend extends Events {
    * @property etag
    * @method set
    */
-  set etag(etag$$1) {
-    this[etag$1] = normalizeBoolean(etag$$1, true);
+  set etag(etag$1) {
+    this[etag] = normalizeBoolean(etag$1, true);
   }
 
   /**
@@ -821,15 +821,15 @@ class FileSend extends Events {
    * @method get
    */
   get etag() {
-    return this[etag$1];
+    return this[etag];
   }
 
   /**
    * @property immutable
    * @method set
    */
-  set immutable(immutable$$1) {
-    this[immutable] = normalizeBoolean(immutable$$1, false);
+  set immutable(immutable$1) {
+    this[immutable] = normalizeBoolean(immutable$1, false);
   }
 
   /**
@@ -844,8 +844,8 @@ class FileSend extends Events {
    * @property acceptRanges
    * @method set
    */
-  set acceptRanges(acceptRanges$$1) {
-    this[acceptRanges] = normalizeBoolean(acceptRanges$$1, true);
+  set acceptRanges(acceptRanges$1) {
+    this[acceptRanges] = normalizeBoolean(acceptRanges$1, true);
   }
 
   /**
@@ -860,8 +860,8 @@ class FileSend extends Events {
    * @property cacheControl
    * @method set
    */
-  set cacheControl(cacheControl$$1) {
-    this[cacheControl] = normalizeBoolean(cacheControl$$1, true);
+  set cacheControl(cacheControl$1) {
+    this[cacheControl] = normalizeBoolean(cacheControl$1, true);
   }
 
   /**
@@ -876,8 +876,8 @@ class FileSend extends Events {
    * @property lastModified
    * @method set
    */
-  set lastModified(lastModified$$1) {
-    this[lastModified] = normalizeBoolean(lastModified$$1, true);
+  set lastModified(lastModified$1) {
+    this[lastModified] = normalizeBoolean(lastModified$1, true);
   }
 
   /**
@@ -966,13 +966,13 @@ class FileSend extends Events {
    * @public
    */
   hasHeader(name) {
-    const response$$1 = this.response;
+    const response = this.response;
 
-    if (response$$1.hasHeader) {
-      return response$$1.hasHeader(name);
+    if (response.hasHeader) {
+      return response.hasHeader(name);
     }
 
-    return response$$1.getHeader(name) !== undef;
+    return response.getHeader(name) !== undef;
   }
 
   /**
@@ -1020,28 +1020,28 @@ class FileSend extends Events {
    * @param {Object} options
    * @public
    */
-  pipe(response$$1, options) {
+  pipe(response$1, options) {
     if (this[response]) {
       throw new RangeError('The pipe method has been called more than once.');
     }
 
-    if (!(response$$1 instanceof http.ServerResponse)) {
+    if (!(response$1 instanceof http.ServerResponse)) {
       throw new TypeError('The response must be a http response.');
     }
 
     // Set response
-    this[response] = response$$1;
+    this[response] = response$1;
 
     // Headers already sent
-    if (response$$1.headersSent) {
+    if (response$1.headersSent) {
       this[headersSent]();
 
-      return response$$1;
+      return response$1;
     }
 
     // Listening error event
-    response$$1.once('error', error$$1 => {
-      this[statError](error$$1);
+    response$1.once('error', error => {
+      this[statError](error);
     });
 
     // Bootstrap
@@ -1050,7 +1050,7 @@ class FileSend extends Events {
     // Pipeline
     const streams = [this[stdin]].concat(this[middlewares]);
 
-    streams.push(response$$1);
+    streams.push(response$1);
 
     return pipeline(streams);
   }
@@ -1085,28 +1085,28 @@ class FileSend extends Events {
    * @public
    */
   [error](statusCode, statusMessage) {
-    const response$$1 = this.response;
+    const response = this.response;
 
     this.status(statusCode, statusMessage);
 
     statusCode = this.statusCode;
     statusMessage = this.statusMessage;
 
-    const error$$1 = new Error(statusMessage);
+    const error = new Error(statusMessage);
 
-    error$$1.statusCode = statusCode;
+    error.statusCode = statusCode;
 
     // Emit if listeners instead of responding
     if (this.hasListeners('error')) {
-      this.emit('error', error$$1, chunk => {
-        if (response$$1.headersSent) {
+      this.emit('error', error, chunk => {
+        if (response.headersSent) {
           return this[headersSent]();
         }
 
         this[responseEnd](chunk);
       });
     } else {
-      if (response$$1.headersSent) {
+      if (response.headersSent) {
         return this[headersSent]();
       }
 
@@ -1128,13 +1128,13 @@ class FileSend extends Events {
    * @param {Error} error
    * @private
    */
-  [statError](error$$1) {
+  [statError](error$1) {
     // 404 error
-    if (NOT_FOUND.indexOf(error$$1.code) !== -1) {
+    if (NOT_FOUND.indexOf(error$1.code) !== -1) {
       return this[error](404);
     }
 
-    this[error](500, error$$1.message);
+    this[error](500, error$1.message);
   }
 
   /**
@@ -1162,29 +1162,29 @@ class FileSend extends Events {
    * @private
    */
   [isPreconditionFailure]() {
-    const request$$1 = this.request;
+    const request = this.request;
     // if-match
-    const match = request$$1.headers['if-match'];
+    const match = request.headers['if-match'];
 
     if (match) {
-      const etag$$1 = this.getHeader('ETag');
+      const etag = this.getHeader('ETag');
 
       return (
-        !etag$$1 ||
+        !etag ||
         (match !== '*' &&
           parseTokenList(match).every(match => {
-            return match !== etag$$1 && match !== 'W/' + etag$$1 && 'W/' + match !== etag$$1;
+            return match !== etag && match !== 'W/' + etag && 'W/' + match !== etag;
           }))
       );
     }
 
     // if-unmodified-since
-    const unmodifiedSince = parseHttpDate(request$$1.headers['if-unmodified-since']);
+    const unmodifiedSince = parseHttpDate(request.headers['if-unmodified-since']);
 
     if (!isNaN(unmodifiedSince)) {
-      const lastModified$$1 = parseHttpDate(this.getHeader('Last-Modified'));
+      const lastModified = parseHttpDate(this.getHeader('Last-Modified'));
 
-      return isNaN(lastModified$$1) || lastModified$$1 > unmodifiedSince;
+      return isNaN(lastModified) || lastModified > unmodifiedSince;
     }
 
     return false;
@@ -1224,15 +1224,15 @@ class FileSend extends Events {
 
     // If-Range as etag
     if (ifRange.indexOf('"') !== -1) {
-      const etag$$1 = this.getHeader('ETag');
+      const etag = this.getHeader('ETag');
 
-      return Boolean(etag$$1 && ifRange.indexOf(etag$$1) !== -1);
+      return Boolean(etag && ifRange.indexOf(etag) !== -1);
     }
 
     // If-Range as modified date
-    const lastModified$$1 = this.getHeader('Last-Modified');
+    const lastModified = this.getHeader('Last-Modified');
 
-    return parseHttpDate(lastModified$$1) <= parseHttpDate(ifRange);
+    return parseHttpDate(lastModified) <= parseHttpDate(ifRange);
   }
 
   /**
@@ -1240,8 +1240,8 @@ class FileSend extends Events {
    * @param {string} path
    * @private
    */
-  [isIgnore](path$$1) {
-    return this.ignore.length && micromatch(path$$1, this.ignore, this[glob]).length;
+  [isIgnore](path) {
+    return this.ignore.length && micromatch(path, this.ignore, this[glob]).length;
   }
 
   /**
@@ -1249,7 +1249,7 @@ class FileSend extends Events {
    * @param {Stats} stats
    * @private
    */
-  [parseRange$1](stats) {
+  [parseRange](stats) {
     const result = [];
     const size = stats.size;
     let contentLength = size;
@@ -1261,7 +1261,7 @@ class FileSend extends Events {
       // Range fresh
       if (ranges && this[isRangeFresh]()) {
         // Parse range -1 -2 or []
-        ranges = parseRange(size, ranges, { combine: true });
+        ranges = parseRange$1(size, ranges, { combine: true });
 
         // Valid ranges, support multiple ranges
         if (Array.isArray(ranges) && ranges.type === 'bytes') {
@@ -1371,7 +1371,7 @@ class FileSend extends Events {
    * @private
    */
   [initHeaders](stats) {
-    const response$$1 = this.response;
+    const response = this.response;
 
     // Accept-Ranges
     if (this.acceptRanges) {
@@ -1385,26 +1385,26 @@ class FileSend extends Events {
       let type = mime.lookup(this.path);
 
       if (type) {
-        let charset$$1 = this.charset;
+        let charset = this.charset;
 
         // Get charset
-        charset$$1 = charset$$1 ? `; charset=${charset$$1}` : '';
+        charset = charset ? `; charset=${charset}` : '';
 
         // Set Content-Type
-        this.setHeader('Content-Type', type + charset$$1);
+        this.setHeader('Content-Type', type + charset);
       }
     }
 
     // Cache-Control
     if (this.cacheControl && !this.hasHeader('Cache-Control')) {
-      let cacheControl$$1 = `public, max-age=${this.maxAge}`;
+      let cacheControl = `public, max-age=${this.maxAge}`;
 
       if (this.immutable) {
-        cacheControl$$1 += ', immutable';
+        cacheControl += ', immutable';
       }
 
       // Set Cache-Control
-      this.setHeader('Cache-Control', cacheControl$$1);
+      this.setHeader('Cache-Control', cacheControl);
     }
 
     // Last-Modified
@@ -1415,7 +1415,7 @@ class FileSend extends Events {
 
     if (this.etag && !this.hasHeader('ETag')) {
       // Set ETag
-      this.setHeader('ETag', etag(stats));
+      this.setHeader('ETag', etag$1(stats));
     }
   }
 
@@ -1427,13 +1427,13 @@ class FileSend extends Events {
    * @private
    */
   [responseEnd](chunk, encoding, callback) {
-    const response$$1 = this.response;
+    const response = this.response;
 
-    if (response$$1) {
+    if (response) {
       if (chunk) {
-        response$$1.end(chunk, encoding, callback);
+        response.end(chunk, encoding, callback);
       } else {
-        response$$1.end();
+        response.end();
       }
     }
 
@@ -1446,31 +1446,31 @@ class FileSend extends Events {
    * @private
    */
   [sendIndex]() {
-    const hasTrailingSlash$$1 = this[hasTrailingSlash]();
-    const path$$1 = hasTrailingSlash$$1 ? this.path : `${this.path}/`;
+    const hasTrailingSlash$1 = this[hasTrailingSlash]();
+    const path = hasTrailingSlash$1 ? this.path : `${this.path}/`;
 
     // Iterator index
     series(
-      this.index.map(index$$1 => path$$1 + index$$1),
-      (path$$1, next) => {
-        if (this[isIgnore](path$$1)) {
+      this.index.map(index => path + index),
+      (path, next) => {
+        if (this[isIgnore](path)) {
           return next();
         }
 
-        fs.stat(this.root + path$$1, (error$$1, stats) => {
-          if (error$$1 || !stats.isFile()) {
+        fs.stat(this.root + path, (error, stats) => {
+          if (error || !stats.isFile()) {
             return next();
           }
 
-          this.redirect(unixify(path$$1));
+          this.redirect(unixify(path));
         });
       },
       () => {
-        if (hasTrailingSlash$$1) {
+        if (hasTrailingSlash$1) {
           return this[dir]();
         }
 
-        this.redirect(path$$1);
+        this.redirect(path);
       }
     );
   }
@@ -1480,24 +1480,24 @@ class FileSend extends Events {
    * @private
    */
   [sendFile](ranges) {
-    const response$$1 = this.response;
-    const realpath$$1 = this.realpath;
-    const stdin$$1 = this[stdin];
+    const response = this.response;
+    const realpath = this.realpath;
+    const stdin$1 = this[stdin];
 
     // Iterator ranges
     series(
       ranges,
-      (range, next, index$$1) => {
+      (range, next, index) => {
         // Write open boundary
-        range.open && stdin$$1.write(range.open);
+        range.open && stdin$1.write(range.open);
 
         // Create file stream
-        const file = fs.createReadStream(realpath$$1, range);
+        const file = fs.createReadStream(realpath, range);
 
         // Error handling code-smell
-        file.on('error', error$$1 => {
+        file.on('error', error => {
           // Emit stdin error
-          stdin$$1.emit('error', error$$1);
+          stdin$1.emit('error', error);
 
           // Destroy file stream
           destroy(file);
@@ -1506,10 +1506,10 @@ class FileSend extends Events {
         // File stream end
         file.on('end', () => {
           // Stop pipe stdin
-          file.unpipe(stdin$$1);
+          file.unpipe(stdin$1);
 
           // Push close boundary
-          range.close && stdin$$1.write(range.close);
+          range.close && stdin$1.write(range.close);
 
           // Destroy file stream
           destroy(file);
@@ -1520,7 +1520,7 @@ class FileSend extends Events {
 
         // Pipe stdin
         file.pipe(
-          stdin$$1,
+          stdin$1,
           { end: false }
         );
       },
@@ -1535,8 +1535,8 @@ class FileSend extends Events {
    */
   [bootstrap]() {
     const method = this.method;
-    const response$$1 = this.response;
-    const realpath$$1 = this.realpath;
+    const response = this.response;
+    const realpath = this.realpath;
 
     // Only support GET and HEAD
     if (method !== 'GET' && method !== 'HEAD') {
@@ -1545,7 +1545,7 @@ class FileSend extends Events {
     }
 
     // Set status
-    this.status(response$$1.statusCode || 200);
+    this.status(response.statusCode || 200);
 
     // Path -1 or null byte(s)
     if (this.path === -1 || this.path.indexOf('\0') !== -1) {
@@ -1553,7 +1553,7 @@ class FileSend extends Events {
     }
 
     // Malicious path
-    if (isOutBound(realpath$$1, this.root)) {
+    if (isOutBound(realpath, this.root)) {
       return this[error](403);
     }
 
@@ -1568,10 +1568,10 @@ class FileSend extends Events {
     }
 
     // Read file
-    fs.stat(realpath$$1, (error$$1, stats) => {
+    fs.stat(realpath, (error$1, stats) => {
       // Stat error
-      if (error$$1) {
-        return this[statError](error$$1);
+      if (error$1) {
+        return this[statError](error$1);
       }
 
       // Is directory
@@ -1587,7 +1587,7 @@ class FileSend extends Events {
 
       // Conditional get support
       if (this[isConditionalGET]()) {
-        const responseEnd$$1 = () => {
+        const responseEnd$1 = () => {
           // Remove content-type
           this.removeHeader('Content-Type');
 
@@ -1598,11 +1598,11 @@ class FileSend extends Events {
         if (this[isPreconditionFailure]()) {
           this.status(412);
 
-          return responseEnd$$1();
+          return responseEnd$1();
         } else if (this[isCachable] && this[isFresh]()) {
           this.status(304);
 
-          return responseEnd$$1();
+          return responseEnd$1();
         }
       }
 
@@ -1616,7 +1616,7 @@ class FileSend extends Events {
       }
 
       // Parse ranges
-      const ranges = this[parseRange$1](stats);
+      const ranges = this[parseRange](stats);
 
       // 416
       if (ranges === -1) {
@@ -1627,7 +1627,7 @@ class FileSend extends Events {
       } else {
         // Emit file event
         if (this.hasListeners('file')) {
-          this.emit('file', realpath$$1, stats);
+          this.emit('file', realpath, stats);
         }
 
         // Read file
