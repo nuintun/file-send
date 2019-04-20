@@ -5,6 +5,8 @@ node_js:
   - "10"
   - "11"
 sudo: false
+before_install:
+  - "npm update -g"
 before_script:
   - "npm install mocha"
   - "npm install istanbul"
