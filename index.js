@@ -2,7 +2,7 @@
  * @module file-send
  * @author nuintun
  * @license MIT
- * @version 3.1.3
+ * @version 3.2.0
  * @description A http file send.
  * @see https://github.com/nuintun/file-send#readme
  */
@@ -1152,9 +1152,7 @@ class FileSend extends Events {
   [isConditionalGET]() {
     const headers = this.request.headers;
 
-    return (
-      headers['if-match'] || headers['if-unmodified-since'] || headers['if-none-match'] || headers['if-modified-since']
-    );
+    return headers['if-match'] || headers['if-unmodified-since'] || headers['if-none-match'] || headers['if-modified-since'];
   }
 
   /**

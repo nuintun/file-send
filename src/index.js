@@ -569,9 +569,7 @@ export default class FileSend extends Events {
   [symbol.isConditionalGET]() {
     const headers = this.request.headers;
 
-    return (
-      headers['if-match'] || headers['if-unmodified-since'] || headers['if-none-match'] || headers['if-modified-since']
-    );
+    return headers['if-match'] || headers['if-unmodified-since'] || headers['if-none-match'] || headers['if-modified-since'];
   }
 
   /**
