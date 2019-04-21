@@ -21,7 +21,7 @@ references:
       - run: node --version
       - run: npm --version
       - run: npm run test-cov
-      - run: npm run codecov
+      - run: npm run coverage
 
 jobs:
   node-8:

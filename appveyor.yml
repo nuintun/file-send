@@ -18,5 +18,5 @@ test_script:
   - node --version
   - npm --version
   - npm run test-cov
-  - npm run codecov
+  - npm run coverage
 version: "{build}"
