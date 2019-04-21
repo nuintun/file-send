@@ -48,9 +48,10 @@
   "readmeFilename": "README.md",
   "scripts": {
     "coverage": "codecov",
+    "test-coverage": "nyc npm test",
     "prepublishOnly": "node rollup.js",
-    "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit",
-    "test-cov": "nyc --reporter=text-lcov mocha -- --timeout 6000 --check-leaks --reporter spec --bail --exit > coverage.lcov"
+    "report-coverage": "nyc --reporter=text-lcov > coverage.lcov",
+    "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit"
   },
   "homepage": "https://github.com/nuintun/file-send#readme"
 }

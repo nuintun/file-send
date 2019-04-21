@@ -17,6 +17,7 @@ build: off
 test_script:
   - node --version
   - npm --version
-  - npm run test-cov
+  - npm run test-coverage
+  - npm run report-coverage
   - npm run coverage
 version: "{build}"
