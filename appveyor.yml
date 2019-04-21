@@ -11,7 +11,7 @@ install:
   - ps: Install-Product node $env:nodejs_version
   - npm install
   - npm install mocha
-  - npm install istanbul
+  - npm install nyc
 build: off
 test_script:
   - node --version

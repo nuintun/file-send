@@ -13,7 +13,7 @@ references:
 
       # prepare
       - run: npm install mocha
-      - run: npm install istanbul
+      - run: npm install nyc
       - run: yarn install
 
       # run tests!

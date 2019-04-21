@@ -49,8 +49,8 @@
   "scripts": {
     "prepublishOnly": "node rollup.js",
     "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit",
-    "test-ci": "istanbul cover node_modules/mocha/bin/_mocha --report lcovonly -- --timeout 6000 --check-leaks --reporter spec --exit",
-    "test-cov": "istanbul cover node_modules/mocha/bin/_mocha -- --timeout 6000 --check-leaks --reporter dot --exit"
+    "test-ci": "nyc cover node_modules/mocha/bin/_mocha --report lcovonly -- --timeout 6000 --check-leaks --reporter spec --exit",
+    "test-cov": "nyc cover node_modules/mocha/bin/_mocha -- --timeout 6000 --check-leaks --reporter dot --exit"
   },
   "homepage": "https://github.com/nuintun/file-send#readme"
 }
