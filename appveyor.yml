@@ -12,10 +12,11 @@ install:
   - npm install
   - npm install nyc
   - npm install mocha
-  - npm install coveralls
+  - npm install codecov
 build: off
 test_script:
   - node --version
   - npm --version
   - npm run test-cov
+  - npm run codecov
 version: "{build}"
