@@ -51,8 +51,7 @@
     "test-coverage": "nyc npm test",
     "prepublishOnly": "node rollup.js",
     "create-coverage": "nyc report --reporter=text-lcov > coverage.lcov",
-    "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit",
-    "coverage": "npm run test-coverage & npm run create-coverage & npm run report-coverage"
+    "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit"
   },
   "homepage": "https://github.com/nuintun/file-send#readme"
 }

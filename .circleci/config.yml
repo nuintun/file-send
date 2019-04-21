@@ -20,7 +20,9 @@ references:
       # run tests!
       - run: node --version
       - run: npm --version
-      - run: npm run coverage
+      - run: npm run test-coverage
+      - run: npm run create-coverage
+      - run: npm run report-coverage
 
 jobs:
   node-8:
