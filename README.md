@@ -4,9 +4,9 @@
 >
 > [![NPM Version][npm-image]][npm-url]
 > [![Download Status][download-image]][npm-url]
-> [![Linux Status][travis-image]][travis-url]
+> [![Linux Status][circleci-image]][circleci-url]
 > [![Windows Status][appveyor-image]][appveyor-url]
-> [![Test Coverage][coveralls-image]][coveralls-url]
+> [![Test Coverage][codecov-image]][codecov-url]
 > ![Node Version][node-image]
 > [![Dependencies][david-image]][david-url]
 
@@ -64,8 +64,8 @@ Set how "ignore" are treated when encountered.
 
 The default value is `'deny'`.
 
-* `'deny'` Send a 403 for any request for ignore matched.
-* `'ignore'` Pretend like the ignore matched does not exist and 404.
+- `'deny'` Send a 403 for any request for ignore matched.
+- `'ignore'` Pretend like the ignore matched does not exist and 404.
 
 ##### _glob_ - `Object`
 
@@ -116,9 +116,9 @@ The mime export is the global instance of of the `mime-types` npm module.
 
 The `FileSend` is an event emitter and will emit the following events:
 
-* `dir` a directory was requested`(realpath, next)`
-* `file` a file was requested `(realpath, stats)`
-* `error` an error occurred `(error, next)`
+- `dir` a directory was requested`(realpath, next)`
+- `file` a file was requested `(realpath, stats)`
+- `error` an error occurred `(error, next)`
 
 ## Error-handling
 
@@ -190,12 +190,12 @@ if (cluster.isMaster) {
 
 [MIT](LICENSE)
 
-[travis-image]: https://img.shields.io/travis/nuintun/file-send/master.svg?style=flat-square&label=linux
-[travis-url]: https://travis-ci.org/nuintun/file-send
+[circleci-image]: https://img.shields.io/circleci/project/github/nuintun/file-send.svg?style=flat-square&label=linux
+[circleci-url]: https://circleci.com/gh/nuintun/file-send
 [appveyor-image]: https://img.shields.io/appveyor/ci/nuintun/file-send/master.svg?style=flat-square&label=windows
 [appveyor-url]: https://ci.appveyor.com/project/nuintun/file-send
-[coveralls-image]: https://img.shields.io/coveralls/nuintun/file-send/master.svg?style=flat-square
-[coveralls-url]: https://coveralls.io/r/nuintun/file-send?branch=master
+[codecov-image]: https://img.shields.io/codecov/c/github/nuintun/file-send.svg?style=flat-square
+[codecov-url]: https://codecov.io/gh/nuintun/file-send
 [node-image]: https://img.shields.io/node/v/file-send.svg?style=flat-square
 [david-image]: https://img.shields.io/david/nuintun/file-send.svg?style=flat-square
 [david-url]: https://david-dm.org/nuintun/file-send
