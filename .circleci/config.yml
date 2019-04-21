@@ -36,3 +36,12 @@ jobs:
     docker:
       - image: circleci/node:11
     <<: *run-test
+
+workflows:
+  version: 2
+  run_test:
+    jobs:
+      - node-8
+      - node-9
+      - node-10
+      - node-11
