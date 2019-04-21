@@ -10,8 +10,8 @@ platform:
 install:
   - ps: Install-Product node $env:nodejs_version
   - npm install
-  - npm install mocha
   - npm install nyc
+  - npm install mocha
 build: off
 test_script:
   - node --version

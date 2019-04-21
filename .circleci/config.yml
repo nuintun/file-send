@@ -12,17 +12,23 @@ references:
       - checkout
 
       # prepare
-      - run: npm install mocha
+      - run: npm install
       - run: npm install nyc
-      - run: yarn install
+      - run: npm install mocha
 
       # run tests!
-      - run: yarn test-ci
+      - run: node --version
+      - run: npm --version
+      - run: npm run test-ci
 
 jobs:
   node-8:
     docker:
       - image: circleci/node:8
+    <<: *run-test
+  node-9:
+    docker:
+      - image: circleci/node:10
     <<: *run-test
   node-10:
     docker:
@@ -38,5 +44,6 @@ workflows:
   run_test:
     jobs:
       - node-8
+      - node-9
       - node-10
       - node-11
