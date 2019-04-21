@@ -49,7 +49,7 @@
   "scripts": {
     "prepublishOnly": "node rollup.js",
     "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit",
-    "test-cov": "nyc report --report --reporter=text-lcov | coveralls -- --timeout 6000 --check-leaks --reporter spec --exit"
+    "test-cov": "nyc report --reporter=text-lcov | coveralls -- --timeout 6000 --check-leaks --reporter spec --exit"
   },
   "homepage": "https://github.com/nuintun/file-send#readme"
 }
