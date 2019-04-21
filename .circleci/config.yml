@@ -3,25 +3,36 @@
 # Check https://circleci.com/docs/2.0/language-javascript/ for more details
 #
 version: 2
-jobs:
-  build:
-    docker:
-      # specify the version you desire here
-      - image: circleci/node:8
 
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/mongo:3.4.4
-
+references:
+  run-test: &run-test
     working_directory: ~/file-send
 
     steps:
       - checkout
 
+      # prepare
       - run: npm install mocha
       - run: npm install istanbul
       - run: yarn install
 
       # run tests!
       - run: yarn test-ci
+
+jobs:
+  node-8:
+    docker:
+      - image: circleci/node:8
+    <<: *run-test
+  node-9:
+    docker:
+      - image: circleci/node:9
+    <<: *run-test
+  node-10:
+    docker:
+      - image: circleci/node:10
+    <<: *run-test
+  node-11:
+    docker:
+      - image: circleci/node:11
+    <<: *run-test
