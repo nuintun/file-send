@@ -49,8 +49,8 @@
   "scripts": {
     "coverage": "codecov",
     "prepublishOnly": "node rollup.js",
-    "test-cov": "nyc --reporter=lcov mocha",
-    "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit"
+    "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit",
+    "test-cov": "nyc --reporter=lcov mocha -- --timeout 6000 --check-leaks --reporter spec --bail --exit"
   },
   "homepage": "https://github.com/nuintun/file-send#readme"
 }
