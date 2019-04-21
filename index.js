@@ -1369,8 +1369,6 @@ class FileSend extends Events {
    * @private
    */
   [initHeaders](stats) {
-    const response = this.response;
-
     // Accept-Ranges
     if (this.acceptRanges) {
       // Set Accept-Ranges
@@ -1478,7 +1476,6 @@ class FileSend extends Events {
    * @private
    */
   [sendFile](ranges) {
-    const response = this.response;
     const realpath = this.realpath;
     const stdin$1 = this[stdin];
 
