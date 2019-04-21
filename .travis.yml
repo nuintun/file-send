@@ -10,5 +10,5 @@ before_install:
 before_script:
   - "npm install mocha"
   - "npm install istanbul"
-script: "npm run-script test-ci"
+script: "npm run-script test-cov"
 after_script: "npm install coveralls && cat ./coverage/lcov.info | coveralls"

@@ -19,7 +19,7 @@ references:
       # run tests!
       - run: node --version
       - run: npm --version
-      - run: npm run test-ci
+      - run: npm run test-cov
 
 jobs:
   node-8:
