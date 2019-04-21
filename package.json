@@ -50,7 +50,7 @@
     "coverage": "codecov",
     "test-coverage": "nyc npm test",
     "prepublishOnly": "node rollup.js",
-    "report-coverage": "nyc --reporter=text-lcov > coverage.lcov",
+    "report-coverage": "nyc report --reporter=text-lcov > coverage.lcov",
     "test": "mocha --timeout 6000 --check-leaks --reporter spec --bail --exit"
   },
   "homepage": "https://github.com/nuintun/file-send#readme"
