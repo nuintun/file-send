@@ -3,7 +3,7 @@
   "singleQuote": true,
   "overrides": [
     {
-      "files": ["*.css", "*.less", "*.scss", ".travis.yml", "appveyor.yml"],
+      "files": ["*.css", "*.less", "*.scss", "appveyor.yml", ".circleci/*.yml"],
       "options": {
         "singleQuote": false
       }

@@ -1152,7 +1152,7 @@ describe('Options', () => {
         const server = createServer({
           root: fixtures,
           index: ['name.txt', 'name.html'],
-          ignore: ['/**/name.txt']
+          ignore: ['**/name.txt']
         });
 
         request.get(url(server, '/')).end((err, res) => {
@@ -1174,7 +1174,7 @@ describe('Options', () => {
     });
 
     describe('when "ignore"', () => {
-      const server = createServer({ root: fixtures, ignore: ['**/.*?(/*)'], ignoreAccess: 'ignore' });
+      const server = createServer({ root: fixtures, ignore: ['**/.*?(/**)'], ignoreAccess: 'ignore' });
 
       it('should 404 for ignore', done => {
         request.get(url(server, '/.hidden')).end((err, res) => {

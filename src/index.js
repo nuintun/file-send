@@ -656,7 +656,7 @@ export default class FileSend extends Events {
    * @private
    */
   [symbol.isIgnore](path) {
-    return this.ignore.length && micromatch(path, this.ignore, this[symbol.glob]).length;
+    return this.ignore.length && micromatch.isMatch(path, this.ignore, this[symbol.glob]);
   }
 
   /**

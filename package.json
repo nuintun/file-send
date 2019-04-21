@@ -33,7 +33,7 @@
     "fresh": "^0.5.2",
     "destroy": "^1.0.4",
     "encodeurl": "^1.0.2",
-    "micromatch": "^4.0.1",
+    "micromatch": "^4.0.2",
     "escape-html": "^1.0.3",
     "mime-types": "^2.1.23",
     "range-parser": "^1.2.0"
