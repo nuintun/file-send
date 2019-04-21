@@ -1239,7 +1239,7 @@ class FileSend extends Events {
    * @private
    */
   [isIgnore](path) {
-    return this.ignore.length && micromatch(path, this.ignore, this[glob]).length;
+    return this.ignore.length && micromatch.isMatch(path, this.ignore, this[glob]);
   }
 
   /**
