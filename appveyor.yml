@@ -12,6 +12,7 @@ install:
   - npm install
   - npm install nyc
   - npm install mocha
+  - npm install coveralls
 build: off
 test_script:
   - node --version

@@ -15,6 +15,7 @@ references:
       - run: npm install
       - run: npm install nyc
       - run: npm install mocha
+      - run: npm install coveralls
 
       # run tests!
       - run: node --version
