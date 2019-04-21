@@ -24,10 +24,6 @@ jobs:
     docker:
       - image: circleci/node:8
     <<: *run-test
-  node-9:
-    docker:
-      - image: circleci/node:9
-    <<: *run-test
   node-10:
     docker:
       - image: circleci/node:10
@@ -42,6 +38,5 @@ workflows:
   run_test:
     jobs:
       - node-8
-      - node-9
       - node-10
       - node-11
