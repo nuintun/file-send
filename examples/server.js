@@ -14,7 +14,7 @@ function createServer(root, port) {
         root: root || process.cwd(),
         maxAge: '3day',
         index: ['index.html'],
-        ignore: ['/**/.*?(/*.*|/)']
+        ignore: ['**/.*?(/**)']
       });
 
       send.pipe(response);
