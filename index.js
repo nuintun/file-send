@@ -1535,7 +1535,7 @@ class FileSend extends Events {
           this.status(412);
 
           return responseEnd$1();
-        } else if (this[isCachable] && this[isFresh]()) {
+        } else if (this[isCachable]() && this[isFresh]()) {
           this.status(304);
 
           return responseEnd$1();

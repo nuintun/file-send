@@ -1011,7 +1011,7 @@ export default class FileSend extends Events {
           this.status(412);
 
           return responseEnd();
-        } else if (this[symbol.isCachable] && this[symbol.isFresh]()) {
+        } else if (this[symbol.isCachable]() && this[symbol.isFresh]()) {
           this.status(304);
 
           return responseEnd();
