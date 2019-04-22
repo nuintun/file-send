@@ -1,7 +1,7 @@
 /**
  * @module file-send
  * @license MIT
- * @version 2018/04/16
+ * @author nuintun
  */
 
 import etag from 'etag';
@@ -13,13 +13,13 @@ import * as Stream from 'stream';
 import * as Events from 'events';
 import encodeUrl from 'encodeurl';
 import * as mime from 'mime-types';
+import through from './lib/through';
 import micromatch from 'micromatch';
 import * as utils from './lib/utils';
 import escapeHtml from 'escape-html';
 import { series } from './lib/async';
 import parseRange from 'range-parser';
 import * as symbol from './lib/symbol';
-import { through } from './lib/through';
 import * as normalize from './lib/normalize';
 
 // File not found status

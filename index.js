@@ -18,8 +18,8 @@ const Stream = require('stream');
 const Events = require('events');
 const encodeUrl = require('encodeurl');
 const mime = require('mime-types');
-const micromatch = require('micromatch');
 const path$1 = require('path');
+const micromatch = require('micromatch');
 const escapeHtml = require('escape-html');
 const parseRange$1 = require('range-parser');
 const ms = require('ms');
@@ -27,7 +27,7 @@ const ms = require('ms');
 /**
  * @module utils
  * @license MIT
- * @version 2018/04/16
+ * @author nuintun
  */
 
 const toString = Object.prototype.toString;
@@ -283,9 +283,66 @@ function createErrorDocument(statusCode, statusMessage) {
 }
 
 /**
+ * @module through
+ * @license MIT
+ * @author nuintun
+ */
+
+/**
+ * @function noop
+ * @description A noop _transform function
+ * @param {any} chunk
+ * @param {string} encoding
+ * @param {Function} next
+ */
+function noop(chunk, encoding, next) {
+  next(null, chunk);
+}
+
+/**
+ * @function through
+ * @param {Object} options
+ * @param {Function} transform
+ * @param {Function} flush
+ * @returns {Transform}
+ */
+function through(options, transform, flush, destroy) {
+  if (typeOf(options, 'function')) {
+    flush = transform;
+    transform = options;
+    options = {};
+  } else if (!typeOf(transform, 'function')) {
+    transform = noop;
+  }
+
+  if (!typeOf(flush, 'function')) flush = null;
+
+  if (!typeOf(destroy, 'function')) destroy = null;
+
+  options = options || {};
+
+  if (typeOf(options.objectModem, 'undefined')) {
+    options.objectMode = true;
+  }
+
+  if (typeOf(options.highWaterMark, 'undefined')) {
+    options.highWaterMark = 16;
+  }
+
+  const stream = new Stream.Transform(options);
+
+  stream._transform = transform;
+
+  if (flush) stream._flush = flush;
+  if (destroy) stream._destroy = destroy;
+
+  return stream;
+}
+
+/**
  * @module async
  * @license MIT
- * @version 2018/04/16
+ * @author nuintun
  */
 
 /**
@@ -349,7 +406,7 @@ function series(array, iterator, done) {
 /**
  * @module symbol
  * @license MIT
- * @version 2018/04/16
+ * @author nuintun
  */
 
 const dir = Symbol('dir');
@@ -389,116 +446,9 @@ const isConditionalGET = Symbol('isConditionalGET');
 const isPreconditionFailure = Symbol('isPreconditionFailure');
 
 /**
- * @module through
- * @license MIT
- * @version 2018/04/16
- */
-
-/**
- * @function noop
- * @description A noop _transform function
- * @param {any} chunk
- * @param {string} encoding
- * @param {Function} next
- */
-function noop(chunk, encoding, next) {
-  next(null, chunk);
-}
-
-const undef$1 = void 0;
-// Is destroyable Transform
-const destroyable = Stream.Transform.prototype.destroy;
-const DestroyableTransform = destroyable
-  ? Stream.Transform
-  : class extends Stream.Transform {
-      /**
-       * @constructor
-       * @param {Object} options
-       */
-      constructor(options) {
-        super(options);
-
-        this._destroyed = false;
-      }
-
-      /**
-       * @private
-       * @method _destroy
-       * @param {any} error
-       * @param {Function} callback
-       */
-      _destroy(error, callback) {
-        if (this._destroyed) return;
-
-        this._destroyed = true;
-
-        process.nextTick(() => {
-          if (error) {
-            if (callback) {
-              callback();
-            } else {
-              this.emit('error', error);
-            }
-          }
-
-          this.emit('close');
-        });
-      }
-
-      /**
-       * @function destroy
-       * @param {any} error
-       * @param {Function} callback
-       */
-      destroy(error, callback) {
-        this._destroy(error, callback);
-      }
-    };
-
-/**
- * @function through
- * @param {Object} options
- * @param {Function} transform
- * @param {Function} flush
- * @returns {Transform}
- */
-function through(options, transform, flush, destroy) {
-  if (typeOf(options, 'function')) {
-    flush = transform;
-    transform = options;
-    options = {};
-  } else if (!typeOf(transform, 'function')) {
-    transform = noop;
-  }
-
-  if (!typeOf(flush, 'function')) flush = null;
-
-  if (!typeOf(destroy, 'function')) destroy = null;
-
-  options = options || {};
-
-  if (options.objectMode === undef$1) {
-    options.objectMode = true;
-  }
-
-  if (options.highWaterMark === undef$1) {
-    options.highWaterMark = 16;
-  }
-
-  const stream = new DestroyableTransform(options);
-
-  stream._transform = transform;
-
-  if (flush) stream._flush = flush;
-  if (destroy) stream._destroy = destroy;
-
-  return stream;
-}
-
-/**
  * @module normalize
  * @license MIT
- * @version 2018/04/16
+ * @author nuintun
  */
 
 // Current working directory
@@ -602,7 +552,7 @@ function normalizeGlob(glob) {
 /**
  * @module file-send
  * @license MIT
- * @version 2018/04/16
+ * @author nuintun
  */
 
 // File not found status

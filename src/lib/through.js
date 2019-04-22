@@ -1,7 +1,7 @@
 /**
  * @module through
  * @license MIT
- * @version 2018/04/16
+ * @author nuintun
  */
 
 import { typeOf } from './utils';
@@ -18,56 +18,6 @@ function noop(chunk, encoding, next) {
   next(null, chunk);
 }
 
-const undef = void 0;
-// Is destroyable Transform
-const destroyable = Transform.prototype.destroy;
-const DestroyableTransform = destroyable
-  ? Transform
-  : class extends Transform {
-      /**
-       * @constructor
-       * @param {Object} options
-       */
-      constructor(options) {
-        super(options);
-
-        this._destroyed = false;
-      }
-
-      /**
-       * @private
-       * @method _destroy
-       * @param {any} error
-       * @param {Function} callback
-       */
-      _destroy(error, callback) {
-        if (this._destroyed) return;
-
-        this._destroyed = true;
-
-        process.nextTick(() => {
-          if (error) {
-            if (callback) {
-              callback();
-            } else {
-              this.emit('error', error);
-            }
-          }
-
-          this.emit('close');
-        });
-      }
-
-      /**
-       * @function destroy
-       * @param {any} error
-       * @param {Function} callback
-       */
-      destroy(error, callback) {
-        this._destroy(error, callback);
-      }
-    };
-
 /**
  * @function through
  * @param {Object} options
@@ -75,7 +25,7 @@ const DestroyableTransform = destroyable
  * @param {Function} flush
  * @returns {Transform}
  */
-export function through(options, transform, flush, destroy) {
+export default function through(options, transform, flush, destroy) {
   if (typeOf(options, 'function')) {
     flush = transform;
     transform = options;
@@ -90,15 +40,15 @@ export function through(options, transform, flush, destroy) {
 
   options = options || {};
 
-  if (options.objectMode === undef) {
+  if (typeOf(options.objectModem, 'undefined')) {
     options.objectMode = true;
   }
 
-  if (options.highWaterMark === undef) {
+  if (typeOf(options.highWaterMark, 'undefined')) {
     options.highWaterMark = 16;
   }
 
-  const stream = new DestroyableTransform(options);
+  const stream = new Transform(options);
 
   stream._transform = transform;
 

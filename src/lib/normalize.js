@@ -1,7 +1,7 @@
 /**
  * @module normalize
  * @license MIT
- * @version 2018/04/16
+ * @author nuintun
  */
 
 import ms from 'ms';

@@ -1,7 +1,7 @@
 /**
  * @module utils
  * @license MIT
- * @version 2018/04/16
+ * @author nuintun
  */
 
 import { relative } from 'path';
