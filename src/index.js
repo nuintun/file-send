@@ -383,13 +383,7 @@ export default class FileSend extends Events {
    * @public
    */
   hasHeader(name) {
-    const response = this.response;
-
-    if (response.hasHeader) {
-      return response.hasHeader(name);
-    }
-
-    return !utils.typeOf(response.getHeader(name), 'undefined');
+    return this.response.hasHeader(name);
   }
 
   /**
