@@ -6,10 +6,9 @@
 
 import { relative } from 'path';
 
+const undef = void 0;
 const toString = Object.prototype.toString;
 const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
-
-export const undef = void 0;
 
 /**
  * @function typeOf
@@ -179,14 +178,6 @@ export function apply(fn, context, args) {
       // Slower
       return fn.apply(context, args);
   }
-}
-
-/**
- * @function isUndefined
- * @param {any} value
- */
-export function isUndefined(value) {
-  return value === undef;
 }
 
 /**

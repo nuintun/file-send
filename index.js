@@ -30,10 +30,9 @@ const ms = require('ms');
  * @author nuintun
  */
 
+const undef = void 0;
 const toString = Object.prototype.toString;
 const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
-
-const undef = void 0;
 
 /**
  * @function typeOf
@@ -177,14 +176,6 @@ function parseHttpDate(date) {
   const timestamp = date && Date.parse(date);
 
   return typeOf(timestamp, 'number') ? timestamp : NaN;
-}
-
-/**
- * @function isUndefined
- * @param {any} value
- */
-function isUndefined(value) {
-  return value === undef;
 }
 
 /**
@@ -534,7 +525,7 @@ function normalizeMaxAge(maxAge) {
  * @returns {boolean}
  */
 function normalizeBoolean(boolean, def) {
-  return isUndefined(boolean) ? def : Boolean(boolean);
+  return typeOf(boolean, 'undefined') ? def : Boolean(boolean);
 }
 
 /**
@@ -922,7 +913,7 @@ class FileSend extends Events {
       return response.hasHeader(name);
     }
 
-    return response.getHeader(name) !== undef;
+    return !typeOf(response.getHeader(name), 'undefined');
   }
 
   /**

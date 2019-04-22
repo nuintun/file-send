@@ -389,7 +389,7 @@ export default class FileSend extends Events {
       return response.hasHeader(name);
     }
 
-    return response.getHeader(name) !== utils.undef;
+    return !utils.typeOf(response.getHeader(name), 'undefined');
   }
 
   /**

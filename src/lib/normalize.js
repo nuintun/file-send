@@ -91,7 +91,7 @@ export function normalizeMaxAge(maxAge) {
  * @returns {boolean}
  */
 export function normalizeBoolean(boolean, def) {
-  return utils.isUndefined(boolean) ? def : Boolean(boolean);
+  return utils.typeOf(boolean, 'undefined') ? def : Boolean(boolean);
 }
 
 /**
