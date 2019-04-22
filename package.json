@@ -35,7 +35,7 @@
     "encodeurl": "^1.0.2",
     "micromatch": "^4.0.2",
     "escape-html": "^1.0.3",
-    "mime-types": "^2.1.23",
+    "mime-types": "^2.1.24",
     "range-parser": "^1.2.0"
   },
   "devDependencies": {
