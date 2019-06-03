@@ -950,9 +950,6 @@ export default class FileSend extends Events {
       return this[symbol.error](405);
     }
 
-    // Set status
-    this.status(response.statusCode || 200);
-
     // Path -1 or null byte(s)
     if (this.path === -1 || this.path.indexOf('\0') !== -1) {
       return this[symbol.error](400);
@@ -972,6 +969,9 @@ export default class FileSend extends Events {
           return this[symbol.error](404);
       }
     }
+
+    // Set status
+    this.status(200);
 
     // Read file
     fs.stat(realpath, (error, stats) => {

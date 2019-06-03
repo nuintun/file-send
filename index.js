@@ -2,7 +2,7 @@
  * @module file-send
  * @author nuintun
  * @license MIT
- * @version 4.0.1
+ * @version 4.0.2
  * @description A http file send.
  * @see https://github.com/nuintun/file-send#readme
  */
@@ -1474,9 +1474,6 @@ class FileSend extends Events {
       return this[error](405);
     }
 
-    // Set status
-    this.status(response.statusCode || 200);
-
     // Path -1 or null byte(s)
     if (this.path === -1 || this.path.indexOf('\0') !== -1) {
       return this[error](400);
@@ -1496,6 +1493,9 @@ class FileSend extends Events {
           return this[error](404);
       }
     }
+
+    // Set status
+    this.status(200);
 
     // Read file
     fs.stat(realpath, (error$1, stats) => {
