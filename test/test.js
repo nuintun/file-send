@@ -833,7 +833,7 @@ describe('FileSend(req, path, options)', () => {
             }
           });
 
-          res.on('end', () => {
+          res.on('close', () => {
             const contentType = res.headers['content-type'];
             const boundary = /^multipart\/byteranges; boundary=(<[^<>]+>)$/.exec(contentType)[1];
 

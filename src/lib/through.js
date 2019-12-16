@@ -40,7 +40,7 @@ export default function through(options, transform, flush, destroy) {
 
   options = options || {};
 
-  if (typeOf(options.objectModem, 'undefined')) {
+  if (typeOf(options.objectMode, 'undefined')) {
     options.objectMode = true;
   }
 

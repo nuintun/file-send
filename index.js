@@ -32,7 +32,7 @@ const ms = require('ms');
 
 const undef = void 0;
 const toString = Object.prototype.toString;
-const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+const CHARS = Array.from('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
 
 /**
  * @function typeOf
@@ -76,9 +76,7 @@ function typeOf(value, type) {
 function isOutBound(path, root) {
   path = path$1.relative(root, path);
 
-  if (/\.\.(?:[\\/]|$)/.test(path)) return true;
-
-  return false;
+  return /\.\.(?:[\\/]|$)/.test(path) || path$1.isAbsolute(path);
 }
 
 /**
@@ -312,7 +310,7 @@ function through(options, transform, flush, destroy) {
 
   options = options || {};
 
-  if (typeOf(options.objectModem, 'undefined')) {
+  if (typeOf(options.objectMode, 'undefined')) {
     options.objectMode = true;
   }
 
@@ -1417,7 +1415,7 @@ class FileSend extends Events {
     // Iterator ranges
     series(
       ranges,
-      (range, next, index) => {
+      (range, next) => {
         // Write open boundary
         range.open && stdin$1.write(range.open);
 
@@ -1449,10 +1447,7 @@ class FileSend extends Events {
         file.on('close', next);
 
         // Pipe stdin
-        file.pipe(
-          stdin$1,
-          { end: false }
-        );
+        file.pipe(stdin$1, { end: false });
       },
       // End stdin
       () => this.end()
@@ -1465,7 +1460,6 @@ class FileSend extends Events {
    */
   [bootstrap]() {
     const method = this.method;
-    const response = this.response;
     const realpath = this.realpath;
 
     // Only support GET and HEAD
@@ -1517,22 +1511,15 @@ class FileSend extends Events {
 
       // Conditional get support
       if (this[isConditionalGET]()) {
-        const responseEnd$1 = () => {
-          // Remove content-type
+        if (this[isPreconditionFailure]()) {
+          return this[error](412);
+        }
+
+        if (this[isCachable]() && this[isFresh]()) {
+          this.status(304);
           this.removeHeader('Content-Type');
 
-          // End with empty content
-          this[responseEnd]();
-        };
-
-        if (this[isPreconditionFailure]()) {
-          this.status(412);
-
-          return responseEnd$1();
-        } else if (this[isCachable]() && this[isFresh]()) {
-          this.status(304);
-
-          return responseEnd$1();
+          return this[responseEnd]();
         }
       }
 

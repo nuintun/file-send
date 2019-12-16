@@ -893,7 +893,7 @@ export default class FileSend extends Events {
     // Iterator ranges
     series(
       ranges,
-      (range, next, index) => {
+      (range, next) => {
         // Write open boundary
         range.open && stdin.write(range.open);
 
@@ -925,10 +925,7 @@ export default class FileSend extends Events {
         file.on('close', next);
 
         // Pipe stdin
-        file.pipe(
-          stdin,
-          { end: false }
-        );
+        file.pipe(stdin, { end: false });
       },
       // End stdin
       () => this.end()
@@ -941,7 +938,6 @@ export default class FileSend extends Events {
    */
   [symbol.bootstrap]() {
     const method = this.method;
-    const response = this.response;
     const realpath = this.realpath;
 
     // Only support GET and HEAD
@@ -993,22 +989,15 @@ export default class FileSend extends Events {
 
       // Conditional get support
       if (this[symbol.isConditionalGET]()) {
-        const responseEnd = () => {
-          // Remove content-type
+        if (this[symbol.isPreconditionFailure]()) {
+          return this[symbol.error](412);
+        }
+
+        if (this[symbol.isCachable]() && this[symbol.isFresh]()) {
+          this.status(304);
           this.removeHeader('Content-Type');
 
-          // End with empty content
-          this[symbol.responseEnd]();
-        };
-
-        if (this[symbol.isPreconditionFailure]()) {
-          this.status(412);
-
-          return responseEnd();
-        } else if (this[symbol.isCachable]() && this[symbol.isFresh]()) {
-          this.status(304);
-
-          return responseEnd();
+          return this[symbol.responseEnd]();
         }
       }
 

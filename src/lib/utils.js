@@ -4,11 +4,11 @@
  * @author nuintun
  */
 
-import { relative } from 'path';
+import { isAbsolute, relative } from 'path';
 
 const undef = void 0;
 const toString = Object.prototype.toString;
-const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+const CHARS = Array.from('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
 
 /**
  * @function typeOf
@@ -52,9 +52,7 @@ export function typeOf(value, type) {
 export function isOutBound(path, root) {
   path = relative(root, path);
 
-  if (/\.\.(?:[\\/]|$)/.test(path)) return true;
-
-  return false;
+  return /\.\.(?:[\\/]|$)/.test(path) || isAbsolute(path);
 }
 
 /**
